@@ -116,9 +116,9 @@ TRIVYADAPTERVERSION=v0.34.0
 NODEBUILDIMAGE=node:16.18.0
 
 # version of registry for pulling the source code
-REGISTRY_SRC_TAG=release/2.8
+REGISTRY_SRC_TAG=v3.0.0
 # source of upstream distribution code
-DISTRIBUTION_SRC=https://github.com/goharbor/distribution.git
+DISTRIBUTION_SRC=https://github.com/distribution/distribution.git
 
 # dependency binaries
 REGISTRYURL=https://storage.googleapis.com/harbor-builds/bin/registry/release-${REGISTRYVERSION}/registry

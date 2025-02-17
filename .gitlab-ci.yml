@@ -1,0 +1,149 @@
+image: 8gears.container-registry.com/8gcr/dagger-client:v1
+
+variables:
+  GIT_DEPTH: "1"
+  REGISTRY_DOMAIN: "8gears.container-registry.com"
+  FF_SCRIPT_SECTIONS: "true" # enable multi-line script
+  COSIGN_YES: "true"
+
+before_script:
+  - set -e
+  - export VERSIONTAG=$(echo "${CI_COMMIT_BRANCH}" | sed 's|cr/|v|' | tr '/' '-')
+  - export DEBUGTAG=$VERSIONTAG-debug
+  # set project-name
+  # check if BRANCH_NAME contains the word 'commercial'   <-- added condition
+  - if [[ "$VERSIONTAG" == *commercial* ]]; then export PROJECT_NAME="8gcr-dev"; else export PROJECT_NAME="8gcr"; fi
+# set kubeconfig
+  - export KUBECONFIG=$DAGGER_KUBE_CONFIG
+  # Export runner host
+  - export DAGGER_ENGINE_POD_NAME="$(kubectl get pod
+      --selector=name=dagger-dagger-helm-engine --namespace=dagger
+      --output=jsonpath='{.items[0].metadata.name}')"
+  - export _EXPERIMENTAL_DAGGER_RUNNER_HOST="kube-pod://$DAGGER_ENGINE_POD_NAME?namespace=dagger"
+  # docker auth
+  - mkdir -p $HOME/.docker/
+  - echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
+  # export registry user and password for dagger
+  - export REGISTRY_USER=$(jq -r '.auths["8gears.container-registry.com"].username' $HOME/.docker/config.json)
+  # check if dagger is working
+  - dagger functions
+
+stages:
+  - build
+  - build-debug
+
+.publish_template: &publish_script
+  id_tokens:
+    SIGSTORE_ID_TOKEN:
+      aud: sigstore
+  script:
+    - |
+      set -e
+      echo "Publishing image for component: $COMPONENT_NAME"
+
+      export REGISTRY_PASS=$(jq -r '.auths["8gears.container-registry.com"].password' $HOME/.docker/config.json)
+
+      if [ "$DEBUG" = "true" ]; then
+        echo "Debug mode is enabled. Using DEBUGTAG."
+        export FINAL_IMAGE_TAG="$DEBUGTAG"
+      else
+        echo "Debug mode is disabled. Using VERSIONTAG."
+        export FINAL_IMAGE_TAG="$VERSIONTAG"
+      fi
+
+      # The Dagger command also uses the component name variable
+      OUTPUT=$(dagger call publish-and-sign-image --pkg $COMPONENT_NAME --registry-username=$REGISTRY_USER --registry=$REGISTRY_DOMAIN --registry-password=env://REGISTRY_PASS --sigstore-id-token=env://SIGSTORE_ID_TOKEN --image-tags $FINAL_IMAGE_TAG --project-name=$PROJECT_NAME --debugbin=$DEBUG)
+
+      echo "--- Full Dagger Output ---"
+      echo "$OUTPUT"
+      echo "--------------------------"
+
+      IMAGE_REF="$OUTPUT"
+
+      echo "Validating output format..."
+      if echo "$OUTPUT" | grep -qE "^${REGISTRY_DOMAIN}/${PROJECT_NAME}/[a-z0-9.-]+:${FINAL_IMAGE_TAG}@sha256:[a-f0-9]{64}$"; then
+        echo "✅ Pipeline Success: Published image reference for '$COMPONENT_NAME' is valid."
+      else
+        echo "❌ Pipeline Failed"
+        echo "❌ Error: The output for '$COMPONENT_NAME' is not valid."
+        echo "   Expected format: ${REGISTRY_DOMAIN}/${PROJECT_NAME}/${COMPONENT_NAME}:${FINAL_IMAGE_TAG}@sha256:..."
+        echo "   Received: $OUTPUT"
+        exit 1
+      fi
+
+build-core:
+  stage: build
+  variables:
+    DEBUG: false
+    COMPONENT_NAME: core
+  <<: *publish_script # Reuse the script logic
+
+build-core-debug:
+  stage: build-debug
+  variables:
+    DEBUG: true
+    COMPONENT_NAME: core
+  <<: *publish_script
+
+build-jobservice:
+  stage: build
+  variables:
+    DEBUG: false
+    COMPONENT_NAME: jobservice
+  <<: *publish_script
+
+build-jobservice-debug:
+  stage: build-debug
+  variables:
+    DEBUG: true
+    COMPONENT_NAME: jobservice
+  <<: *publish_script
+
+build-registryctl:
+  stage: build
+  variables:
+    DEBUG: false
+    COMPONENT_NAME: registryctl
+  <<: *publish_script
+
+build-registryctl-debug:
+  stage: build-debug
+  variables:
+    DEBUG: true
+    COMPONENT_NAME: registryctl
+  <<: *publish_script
+
+build-registry:
+  stage: build
+  variables:
+    DEBUG: false
+    COMPONENT_NAME: registry
+  <<: *publish_script
+
+build-portal:
+  stage: build
+  variables:
+    DEBUG: false
+    COMPONENT_NAME: portal
+  <<: *publish_script
+
+build-nginx:
+  stage: build
+  variables:
+    DEBUG: false
+    COMPONENT_NAME: nginx
+  <<: *publish_script
+
+build-trivy-adapter:
+  stage: build
+  variables:
+    DEBUG: false
+    COMPONENT_NAME: trivy-adapter
+  <<: *publish_script
+
+build-exporter:
+  stage: build
+  variables:
+    DEBUG: false
+    COMPONENT_NAME: "cmd/exporter"
+  <<: *publish_script
