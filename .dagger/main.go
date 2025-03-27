@@ -583,6 +583,7 @@ func (m *Harbor) buildPortal(ctx context.Context, platform Platform) *dagger.Con
 		WithFile("/usr/share/nginx/html/swagger.json", builder.File("/harbor/src/portal/swagger.json")).
 		WithDirectory("/usr/share/nginx/html", builder.Directory("/harbor/src/portal/dist")).
 		WithDirectory("/usr/share/nginx/html", swagger.Directory("/harbor/src/portal/app-swagger-ui/dist")).
+		WithFile("/etc/nginx/nginx.conf", m.OnlyDagger.File("./.dagger/config/portal/nginx.conf")).
 		WithWorkdir("/usr/share/nginx/html").
 		WithExec([]string{"ls"}).
 		WithWorkdir("/").
