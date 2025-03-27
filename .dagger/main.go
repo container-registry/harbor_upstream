@@ -19,7 +19,7 @@ type (
 var (
 	targetPlatforms = []Platform{"linux/amd64", "linux/arm64"}
 	// targetPlatforms = []Platform{"linux/amd64"}
-	packages        = []Package{"core", "jobservice", "registryctl", "portal", "registry", "nginx", "cmd/exporter", "trivy-adapter"}
+	packages = []Package{"core", "jobservice", "registryctl", "portal", "registry", "nginx", "cmd/exporter", "trivy-adapter"}
 	// packages = []string{"core", "jobservice"}
 )
 
@@ -344,23 +344,18 @@ func (m *Harbor) buildImage(ctx context.Context, platform Platform, pkg Package)
 		}
 
 		if DEBUG {
+			entrycmd := strings.Join(entrypoint, " ")
+			fmt.Println(entrycmd)
+
 			img = img.
-        WithExec([]string{"apk", "add", "delve=1.23.1-r2"}).
+				WithExec([]string{"apk", "add", "delve=1.23.1-r2"}).
 				WithExposedPort(8080).
+				// should use script since executing with config would result in an error
+				WithFile("/entrypoint.sh", m.OnlyDagger.File("./.dagger/config/debug_entrypoint.sh")).
 				WithExposedPort(4001, dagger.ContainerWithExposedPortOpts{ExperimentalSkipHealthcheck: true}).
 				// WithEntrypoint([]string{"/" + string(pkg)}).
 				// /root/go/bin/dlv --headless=true --listen=localhost:4001 --accept-multiclient --log-output=debugger,debuglineerr,gdbwire,lldbout,rpc --log=true --continue --api-version=2 exec $pkg
-				WithEntrypoint(append([]string{
-					"dlv",
-					"--headless=true",
-					"--listen=0.0.0.0:" + DEBUG_PORT,
-					"--accept-multiclient",
-					"--log-output=debugger,debuglineerr,gdbwire,lldbout,rpc",
-					"--log=true",
-					"--continue",
-					"--api-version=2",
-					"exec",
-				}, entrypoint...))
+				WithEntrypoint([]string{"/entrypoint.sh", entrycmd})
 		} else {
 			img = img.WithEntrypoint(entrypoint)
 		}
@@ -401,13 +396,16 @@ func (m *Harbor) buildBinary(ctx context.Context, platform Platform, pkg Package
 	var (
 		srcWithSwagger *dagger.Directory
 		ldflags        string
+		gcflags        string
 	)
 
-	if !DEBUG {
-		ldflags = "-extldflags=-static -s -w"
-	}
+	ldflags = "-extldflags=-static -s -w"
 	goflags := "-buildvcs=false"
-	gcflags := "all=-N -l"
+
+	if DEBUG {
+		gcflags = "all=-N -l"
+		ldflags = ""
+	}
 
 	os, arch, err := parsePlatform(string(platform))
 	if err != nil {
