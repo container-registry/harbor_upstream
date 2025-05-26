@@ -8,8 +8,14 @@ This guide explains how to use Dagger to build, run, and test a Harbor setup loc
 
 - Dagger installed
 - Harbor source code available
+- Generate `consts.go`
 
 ## Getting Started
+
+### Generate `consts.go` file
+```bash
+go run ./.dagger/scripts/parseMakefile.go
+```
 
 ### Step 1: Build and Spin Up Harbor Components Locally
 
@@ -65,7 +71,7 @@ Publishes all images in the registry.
 Example usage:
 
 ```bash
-dagger call publish-all-images --registry-username=harbor-cli --registry=demo.goharbor.io --registry-password=env:REGPASS --image-tags v3.0.0 --version v3.0.0 -vvv
+dagger call publish-all-images --registry-username=harbor-cli --registry=demo.goharbor.io --registry-password=env:REGPASS --image-tags v3.0.0 --version v3.0.0 --debugbin=false --project-name=library/dagger-test -vvv
 ```
 
 - `-vvv` flag is used for highly verbose output. You can remove this flag for a less verbose output.
@@ -78,7 +84,7 @@ Publishes a specific image package.
 Example usage:
 
 ```bash
-dagger call publish-image --registry-username=admin --registry=ttl.sh --registry-password=env:REGPASS --image-tags v3.2.2 --version v3.0 --pkg registryctl -vvv -i
+dagger call publish-image --registry-username=admin --registry=ttl.sh --registry-password=env:REGPASS --image-tags v3.2.2 --version v3.0 --pkg registryctl --debugbin=false --project-name=library/dagger-test -vvv -i
 ```
 
 This will publish the `registryctl` package.
@@ -90,7 +96,7 @@ Builds specific Harbor binaries for a given platform.
 Example usage:
 
 ```bash
-dagger call build-binary --pkg core --platform "linux/amd64" --version v2.12.2 export --path=harbor_core
+dagger call build-binary --pkg core --platform "linux/amd64" --version v2.12.2 --debugbin=false export --path=bin/harbor_core
 ```
 
 This command will build the `core` package for the `linux/amd64` platform and export the binary to `harbor_core`.

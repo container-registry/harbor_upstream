@@ -41,15 +41,20 @@ func New(
 	filteredSrc *dagger.Directory,
 	// +optional
 	// +defaultPath="./"
+	// +ignore=[".dagger", "node_modules", ".github", "contrib", "docs", "icons", "tests", "make", "bin", "!src/portal/**", "!LICENSE"]
+	portalSrc *dagger.Directory,
+	// +optional
+	// +defaultPath="./"
 	// +ignore=["*", "!.dagger"]
 	onlyDagger *dagger.Directory,
 ) *Harbor {
-	return &Harbor{Source: source, FilteredSrc: filteredSrc, OnlyDagger: onlyDagger}
+	return &Harbor{Source: source, FilteredSrc: filteredSrc, PortalSrc: portalSrc, OnlyDagger: onlyDagger}
 }
 
 type Harbor struct {
 	Source      *dagger.Directory
 	FilteredSrc *dagger.Directory
+	PortalSrc   *dagger.Directory
 	OnlyDagger  *dagger.Directory
 }
 
@@ -58,7 +63,9 @@ func (m *Harbor) PublishAndSignAllImages(
 	ctx context.Context,
 	registry string,
 	registryUsername string,
+	projectName string,
 	registryPassword *dagger.Secret,
+	debugbin bool,
 	imageTags []string,
 	// +optional
 	githubToken *dagger.Secret,
@@ -67,7 +74,7 @@ func (m *Harbor) PublishAndSignAllImages(
 	// +optional
 	actionsIdTokenRequestUrl string,
 ) (string, error) {
-	imageAddrs := m.PublishAllImages(ctx, registry, registryUsername, imageTags, registryPassword)
+	imageAddrs := m.PublishAllImages(ctx, registry, registryUsername, projectName, imageTags, debugbin, registryPassword)
 	_, err := m.Sign(
 		ctx,
 		githubToken,
@@ -126,28 +133,43 @@ func (m *Harbor) Sign(ctx context.Context,
 // Publishes All Images and variants
 func (m *Harbor) PublishAllImages(
 	ctx context.Context,
-	registry, registryUsername string,
+	registry, registryUsername, projectName string,
 	imageTags []string,
+	debugbin bool,
 	registryPassword *dagger.Secret,
 ) []string {
 	fmt.Printf("provided tags: %s\n", imageTags)
 
-	allImages := m.buildAllImages(ctx)
+	allImages := m.buildAllImages(ctx, debugbin)
 	platformVariantsContainer := make(map[Package][]*dagger.Container)
 	for _, meta := range allImages {
 		platformVariantsContainer[meta.Package] = append(platformVariantsContainer[meta.Package], meta.Container)
 	}
 
 	var imageAddresses []string
+	var imgAddress string
+	var err error
 	for pkg, imgs := range platformVariantsContainer {
 		for _, imageTag := range imageTags {
 			container := dag.Container().WithRegistryAuth(registry, registryUsername, registryPassword)
-			imgAddress, err := container.Publish(ctx,
-				fmt.Sprintf("%s/%s/%s:%s", registry, "harbor-next", pkg, imageTag),
-				dagger.ContainerPublishOpts{PlatformVariants: imgs},
-			)
+			if pkg == "cmd/exporter" {
+				imgAddress, err = container.Publish(ctx,
+					fmt.Sprintf("%s/%s/%s:%s", registry, projectName, "harbor-exporter", imageTag),
+					dagger.ContainerPublishOpts{PlatformVariants: imgs},
+				)
+			} else if pkg == "trivy-adapter" {
+				imgAddress, err = container.Publish(ctx,
+					fmt.Sprintf("%s/%s/%s:%s", registry, projectName, "trivy-adapter", imageTag),
+					dagger.ContainerPublishOpts{PlatformVariants: imgs},
+				)
+			} else {
+				imgAddress, err = container.Publish(ctx,
+					fmt.Sprintf("%s/%s/%s:%s", registry, projectName, "harbor-"+pkg, imageTag),
+					dagger.ContainerPublishOpts{PlatformVariants: imgs},
+				)
+			}
 			if err != nil {
-				fmt.Printf("Failed to publish image: %s/%s/%s:%s\n", registry, "harbor-next", pkg, imageTag)
+				fmt.Printf("Failed to publish image: %s/%s/%s:%s\n", registry, projectName, pkg, imageTag)
 				fmt.Printf("Error: %s\n", err)
 				continue
 			}
@@ -161,8 +183,9 @@ func (m *Harbor) PublishAllImages(
 // publishes the specific image with the given tag
 func (m *Harbor) PublishImage(
 	ctx context.Context,
-	registry, registryUsername string,
+	registry, registryUsername, projectName string,
 	imageTags []string,
+	debugbin bool,
 	pkg Package,
 	registryPassword *dagger.Secret,
 ) []string {
@@ -174,7 +197,7 @@ func (m *Harbor) PublishImage(
 	fmt.Printf("provided tags: %s\n", imageTags)
 
 	for _, platform := range targetPlatforms {
-		BuildImage := m.BuildImage(ctx, platform, pkg)
+		BuildImage := m.BuildImage(ctx, platform, pkg, debugbin)
 		images = append(images, BuildImage)
 	}
 
@@ -183,15 +206,29 @@ func (m *Harbor) PublishImage(
 		platformVariantsContainer[pkg] = append(platformVariantsContainer[pkg], image)
 	}
 
+	var imgAddress string
+	var err error
 	for pkg, imgs := range platformVariantsContainer {
 		for _, imageTag := range imageTags {
 			container := dag.Container().WithRegistryAuth(registry, registryUsername, registryPassword)
-			imgAddress, err := container.Publish(ctx,
-				fmt.Sprintf("%s/%s/%s:%s", registry, "harbor-next", pkg, imageTag),
-				dagger.ContainerPublishOpts{PlatformVariants: imgs},
-			)
+			if pkg == "cmd/exporter" {
+				imgAddress, err = container.Publish(ctx,
+					fmt.Sprintf("%s/%s/%s:%s", registry, projectName, "harbor-exporter", imageTag),
+					dagger.ContainerPublishOpts{PlatformVariants: imgs},
+				)
+			} else if pkg == "trivy-adapter" {
+				imgAddress, err = container.Publish(ctx,
+					fmt.Sprintf("%s/%s/%s:%s", registry, projectName, "trivy-adapter", imageTag),
+					dagger.ContainerPublishOpts{PlatformVariants: imgs},
+				)
+			} else {
+				imgAddress, err = container.Publish(ctx,
+					fmt.Sprintf("%s/%s/%s:%s", registry, projectName, "harbor-"+pkg, imageTag),
+					dagger.ContainerPublishOpts{PlatformVariants: imgs},
+				)
+			}
 			if err != nil {
-				fmt.Printf("Failed to publish image: %s/%s/%s:%s\n", registry, "harbor-next", pkg, imageTag)
+				fmt.Printf("Failed to publish image: %s/%s/%s:%s\n", registry, projectName, pkg, imageTag)
 				fmt.Printf("Error: %s\n", err)
 				continue
 			}
@@ -204,8 +241,8 @@ func (m *Harbor) PublishImage(
 }
 
 // export all images as Tarball
-func (m *Harbor) ExportAllImages(ctx context.Context) *dagger.Directory {
-	metdata := m.buildAllImages(ctx)
+func (m *Harbor) ExportAllImages(ctx context.Context, debugbin bool) *dagger.Directory {
+	metdata := m.buildAllImages(ctx, debugbin)
 	artifacts := dag.Directory()
 	for _, meta := range metdata {
 		artifacts = artifacts.WithFile(fmt.Sprintf("containers/%s/%s.tgz", meta.Platform, meta.Package), meta.Container.AsTarball())
@@ -214,8 +251,8 @@ func (m *Harbor) ExportAllImages(ctx context.Context) *dagger.Directory {
 }
 
 // build all images
-func (m *Harbor) BuildAllImages(ctx context.Context) []*dagger.Container {
-	metdata := m.buildAllImages(ctx)
+func (m *Harbor) BuildAllImages(ctx context.Context, debugbin bool) []*dagger.Container {
+	metdata := m.buildAllImages(ctx, debugbin)
 	images := make([]*dagger.Container, len(metdata))
 	for i, meta := range metdata {
 		images[i] = meta.Container
@@ -223,32 +260,42 @@ func (m *Harbor) BuildAllImages(ctx context.Context) []*dagger.Container {
 	return images
 }
 
-func (m *Harbor) buildAllImages(ctx context.Context) []*BuildMetadata {
-	var buildMetadata []*BuildMetadata
+func (m *Harbor) buildAllImages(ctx context.Context, debugbin bool) []*BuildMetadata {
+	var (
+		buildMetadata []*BuildMetadata // final result
+	)
+
 	for _, platform := range targetPlatforms {
 		for _, pkg := range packages {
-			img := m.BuildImage(ctx, platform, pkg)
-			buildMetadata = append(buildMetadata, &BuildMetadata{
+			platform := platform
+			pkg := pkg
+
+			img := m.BuildImage(ctx, platform, pkg, debugbin)
+
+			metadata := &BuildMetadata{
 				Package:    pkg,
 				BinaryPath: fmt.Sprintf("bin/%s/%s", platform, pkg),
 				Container:  img,
 				Platform:   platform,
-			})
+			}
+			buildMetadata = append(buildMetadata, metadata)
 		}
 	}
+
 	return buildMetadata
 }
 
 // build single specified images
-func (m *Harbor) BuildImage(ctx context.Context, platform Platform, pkg Package) *dagger.Container {
-	buildMtd := m.buildImage(ctx, platform, pkg)
+func (m *Harbor) BuildImage(ctx context.Context, platform Platform, pkg Package, debugbin bool) *dagger.Container {
+	buildMtd := m.buildImage(ctx, platform, pkg, debugbin)
 	if pkg == "core" {
 		// the only thing missing here is the healthcheck
 		// we can add those by updating the docker compose since dagger currently doesn't support healthchecks
 		// issue: https://github.com/dagger/dagger/issues/9515
 		buildMtd.Container = buildMtd.Container.WithDirectory("/migrations", m.Source.Directory("make/migrations")).
 			WithDirectory("/icons", m.Source.Directory("icons")).
-			WithDirectory("/views", m.Source.Directory("src/core/views"))
+			WithDirectory("/views", m.Source.Directory("src/core/views")).
+			WithWorkdir("/")
 	}
 	if pkg == "registryctl" {
 		regBinary := m.registryBuilder(ctx)
@@ -261,7 +308,7 @@ func (m *Harbor) BuildImage(ctx context.Context, platform Platform, pkg Package)
 
 // internal function to build registry
 func (m *Harbor) registryBuilder(ctx context.Context) *dagger.File {
-	registry := dag.Container().From("golang:1.22.3").
+	registry := dag.Container().From("golang:"+GO_VERSION).
 		WithMountedCache("/go/pkg/mod", dag.CacheVolume("go-mod-"+GO_VERSION)).
 		WithMountedCache("/go/build-cache", dag.CacheVolume("go-build-"+GO_VERSION)).
 		WithEnvVariable("GOMODCACHE", "/go/pkg/mod").
@@ -273,19 +320,19 @@ func (m *Harbor) registryBuilder(ctx context.Context) *dagger.File {
 		WithWorkdir("/go/src/github.com/docker").
 		WithExec([]string{"git", "clone", "-b", REGISTRY_SRC_TAG, DISTRIBUTION_SRC}).
 		WithWorkdir("distribution").
-		WithFile("/redis.patch", m.OnlyDagger.File("./.dagger/registry/redis.patch")).
-		WithExec([]string{"git", "apply", "/redis.patch"}).
+		// WithFile("/redis.patch", m.OnlyDagger.File("./.dagger/registry/redis.patch")).
+		// WithExec([]string{"git", "apply", "/redis.patch"}).
 		WithExec([]string{"echo", "build the registry binary"})
 
 	registryBinary := registry.
 		// to-do: check possible ways to remove make clean bin/registry
-		WithExec([]string{"make", "clean", "bin/registry"}).
+		WithExec([]string{"make", "clean", "binaries", "PREFIX=/go"}).
 		File("bin/registry")
 
 	return registryBinary
 }
 
-func (m *Harbor) buildImage(ctx context.Context, platform Platform, pkg Package) *BuildMetadata {
+func (m *Harbor) buildImage(ctx context.Context, platform Platform, pkg Package, debugbin bool) *BuildMetadata {
 	var (
 		buildMtd *BuildMetadata
 		img      *dagger.Container
@@ -324,16 +371,9 @@ func (m *Harbor) buildImage(ctx context.Context, platform Platform, pkg Package)
 			Platform:   platform,
 		}
 	} else {
-		buildMtd = m.buildBinary(ctx, platform, pkg)
+		buildMtd = m.buildBinary(ctx, platform, pkg, debugbin)
 		img = dag.Container(dagger.ContainerOpts{Platform: dagger.Platform(string(platform))}).From("alpine:latest").
 			WithFile("/"+string(pkg), buildMtd.Container.File(buildMtd.BinaryPath))
-
-		// // Set entrypoint
-		// if pkg == "jobservice" {
-		// 	img = img.WithEntrypoint([]string{"/" + string(pkg), "-c", "/etc/jobservice/config.yml"})
-		// } else if pkg == "registryctl" {
-		// 	img = img.WithEntrypoint([]string{"/" + string(pkg), "-c", "/etc/registryctl/config.yml"})
-		// }
 
 		// Set entrypoint based on package
 		entrypoint := []string{"/" + string(pkg)}
@@ -343,19 +383,28 @@ func (m *Harbor) buildImage(ctx context.Context, platform Platform, pkg Package)
 			entrypoint = append(entrypoint, "-c", "/etc/registryctl/config.yml")
 		}
 
-		if DEBUG {
-			entrycmd := strings.Join(entrypoint, " ")
-			fmt.Println(entrycmd)
+		if debugbin && string(platform) == "linux/amd64" {
+			fmt.Println("entrypoint before:", entrypoint)
+			entrycmd := entrypoint[0]
+			entryargs := strings.Join(entrypoint[1:], " ")
+			debug_entrypoint := fmt.Sprintf("%s -- %s", entrycmd, entryargs)
 
-			img = img.
-				WithExec([]string{"apk", "add", "delve=1.23.1-r2"}).
+			fmt.Println("entrypoint for debug:", debug_entrypoint)
+
+			img = dag.Container(dagger.ContainerOpts{Platform: dagger.Platform(string(platform))}).From("golang:"+GO_VERSION).
+				WithExec([]string{"go", "install", "github.com/go-delve/delve/cmd/dlv@" + DELVE_VERSION}).
 				WithExposedPort(8080).
 				// should use script since executing with config would result in an error
-				WithFile("/entrypoint.sh", m.OnlyDagger.File("./.dagger/config/debug_entrypoint.sh")).
 				WithExposedPort(4001, dagger.ContainerWithExposedPortOpts{ExperimentalSkipHealthcheck: true}).
-				// WithEntrypoint([]string{"/" + string(pkg)}).
-				// /root/go/bin/dlv --headless=true --listen=localhost:4001 --accept-multiclient --log-output=debugger,debuglineerr,gdbwire,lldbout,rpc --log=true --continue --api-version=2 exec $pkg
-				WithEntrypoint([]string{"/entrypoint.sh", entrycmd})
+				WithFile("/"+string(pkg), buildMtd.Container.File(buildMtd.BinaryPath)).
+				WithFile("/entrypoint.sh", m.OnlyDagger.File("./.dagger/config/debug_entrypoint.sh")).
+				WithExec([]string{"chmod", "+x", "/entrypoint.sh"}).
+				WithEntrypoint([]string{"/entrypoint.sh", debug_entrypoint})
+
+			if pkg == "core" {
+				img = img.WithEntrypoint([]string{"/entrypoint.sh", entrycmd})
+			}
+
 		} else {
 			img = img.WithEntrypoint(entrypoint)
 		}
@@ -366,20 +415,20 @@ func (m *Harbor) buildImage(ctx context.Context, platform Platform, pkg Package)
 }
 
 // build all binaries and return directory containing all binaries
-func (m *Harbor) BuildAllBinaries(ctx context.Context) *dagger.Directory {
+func (m *Harbor) BuildAllBinaries(ctx context.Context, debugbin bool) *dagger.Directory {
 	output := dag.Directory()
-	builds := m.buildAllBinaries(ctx)
+	builds := m.buildAllBinaries(ctx, debugbin)
 	for _, build := range builds {
 		output = output.WithFile(build.BinaryPath, build.Container.File(build.BinaryPath))
 	}
 	return output
 }
 
-func (m *Harbor) buildAllBinaries(ctx context.Context) []*BuildMetadata {
+func (m *Harbor) buildAllBinaries(ctx context.Context, debugbin bool) []*BuildMetadata {
 	var buildContainers []*BuildMetadata
 	for _, platform := range targetPlatforms {
 		for _, pkg := range packages {
-			buildContainer := m.buildBinary(ctx, platform, pkg)
+			buildContainer := m.buildBinary(ctx, platform, pkg, debugbin)
 			buildContainers = append(buildContainers, buildContainer)
 		}
 	}
@@ -387,12 +436,12 @@ func (m *Harbor) buildAllBinaries(ctx context.Context) []*BuildMetadata {
 }
 
 // builds binary for the specified package
-func (m *Harbor) BuildBinary(ctx context.Context, platform Platform, pkg Package) *dagger.File {
-	build := m.buildBinary(ctx, platform, pkg)
+func (m *Harbor) BuildBinary(ctx context.Context, platform Platform, pkg Package, debugbin bool) *dagger.File {
+	build := m.buildBinary(ctx, platform, pkg, debugbin)
 	return build.Container.File(build.BinaryPath)
 }
 
-func (m *Harbor) buildBinary(ctx context.Context, platform Platform, pkg Package) *BuildMetadata {
+func (m *Harbor) buildBinary(ctx context.Context, platform Platform, pkg Package, debugbin bool) *BuildMetadata {
 	var (
 		srcWithSwagger *dagger.Directory
 		ldflags        string
@@ -402,7 +451,7 @@ func (m *Harbor) buildBinary(ctx context.Context, platform Platform, pkg Package
 	ldflags = "-extldflags=-static -s -w"
 	goflags := "-buildvcs=false"
 
-	if DEBUG {
+	if debugbin {
 		gcflags = "all=-N -l"
 		ldflags = ""
 	}
@@ -412,32 +461,32 @@ func (m *Harbor) buildBinary(ctx context.Context, platform Platform, pkg Package
 		log.Fatalf("Error parsing platform: %v", err)
 	}
 
-	srcWithSwagger = m.genAPIs(ctx)
-	m.FilteredSrc = m.FilteredSrc.WithDirectory("/src/server/v2.0", srcWithSwagger)
-
 	if pkg == "core" {
-		gitCommit := m.fetchGitCommit(ctx)
-		version := m.getVersion(ctx)
+		m.lintAPIs(ctx).Sync(ctx)
+		srcWithSwagger = m.genAPIs(ctx)
+		m.FilteredSrc = m.FilteredSrc.WithDirectory("./src/server/v2.0", srcWithSwagger)
 
-		m.lintAPIs(ctx)
+		gitCommit := m.fetchGitCommit(ctx)
+		version := m.GetVersion(ctx)
+
 		// srcWithSwagger = m.genAPIs(ctx)
 		// m.Source = srcWithSwagger
 		ldflags = fmt.Sprintf(`-X github.com/goharbor/harbor/src/pkg/version.GitCommit=%s
                     -X github.com/goharbor/harbor/src/pkg/version.ReleaseVersion=%s
-      `, gitCommit, version)
+    `, gitCommit, version)
 	}
 
 	outputPath := fmt.Sprintf("bin/%s/%s", platform, pkg)
 	src := fmt.Sprintf("%s/main.go", pkg)
 	builder := dag.Container().
-		From("golang:1.23.2").
+		From("golang:"+GO_VERSION).
 		WithMountedCache("/go/pkg/mod", dag.CacheVolume("go-mod-"+GO_VERSION)).
 		WithEnvVariable("GOMODCACHE", "/go/pkg/mod").
 		WithMountedCache("/go/build-cache", dag.CacheVolume("go-build-"+GO_VERSION)).
 		WithEnvVariable("GOCACHE", "/go/build-cache").
 		// update for better caching
-		WithMountedDirectory("/src", m.FilteredSrc.Directory("./src")).
-		WithWorkdir("/src").
+		WithMountedDirectory("/src", m.FilteredSrc).
+		WithWorkdir("/src/src").
 		WithEnvVariable("GOOS", os).
 		WithEnvVariable("GOARCH", arch).
 		WithEnvVariable("CGO_ENABLED", "0").
@@ -467,6 +516,8 @@ func (m *Harbor) buildRegistry(ctx context.Context, platform Platform) *dagger.C
 	regBinary := m.registryBuilder(ctx)
 	return dag.Container(dagger.ContainerOpts{Platform: dagger.Platform(string(platform))}).
 		WithFile("/usr/bin/registry_DO_NOT_USE_GC", regBinary).
+		// specifically turn it off for distribution v3
+		WithEnvVariable("OTEL_TRACES_EXPORTER", "none").
 		WithExposedPort(5000).
 		WithExposedPort(5443).
 		WithEntrypoint([]string{"/usr/bin/registry_DO_NOT_USE_GC", "serve", "/etc/registry/config.yml"})
@@ -476,7 +527,7 @@ func (m *Harbor) buildRegistry(ctx context.Context, platform Platform) *dagger.C
 func (m *Harbor) buildTrivyAdapter(ctx context.Context, platform Platform) *dagger.Container {
 	fmt.Println("🛠️  Building Trivy Adapter...")
 
-	trivyBinDir := dag.Container().From("golang:1.23.2").
+	trivyBinDir := dag.Container().From("golang:"+GO_VERSION).
 		WithWorkdir("/go/src/github.com/goharbor/").
 		WithExec([]string{"git", "clone", "-b", TRIVYADAPTERVERSION, "https://github.com/goharbor/harbor-scanner-trivy.git"}).
 		WithWorkdir("harbor-scanner-trivy").
@@ -513,12 +564,12 @@ func (m *Harbor) buildPortal(ctx context.Context, platform Platform) *dagger.Con
 
 	swaggerYaml := dag.Container().From("alpine:latest").
 		// for better caching
-		WithMountedDirectory("/api", m.FilteredSrc.Directory("./api")).
+		WithMountedDirectory("/api", m.PortalSrc.Directory("./api")).
 		WithWorkdir("/api").
 		File("v2.0/swagger.yaml")
 
 	LICENSE := dag.Container().From("alpine:latest").
-		WithMountedDirectory("/harbor", m.FilteredSrc).
+		WithDirectory("/harbor", m.PortalSrc).
 		WithWorkdir("/harbor").
 		WithExec([]string{"ls"}).
 		File("LICENSE")
@@ -541,12 +592,12 @@ func (m *Harbor) buildPortal(ctx context.Context, platform Platform) *dagger.Con
 	// 	WithExec([]string{"npm", "run", "release"})
 
 	before := dag.Container().
-		From("oven/bun:1.2.4").
-		WithMountedCache(USER_HOME_DIR+"/.bun/install/cache", dag.CacheVolume("bun")).
+		From("node:16.18.0").
+		WithMountedCache("/root/.bun/install/cache", dag.CacheVolume("bun")).
 		WithMountedCache("/root/.npm", dag.CacheVolume("node-16")).
 		WithMountedCache("/root/.angular", dag.CacheVolume("angular")).
 		// for better caching
-		WithMountedDirectory("/harbor", m.Source).
+		WithDirectory("/harbor", m.PortalSrc).
 		WithWorkdir("/harbor/src/portal").
 		WithEnvVariable("NPM_CONFIG_REGISTRY", NPM_REGISTRY).
 		WithEnvVariable("BUN_INSTALL_CACHE_DIR", "/root/.bun/install/cache").
@@ -555,9 +606,10 @@ func (m *Harbor) buildPortal(ctx context.Context, platform Platform) *dagger.Con
 		WithFile("swagger.yaml", swaggerYaml).
 		WithExec([]string{"apt", "update"}).
 		WithExec([]string{"apt", "install", "unzip"}).
-		WithExec([]string{"bun", "install", "--no-verify", "--unsafe-perm"}).
-		WithExec([]string{"bun", "pm", "trust", "--all"}).
-		WithExec([]string{"bun", "install", "--no-verify"}).
+		WithExec([]string{"npm", "install", "-g", "bun@" + BUN_VERSION}).
+		WithExec([]string{"bun", "install"}).
+		// WithExec([]string{"bun", "pm", "trust", "--all"}).
+		// WithExec([]string{"bun", "install", "--no-verify"}).
 		WithExec([]string{"ls", "-al"}).
 		WithExec([]string{"bun", "run", "generate-build-timestamp"}).
 		WithExec([]string{"bun", "run", "node", "--max_old_space_size=2048", "node_modules/@angular/cli/bin/ng", "build", "--configuration", "production"})
@@ -611,7 +663,7 @@ func (m *Harbor) fetchGitCommit(ctx context.Context) string {
 
 	// temp container with git installed
 	temp := dag.Container().
-		From("golang:1.23.2").
+		From("golang:"+GO_VERSION).
 		WithDirectory("/src", m.FilteredSrc, dirOpts).
 		WithWorkdir("/src")
 
@@ -622,35 +674,35 @@ func (m *Harbor) fetchGitCommit(ctx context.Context) string {
 
 // generate APIs
 func (m *Harbor) genAPIs(_ context.Context) *dagger.Directory {
-	SWAGGER_VERSION := "v0.25.0"
 	SWAGGER_SPEC := "api/v2.0/swagger.yaml"
 	TARGET_DIR := "src/server/v2.0"
 	APP_NAME := "harbor"
 
 	temp := dag.Container().
 		From("quay.io/goswagger/swagger:"+SWAGGER_VERSION).
+		WithExec([]string{"swagger", "version"}).
 		WithDirectory("/src", m.FilteredSrc).
 		WithWorkdir("/src").
-		WithExec([]string{"swagger", "version"}).
 		// Clean up old generated code and create necessary directories
-		WithExec([]string{"rm", "-rf", TARGET_DIR + "/{models,restapi}"}).
+		// WithExec([]string{"rm", "-rf", TARGET_DIR + "/{models,restapi}"}).
 		WithExec([]string{"mkdir", "-p", TARGET_DIR}).
+		WithExec([]string{"ls", "-la"}).
 		// Generate the server files using the Swagger tool
 		WithExec([]string{"swagger", "generate", "server", "--template-dir=./tools/swagger/templates", "--exclude-main", "--additional-initialism=CVE", "--additional-initialism=GC", "--additional-initialism=OIDC", "-f", SWAGGER_SPEC, "-A", APP_NAME, "--target", TARGET_DIR}).
-		WithExec([]string{"ls", "-la"}).
+		// WithExec([]string{"ls", "-la"}).
 		Directory("/src/src/server/v2.0")
 
 	return temp
 }
 
 // get version from VERSION file
-func (m *Harbor) getVersion(ctx context.Context) string {
+func (m *Harbor) GetVersion(ctx context.Context) string {
 	dirOpts := dagger.ContainerWithDirectoryOpts{
 		Include: []string{"VERSION"},
 	}
 
 	temp := dag.Container().
-		From("golang:1.23.2").
+		From("golang:"+GO_VERSION).
 		WithDirectory("/src", m.FilteredSrc, dirOpts).
 		WithWorkdir("/src").
 		WithExec([]string{"ls", "-la"})

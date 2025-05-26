@@ -61,7 +61,7 @@ func (m *Harbor) GoVulnCheckReport(ctx context.Context) (string, error) {
 
 func (m *Harbor) lintAPIs(_ context.Context) *dagger.Directory {
 	temp := dag.Container().
-		From("stoplight/spectral:6.11.1").
+		From("stoplight/spectral:"+ SPECTRAL_VERSION).
 		WithMountedDirectory("/src", m.Source).
 		WithWorkdir("/src").
 		WithExec([]string{"spectral", "--version"}).
