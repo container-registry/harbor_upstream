@@ -101,6 +101,15 @@ dagger call build-binary --pkg core --platform "linux/amd64" --version v2.12.2 -
 
 This command will build the `core` package for the `linux/amd64` platform and export the binary to `harbor_core`.
 
+#### Extras
+Use these to pull the `dagger.json` and `.dagger` folder
+In case if you want to use dagger in other branches this might be helpful. 
+Also while using this don't forget to Generate consts file based on the branch 
+```
+oras pull bupd/harbor-dagger-dir:latest
+oras pull bupd/harbor-dagger-json:latest
+```
+
 ## Conclusion
 
 By following the above steps, you can have a fully functional Harbor setup running inside Dagger. You can use this setup for local development and testing. The available Dagger functions like `publish-all-images`, `publish-image`, and `build-binary` make it easy to manage Harbor images and binaries.
