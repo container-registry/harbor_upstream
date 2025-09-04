@@ -14,6 +14,8 @@ test_patterns = [
 [[analyzers]]
 name = "go"
 enabled = true
+  [analyzers.meta]
+  import_root = "github.com/goharbor/harbor/src"
 
 [[transformers]]
 name = "gofmt"
