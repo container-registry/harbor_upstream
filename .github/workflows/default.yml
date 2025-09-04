@@ -19,10 +19,10 @@ env:
 jobs:
   setup:
     runs-on: ubuntu-latest
-    outputs:
-      VERSIONTAG: ${{ steps.vars.outputs.VERSIONTAG }}
-      DEBUGTAG: ${{ steps.vars.outputs.DEBUGTAG }}
-      REGISTRY_USER: ${{ steps.vars.outputs.REGISTRY_USER }}
+    # outputs:
+    #   VERSIONTAG: ${{ steps.vars.outputs.VERSIONTAG }}
+    #   DEBUGTAG: ${{ steps.vars.outputs.DEBUGTAG }}
+    #   REGISTRY_USER: ${{ steps.vars.outputs.REGISTRY_USER }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,16 +45,6 @@ jobs:
 
           echo "VERSIONTAG=$VERSIONTAG" >> $GITHUB_ENV
           echo "DEBUGTAG=$DEBUGTAG" >> $GITHUB_ENV
-
-          # docker auth
-          mkdir -p $HOME/.docker
-          echo '${{ secrets.DOCKER_AUTH_CONFIG }}' > $HOME/.docker/config.json
-          REGISTRY_USER=$(jq -r '.auths["${{ env.REGISTRY_DOMAIN }}"].username' $HOME/.docker/config.json)
-          echo "REGISTRY_USER=$REGISTRY_USER" >> $GITHUB_ENV
-
-          # Export registry password
-          REGISTRY_PASS=$(jq -r '.auths["${{ env.REGISTRY_DOMAIN }}"].password' $HOME/.docker/config.json)
-          echo "REGISTRY_PASS=$REGISTRY_PASS" >> $GITHUB_ENV
 
       - name: Verify Dagger
         uses: dagger/dagger-for-github@v7
@@ -91,17 +81,44 @@ jobs:
           - component: cmd/exporter
             debug: false
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Dagger Version
+        uses: sagikazarmark/dagger-version-action@v0.0.1
+
+      - name: Set Variables
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # use PR number as version tag
+            VERSIONTAG="pr-${{ github.event.number }}"
+          else
+            VERSIONTAG=$(echo "${GITHUB_REF_NAME}" | tr '/' '-')
+          fi
+          DEBUGTAG=$VERSIONTAG-debug
+
+          echo "VERSIONTAG=$VERSIONTAG" >> $GITHUB_ENV
+          echo "DEBUGTAG=$DEBUGTAG" >> $GITHUB_ENV
+
+      - name: Verify Dagger
+        uses: dagger/dagger-for-github@v7
+        with:
+          version: ${{ steps.dagger_version.outputs.version }}
+          verb: functions
 
       - name: Set component vars
         id: comp
         run: |
           if [ "${{ matrix.debug }}" = "true" ]; then
-            export FINAL_IMAGE_TAG="${{ needs.setup.outputs.DEBUGTAG }}"
+            FINAL_IMAGE_TAG="${{ needs.setup.outputs.DEBUGTAG }}"
           else
-            export FINAL_IMAGE_TAG="${{ needs.setup.outputs.VERSIONTAG }}"
+            FINAL_IMAGE_TAG="${{ needs.setup.outputs.VERSIONTAG }}"
           fi
           echo "FINAL_IMAGE_TAG=$FINAL_IMAGE_TAG" >> $GITHUB_ENV
+          echo "FINAL_IMAGE_TAG=$FINAL_IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Verify Dagger
         uses: dagger/dagger-for-github@v7
@@ -117,11 +134,11 @@ jobs:
           verb: call
           args: |
             publish-and-sign-image \
-              --pkg ${{ matrix.component }} \
-              --registry-username=${{ env.REGISTRY_USER }} \
+              --pkg "${{ matrix.component }}" \
+              --registry-username="${{ secrets.REGISTRY_USER }}" \
               --registry=${{ env.REGISTRY_DOMAIN }} \
-              --registry-password="${{ env.REGISTRY_PASS }}" \
-              --image-tags ${{ steps.comp.outputs.FINAL_IMAGE_TAG }} \
+              --registry-password=${{ secrets.REGISTRY_PASSWORD }} \
+              --image-tags "latest" \
               --project-name=${{ env.PROJECT_NAME }} \
               --debugbin=${{ matrix.debug }} \
               --github-token=env:GITHUB_TOKEN \
