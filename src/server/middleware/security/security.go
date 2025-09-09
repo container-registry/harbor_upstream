@@ -31,6 +31,7 @@ var (
 		&v2Token{},
 		&idToken{},
 		&authProxy{},
+		&robotjwt{},
 		&robot{},
 		&basicAuth{},
 		&session{},
