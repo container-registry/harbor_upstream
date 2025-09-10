@@ -40,6 +40,9 @@ func defaultOptions() *token.Options {
 	return token.DefaultTokenOptions()
 }
 
+// TODO: replace this function with a robust one
+// the function should be able to take the jwks-uri and return the public key
+//
 // ParseJWKx5cToPublicKey takes the x5c cert string and converts it to PEM []byte
 func ParseJWKx5cToPublicKey(x5c string) ([]byte, error) {
 	// decode base64 DER cert
@@ -69,6 +72,9 @@ func ParseJWKx5cToPublicKey(x5c string) ([]byte, error) {
 	return pemBytes, nil
 }
 
+// TODO: replace this function with a robust one
+// it should be able to take the JWK or PEM from DB and return the public key
+//
 // // ParseJWKtoPublicKey converts JWK (n, e) into PEM []byte
 // func ParseJWKtoPublicKey(n, e string) ([]byte, error) {
 // 	// base64url decode modulus
@@ -114,9 +120,19 @@ func ParseJWKx5cToPublicKey(x5c string) ([]byte, error) {
 // 	return pemBytes, nil
 // }
 
+// TODO: finally remove debug logs with kumar prefix
+
 func (r *robotjwt) Generate(req *http.Request) security.Context {
 	log.Warningf("if you are seeing this kumar, it means you are starting the robot validation")
 	log := log.G(req.Context())
+
+	// TODO: check if the request is from container runtime
+	// if yes, get the resource needed from the request
+	//
+	// if !strings.HasPrefix(req.URL.Path, "/v2") {
+	// 	return nil
+	// }
+
 	// get the jwt
 	tokenStr := bearerToken(req)
 	if len(tokenStr) == 0 {
@@ -139,12 +155,19 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	defaultOpt.PrivateKey = []byte("")
 	defaultOpt.PublicKey = []byte("")
 
+	// TODO: no hardcoded JWK, use the JWK from DB
+	//
 	// parse jwk to PublicKey
 	// n := "4cxDjTcJRJFID6UCgepPV45T1XDz_cLXSPgMur00WXB4jJrR9bfnZDx6dWqwps2dCw-lD3Fccj2oItwdRQ99In61l48MgiJaITf5JK2c63halNYiNo22_cyBG__nCkDZTZwEfGdfPRXSOWMg1E0pgGc1PoqwOdHZrQVqTcP3vWJt8bDQSOuoZBHSwVzDSjHPY6LmJMEO42H27t3ZkcYtS5crU8j2Yf-UH5U6rrSEyMdrCpc9IXe9WCmWjz5yOQa0r3U7M5OPEKD1-8wuP6_dPw0DyNO_Ei7UerVtsx5XSTd-Z5ujeB3PFVeAdtGxJ23oRNCq2MCOZBa58EGeRDLR7Q"
 	// e := "AQAB"
 
+	// TODO: no hardcoded values, get everything needed from DB
+	//
+	// TODO: Find a robust library to parse the JWK and PEM for offline use case
+	// TODO: remove the below hardcoded x5c and n, e
 	x5c := `MIIDKzCCAhOgAwIBAgIUDnwm6eRIqGFA3o/P1oBrChvx/nowDQYJKoZIhvcNAQELBQAwJTEjMCEGA1UEAwwaYWN0aW9ucy5zZWxmLXNpZ25lZC5naXRodWIwHhcNMjQwMTIzMTUyNTM2WhcNMzQwMTIwMTUyNTM2WjAlMSMwIQYDVQQDDBphY3Rpb25zLnNlbGYtc2lnbmVkLmdpdGh1YjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAOTGp5svs8LJN8BH7VzXShWXnOK0lhDVuI0xnr5bwHFPc924CwaIEFb6mC7bvW2lZtgd633uaJ2naG6vKaOVGpCdGLE4ohH11nUk+2CNknZL7/oTmDHGSmGeHRb7kjtb0Ng4BJMPzmTYmCNUudfDFhHDcZz1Obuu85GsABrC5ZlzWzspYFXwUSaxvII+rHK/rAbOC2gmt5IOSLmgh3taQfp0mB6Lxlf89HoBPNwtPfBX8DtXTWQVnqODm4W+WfmWBSyXGX54DGNMyZwlTZqR0FjoMXxopId3MIuDGKxa2weDU5cW60N2y/qxikeV99fL3sg5aPA8s9iljKG0+MAfVNUCAwEAAaNTMFEwHQYDVR0OBBYEFIPALo5VanJ6E1B9eLQgGO+uGV65MB8GA1UdIwQYMBaAFIPALo5VanJ6E1B9eLQgGO+uGV65MA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAGS0hZE+DqKIRi49Z2KDOMOaSZnAYgqq6ws9HJHT09MXWlMHB8E/apvy2ZuFrcSu14ZLweJid+PrrooXEXEO6azEakzCjeUb9G1QwlzP4CkTcMGCw1Snh3jWZIuKaw21f7mp2rQ+YNltgHVDKY2s8AD273E8musEsWxJl80/MNvMie8Hfh4n4/Xl2r6t1YPmUJMoXAXdTBb0hkPy1fUu3r2T+1oi7Rw6kuVDfAZjaHupNHzJeDOg2KxUoK/GF2/M2qpVrd19Pv/JXNkQXRE4DFbErMmA7tXpp1tkXJRPhFui/Pv5H9cPgObEf9x6W4KnCXzT3ReeeRDKF8SqGTPELsc=`
 
+	// TODO: improve the overall flow
 	pubKey, err := ParseJWKx5cToPublicKey(x5c)
 	if err != nil {
 		log.Fatalf("failed: %v", err)
@@ -157,15 +180,11 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 
 	defaultOpt.PublicKey = pubKey
 
-	// jwt.ParseRSAPublicKeyFromPEM()
-	// defaultOpt.PublicKey
-	// defaultOpt.SignMethod.Verify()
-
 	cl := &v2TokenClaims{}
-
 	// kumar, log the claims
 	log.Warningf("the claims is %v", cl)
 
+	// token.parse will both validate the token with default needed claims and verify the signature
 	t, err := token.Parse(defaultOpt, tokenStr, cl)
 	if err != nil {
 		log.Warningf("failed to decode bearer token: %v", err)
@@ -178,20 +197,25 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 		return nil
 	}
 
-	// kumar delete the logs
+	// kumar delete the debug logs
 	log.Warningf("kumar, given token is valid proceeding with claim validation")
 
+	// TODO: validate the token with the custom claims
+	// TODO: find a robust library to check with all custom claims from DB
 	var v = jwt.NewValidator(jwt.WithLeeway(common.JwtLeeway), jwt.WithAudience("my-registry"))
 	if err := v.Validate(t.Claims); err != nil {
 		log.Warningf("failed to validate bearer token claims: %v", err)
 		return nil
 	}
+	// TODO: replace the v2TokenClaims with a custom struct holding custom claims from DB
+	// probably hold as any/interface{} or map[string]interface{}
 	claims, ok := t.Claims.(*v2TokenClaims)
 	if !ok {
 		log.Warningf("invalid token claims.")
 		return nil
 	}
 	// kumar, improve the below thing
+	// TODO: add checks for the requested resource by analyzing the requesturl
 	if len(claims.Subject) == 0 {
 		log.Warningf("invalid token claims, no access.")
 		return nil
@@ -209,8 +233,14 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// }
 
 	// kumar, hardcoded robot name
+	// TODO: based on the request, get the robot most qualified robot name
+	// project robot accounts will take precedence over system robot accounts
 	name := "robot_potta"
 	// kumar, the above should be a function that fetches the correct robot name for the given token
+
+
+	// TODO: more checks need to be done
+	// below are the normal steps for robot account flow
 
 	// The robot name can be used as the unique identifier to locate robot as it contains the project name.
 	robots, err := robot_ctl.Ctl.List(req.Context(), q.New(q.KeyWords{
