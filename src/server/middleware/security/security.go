@@ -28,10 +28,10 @@ var (
 	generators = []generator{
 		&secret{},
 		&oidcCli{},
+		&robotjwt{},
 		&v2Token{},
 		&idToken{},
 		&authProxy{},
-		&robotjwt{},
 		&robot{},
 		&basicAuth{},
 		&session{},
