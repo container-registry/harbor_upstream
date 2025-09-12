@@ -200,6 +200,38 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// kumar, log the claims
 	log.Warningf("the claims is %v", cl)
 
+	// get artifact info
+	ai := lib.GetArtifactInfo(req.Context())
+	bmDigest := ai.BlobMountDigest
+	bmRepo := ai.BlobMountRepository
+	bmProjectName := ai.BlobMountProjectName
+	projectName := ai.ProjectName
+	repository := ai.Repository
+	digest := ai.Digest
+	tag := ai.Tag
+	reference := ai.Reference
+	// get the type of request
+	RequestMethod := req.Method
+	if RequestMethod == "" {
+		// hnadle the case when the request method is empty
+		RequestMethod = "GET"
+	}
+	log.Debugf("bmDigest: %s, bmRepo: %s, bmProjectName: %s", bmDigest, bmRepo, bmProjectName)
+	log.Debugf("projectName: %s, repository: %s, digest: %s, tag: %s, reference: %s", projectName, repository, digest, tag, reference)
+
+	// send the request method and the artifact info to get the right robot account
+	// give me a fucction name
+	var name string
+	log.Warningf("going to run get robot account fuunction")
+	robotacc := getRobotAccount(req, RequestMethod, ai, log)
+	if len(robotacc.Name) == 0 {
+		log.Errorf("failed to get robot account so now assinging the default robot account - robot_potta")
+		name = "robot_potta"
+	} else {
+		name = robotacc.Name
+	}
+	log.Warningf("ran get robot account fuunction")
+
 	// token.parse will both validate the token with default needed claims and verify the signature
 	t, err := token.Parse(defaultOpt, tokenStr, cl)
 	if err != nil {
@@ -252,32 +284,6 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// TODO: based on the request, get the robot most qualified robot name
 	// project robot accounts will take precedence over system robot accounts
 
-	// get artifact info
-	ai := lib.GetArtifactInfo(req.Context())
-	bmDigest := ai.BlobMountDigest
-	bmRepo := ai.BlobMountRepository
-	bmProjectName := ai.BlobMountProjectName
-	projectName := ai.ProjectName
-	repository := ai.Repository
-	digest := ai.Digest
-	tag := ai.Tag
-	reference := ai.Reference
-	log.Debugf("bmDigest: %s, bmRepo: %s, bmProjectName: %s", bmDigest, bmRepo, bmProjectName)
-	log.Debugf("projectName: %s, repository: %s, digest: %s, tag: %s, reference: %s", projectName, repository, digest, tag, reference)
-	// get the type of request
-	RequestMethod := req.Method
-
-	// send the request method and the artifact info to get the right robot account
-	// give me a fucction name
-	var name string
-	robotacc := getRobotAccount(req, RequestMethod, ai)
-	if len(robotacc.Name) == 0 {
-		log.Errorf("failed to get robot account so now assinging the default robot account - robot_potta")
-		name = "robot_potta"
-	} else {
-		name = robotacc.Name
-	}
-
 	// kumar, the above should be a function that fetches the correct robot name for the given token
 
 	// TODO: more checks need to be done
@@ -316,15 +322,22 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	return robotCtx.NewSecurityContext(robot)
 }
 
-func getRobotAccount(req *http.Request, RequestMethod string, ai lib.ArtifactInfo) *robot_ctl.Robot {
+func getRobotAccount(req *http.Request, RequestMethod string, ai lib.ArtifactInfo, log *log.Logger) *robot_ctl.Robot {
 	switch RequestMethod {
 	case http.MethodGet, http.MethodHead:
 
+		log.Warningf("going to get all robot accounts")
+
+		// create a custom query
+		query := q.New(q.KeyWords{
+			"permissions.access.action": "pull",                                // only get robot accounts with pull permission
+			"permissions.namespace":     fmt.Sprintf("{%s *}", ai.ProjectName), // union match project name and *
+		})
 		// get all robot accounts
 		robots, err := robot_ctl.Ctl.List(req.Context(),
 			// should do a better query
 			// q.New(q.KeyWords{"name": strings.TrimPrefix(ai.ProjectName, config.RobotPrefix(ctx)),}),
-			q.New(q.KeyWords{}),
+			query,
 			&robot_ctl.Option{
 				WithPermission: true,
 			})
@@ -335,6 +348,7 @@ func getRobotAccount(req *http.Request, RequestMethod string, ai lib.ArtifactInf
 		if len(robots) == 0 {
 			return nil
 		}
+		log.Warningf("robots: %v", robots)
 
 		for _, robot := range robots {
 			// get security context for every robot account
