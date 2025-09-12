@@ -24,9 +24,11 @@ import (
 	"time"
 
 	"github.com/goharbor/harbor/src/common"
+	"github.com/goharbor/harbor/src/common/rbac"
 	"github.com/goharbor/harbor/src/common/security"
 	robotCtx "github.com/goharbor/harbor/src/common/security/robot"
 	robot_ctl "github.com/goharbor/harbor/src/controller/robot"
+	"github.com/goharbor/harbor/src/lib"
 	"github.com/goharbor/harbor/src/lib/config"
 	"github.com/goharbor/harbor/src/lib/log"
 	"github.com/goharbor/harbor/src/lib/q"
@@ -39,6 +41,20 @@ type robotjwt struct{}
 func defaultOptions() *token.Options {
 	return token.DefaultTokenOptions()
 }
+
+// mapMethodToAction maps HTTP verbs to Harbor RBAC actions
+// func mapMethodToAction(method string) types.Action {
+// 	switch method {
+// 	case http.MethodGet, http.MethodHead:
+// 		return rbac.ActionPull // GET/HEAD → pull
+// 	case http.MethodPost, http.MethodPut, http.MethodPatch:
+// 		return rbac.ActionPush // POST/PUT/PATCH → push
+// 	case http.MethodDelete:
+// 		return rbac.ActionDelete
+// 	default:
+// 		return "" // unknown
+// 	}
+// }
 
 // TODO: replace this function with a robust one
 // the function should be able to take the jwks-uri and return the public key
@@ -235,9 +251,34 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// kumar, hardcoded robot name
 	// TODO: based on the request, get the robot most qualified robot name
 	// project robot accounts will take precedence over system robot accounts
-	name := "robot_potta"
-	// kumar, the above should be a function that fetches the correct robot name for the given token
 
+	// get artifact info
+	ai := lib.GetArtifactInfo(req.Context())
+	bmDigest := ai.BlobMountDigest
+	bmRepo := ai.BlobMountRepository
+	bmProjectName := ai.BlobMountProjectName
+	projectName := ai.ProjectName
+	repository := ai.Repository
+	digest := ai.Digest
+	tag := ai.Tag
+	reference := ai.Reference
+	log.Debugf("bmDigest: %s, bmRepo: %s, bmProjectName: %s", bmDigest, bmRepo, bmProjectName)
+	log.Debugf("projectName: %s, repository: %s, digest: %s, tag: %s, reference: %s", projectName, repository, digest, tag, reference)
+	// get the type of request
+	RequestMethod := req.Method
+
+	// send the request method and the artifact info to get the right robot account
+	// give me a fucction name
+	var name string
+	robotacc := getRobotAccount(req, RequestMethod, ai)
+	if len(robotacc.Name) == 0 {
+		log.Errorf("failed to get robot account so now assinging the default robot account - robot_potta")
+		name = "robot_potta"
+	} else {
+		name = robotacc.Name
+	}
+
+	// kumar, the above should be a function that fetches the correct robot name for the given token
 
 	// TODO: more checks need to be done
 	// below are the normal steps for robot account flow
@@ -273,4 +314,43 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 
 	log.Debugf("a robot security context generated for request %s %s", req.Method, req.URL.Path)
 	return robotCtx.NewSecurityContext(robot)
+}
+
+func getRobotAccount(req *http.Request, RequestMethod string, ai lib.ArtifactInfo) *robot_ctl.Robot {
+	switch RequestMethod {
+	case http.MethodGet, http.MethodHead:
+
+		// get all robot accounts
+		robots, err := robot_ctl.Ctl.List(req.Context(),
+			// should do a better query
+			// q.New(q.KeyWords{"name": strings.TrimPrefix(ai.ProjectName, config.RobotPrefix(ctx)),}),
+			q.New(q.KeyWords{}),
+			&robot_ctl.Option{
+				WithPermission: true,
+			})
+		if err != nil {
+			log.Errorf("failed to list robots: %v", err)
+			return nil
+		}
+		if len(robots) == 0 {
+			return nil
+		}
+
+		for _, robot := range robots {
+			// get security context for every robot account
+			sctx := robotCtx.NewSecurityContext(robot)
+
+			// apply security context to the RequestMethod
+			// problem is if robot acc is not right we need to remove the security context from the request context
+			// req = req.WithContext(security.NewContext(req.Context(), sctx))
+			if sctx.Can(req.Context(), rbac.ActionPull, rbac.ResourceArtifact) {
+				return robot
+			}
+			// if baseAPI.HasProjectPermission(req.Context(), ai.ProjectName, rbac.ActionPull, rbac.ResourceArtifact) {
+			// 	return robot
+			// }
+		}
+		return nil
+	}
+	return nil
 }
