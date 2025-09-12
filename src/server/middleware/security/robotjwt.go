@@ -17,6 +17,7 @@ package security
 import (
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"net/http"
@@ -25,8 +26,10 @@ import (
 
 	"github.com/goharbor/harbor/src/common"
 	"github.com/goharbor/harbor/src/common/rbac"
+	rbac_project "github.com/goharbor/harbor/src/common/rbac/project"
 	"github.com/goharbor/harbor/src/common/security"
 	robotCtx "github.com/goharbor/harbor/src/common/security/robot"
+	"github.com/goharbor/harbor/src/controller/project"
 	robot_ctl "github.com/goharbor/harbor/src/controller/robot"
 	"github.com/goharbor/harbor/src/lib"
 	"github.com/goharbor/harbor/src/lib/config"
@@ -230,7 +233,8 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	} else {
 		name = robotacc.Name
 	}
-	log.Warningf("ran get robot account fuunction")
+	log.Warningf("done ran get robot account fuunction")
+	log.Warningf("robot account we got was: %s", name)
 
 	// token.parse will both validate the token with default needed claims and verify the signature
 	t, err := token.Parse(defaultOpt, tokenStr, cl)
@@ -348,18 +352,48 @@ func getRobotAccount(req *http.Request, RequestMethod string, ai lib.ArtifactInf
 		if len(robots) == 0 {
 			return nil
 		}
-		log.Warningf("robots: %v", robots)
+
+		// Marshal to pretty JSON
+		data, err := json.MarshalIndent(robots, "", "  ")
+		if err != nil {
+			log.Errorf("failed to marshal robots: %v", err)
+			return nil
+		}
+		log.Warningf("robots: %s", string(data))
 
 		for _, robot := range robots {
+			if robot.Disabled {
+				log.Errorf("failed to authenticate deactivated robot account: %s", robot.Name)
+				return nil
+			}
+			now := time.Now().Unix()
+			if robot.ExpiresAt != -1 && robot.ExpiresAt <= now {
+				log.Errorf("the robot account is expired: %s", robot.Name)
+				return nil
+			}
+
+			log.Debugf("a robot security context generated for request %s %s", req.Method, req.URL.Path)
+			// robotCtx.NewSecurityContext(robot)
+
 			// get security context for every robot account
 			sctx := robotCtx.NewSecurityContext(robot)
 
+			log.Warningf("got new security context for robot: %v", sctx)
+			project, err := project.Ctl.Get(req.Context(), ai.ProjectName)
+			if err != nil {
+				log.Errorf("failed to get project in robotjwt: %v", err)
+				return nil
+			}
+			log.Warningf("got project: %v", project)
 			// apply security context to the RequestMethod
 			// problem is if robot acc is not right we need to remove the security context from the request context
 			// req = req.WithContext(security.NewContext(req.Context(), sctx))
-			if sctx.Can(req.Context(), rbac.ActionPull, rbac.ResourceArtifact) {
+			// now get the resource hard coded to list tags
+			resource := rbac_project.NewNamespace(project.ProjectID).Resource(rbac.ResourceTag)
+			if sctx.Can(req.Context(), rbac.ActionList, resource) {
 				return robot
 			}
+
 			// if baseAPI.HasProjectPermission(req.Context(), ai.ProjectName, rbac.ActionPull, rbac.ResourceArtifact) {
 			// 	return robot
 			// }
