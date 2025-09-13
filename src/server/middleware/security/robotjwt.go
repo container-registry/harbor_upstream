@@ -226,7 +226,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// give me a fucction name
 	var name string
 	log.Warningf("going to run get robot account fuunction")
-	robotacc := getRobotAccount(req, RequestMethod, ai, log)
+	robotacc := getRobotAccount(req, ai, log)
 	if len(robotacc.Name) == 0 {
 		log.Errorf("failed to get robot account so now assinging the default robot account - robot_potta")
 		name = "robot_potta"
@@ -326,8 +326,8 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	return robotCtx.NewSecurityContext(robot)
 }
 
-func getRobotAccount(req *http.Request, RequestMethod string, ai lib.ArtifactInfo, log *log.Logger) *robot_ctl.Robot {
-	switch RequestMethod {
+func getRobotAccount(req *http.Request, ai lib.ArtifactInfo, log *log.Logger) *robot_ctl.Robot {
+	switch req.Method {
 	case http.MethodGet, http.MethodHead:
 
 		log.Warningf("going to get all robot accounts")
