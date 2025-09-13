@@ -389,8 +389,8 @@ func getRobotAccount(req *http.Request, RequestMethod string, ai lib.ArtifactInf
 			// problem is if robot acc is not right we need to remove the security context from the request context
 			// req = req.WithContext(security.NewContext(req.Context(), sctx))
 			// now get the resource hard coded to list tags
-			resource := rbac_project.NewNamespace(project.ProjectID).Resource(rbac.ResourceTag)
-			if sctx.Can(req.Context(), rbac.ActionList, resource) {
+			resource := rbac_project.NewNamespace(project.ProjectID).Resource(rbac.ResourceRepository)
+			if sctx.Can(req.Context(), rbac.ActionPull, resource) {
 				return robot
 			}
 
