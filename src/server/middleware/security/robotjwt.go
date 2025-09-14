@@ -228,9 +228,9 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// give me a fucction name
 	var name string
 	log.Warningf("going to run get robot account fuunction")
-	robotacc := getRobotAccount(req, log)
-	if len(robotacc.Name) == 0 {
-		log.Errorf("failed to get robot account so now assinging the default robot account - robot_potta")
+	robotacc, err := getRobotAccount(req, log)
+	if err != nil {
+		log.Errorf("failed to get robot account so now assinging the default robot account - robot_potta: %v", err)
 		name = "robot_potta"
 	} else {
 		name = robotacc.Name
@@ -328,7 +328,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	return robotCtx.NewSecurityContext(robot)
 }
 
-func getRobotAccount(req *http.Request, log *log.Logger) *robot_ctl.Robot {
+func getRobotAccount(req *http.Request, log *log.Logger) (*robot_ctl.Robot, error) {
 
 	action := jwtmiddleware.GetAction(req)
 	log.Warningf("going to get all robot accounts")
@@ -345,30 +345,26 @@ func getRobotAccount(req *http.Request, log *log.Logger) *robot_ctl.Robot {
 			WithPermission: true,
 		})
 	if err != nil {
-		log.Errorf("failed to list robots: %v", err)
-		return nil
+		return nil, fmt.Errorf("failed to list robots: %v", err)
 	}
 	if len(robots) == 0 {
-		return nil
+		return nil, fmt.Errorf("robot accounts is empty: %v", err)
 	}
 
 	// Marshal to pretty JSON for logging it debug kumar
 	data, err := json.MarshalIndent(robots, "", "  ")
 	if err != nil {
-		log.Errorf("failed to marshal robots: %v", err)
-		return nil
+		return nil, fmt.Errorf("failed to marshal robots: %v", err)
 	}
 	log.Warningf("robots: %s", string(data))
 
 	for _, robot := range robots {
 		if robot.Disabled {
-			log.Errorf("failed to authenticate deactivated robot account: %s", robot.Name)
-			return nil
+			return nil, fmt.Errorf("failed to authenticate deactivated robot account: %s", robot.Name)
 		}
 		now := time.Now().Unix()
 		if robot.ExpiresAt != -1 && robot.ExpiresAt <= now {
-			log.Errorf("the robot account is expired: %s", robot.Name)
-			return nil
+			return nil, fmt.Errorf("the robot account is expired: %s", robot.Name)
 		}
 
 		log.Debugf("a robot security context generated for request %s %s", req.Method, req.URL.Path)
@@ -379,21 +375,21 @@ func getRobotAccount(req *http.Request, log *log.Logger) *robot_ctl.Robot {
 		log.Warningf("got access info: %v", accessInfo)
 
 		// put this before to set the namespace
-		ns, err := accessInfo.Resource.GetNamespace()
-		if err != nil {
-			log.Errorf("failed to get namespace in robotjwt: %v", err)
-			return nil
-		}
-		log.Warningf("got namespace: %v", ns)
+		// ns, err := accessInfo.Resource.GetNamespace()
+		// if err != nil {
+		// 	log.Errorf("failed to get namespace in robotjwt: %v", err)
+		// 	return nil
+		// }
+		// log.Warningf("got namespace: %v", ns)
 		log.Warningf("got resource %s", accessInfo.Resource)
 
 		// check if the robot account has the required permissions
 		if sctx.Can(req.Context(), accessInfo.Action, accessInfo.Resource) {
-			return robot
+			return robot, nil
 		}
 	}
 
-	return nil
+	return nil, fmt.Errorf("completely failed to get robot account")
 }
 
 // AccessInfo holds details about a parsed access entry
