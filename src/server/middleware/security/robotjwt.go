@@ -27,6 +27,7 @@ import (
 	"github.com/goharbor/harbor/src/common"
 	"github.com/goharbor/harbor/src/common/rbac"
 	rbac_project "github.com/goharbor/harbor/src/common/rbac/project"
+	"github.com/goharbor/harbor/src/common/rbac/system"
 	"github.com/goharbor/harbor/src/common/security"
 	robotCtx "github.com/goharbor/harbor/src/common/security/robot"
 	"github.com/goharbor/harbor/src/controller/project"
@@ -36,6 +37,7 @@ import (
 	"github.com/goharbor/harbor/src/lib/log"
 	"github.com/goharbor/harbor/src/lib/q"
 	"github.com/goharbor/harbor/src/pkg/token"
+	"github.com/goharbor/harbor/src/server/middleware/security/jwtmiddleware"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -214,11 +216,11 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	tag := ai.Tag
 	reference := ai.Reference
 	// get the type of request
-	RequestMethod := req.Method
-	if RequestMethod == "" {
-		// hnadle the case when the request method is empty
-		RequestMethod = "GET"
-	}
+	// RequestMethod := req.Method
+	// if RequestMethod == "" {
+	// 	// hnadle the case when the request method is empty
+	// 	RequestMethod = "GET"
+	// }
 	log.Debugf("bmDigest: %s, bmRepo: %s, bmProjectName: %s", bmDigest, bmRepo, bmProjectName)
 	log.Debugf("projectName: %s, repository: %s, digest: %s, tag: %s, reference: %s", projectName, repository, digest, tag, reference)
 
@@ -226,7 +228,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// give me a fucction name
 	var name string
 	log.Warningf("going to run get robot account fuunction")
-	robotacc := getRobotAccount(req, ai, log)
+	robotacc := getRobotAccount(req, log)
 	if len(robotacc.Name) == 0 {
 		log.Errorf("failed to get robot account so now assinging the default robot account - robot_potta")
 		name = "robot_potta"
@@ -326,79 +328,114 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	return robotCtx.NewSecurityContext(robot)
 }
 
-func getRobotAccount(req *http.Request, ai lib.ArtifactInfo, log *log.Logger) *robot_ctl.Robot {
-	switch req.Method {
-	case http.MethodGet, http.MethodHead:
+func getRobotAccount(req *http.Request, log *log.Logger) *robot_ctl.Robot {
 
-		log.Warningf("going to get all robot accounts")
-
-		// create a custom query
-		query := q.New(q.KeyWords{
-			"permissions.access.action": "pull",                                // only get robot accounts with pull permission
-			"permissions.namespace":     fmt.Sprintf("{%s *}", ai.ProjectName), // union match project name and *
+	action := jwtmiddleware.GetAction(req)
+	log.Warningf("going to get all robot accounts")
+	// create a custom query
+	query := q.New(q.KeyWords{
+		"permissions.access.action": action, // only get robot accounts with pull permission
+	})
+	// get all robot accounts
+	robots, err := robot_ctl.Ctl.List(req.Context(),
+		// should do a better query
+		// q.New(q.KeyWords{"name": strings.TrimPrefix(ai.ProjectName, config.RobotPrefix(ctx)),}),
+		query,
+		&robot_ctl.Option{
+			WithPermission: true,
 		})
-		// get all robot accounts
-		robots, err := robot_ctl.Ctl.List(req.Context(),
-			// should do a better query
-			// q.New(q.KeyWords{"name": strings.TrimPrefix(ai.ProjectName, config.RobotPrefix(ctx)),}),
-			query,
-			&robot_ctl.Option{
-				WithPermission: true,
-			})
+	if err != nil {
+		log.Errorf("failed to list robots: %v", err)
+		return nil
+	}
+	if len(robots) == 0 {
+		return nil
+	}
+
+	// Marshal to pretty JSON for logging it debug kumar
+	data, err := json.MarshalIndent(robots, "", "  ")
+	if err != nil {
+		log.Errorf("failed to marshal robots: %v", err)
+		return nil
+	}
+	log.Warningf("robots: %s", string(data))
+
+	for _, robot := range robots {
+		if robot.Disabled {
+			log.Errorf("failed to authenticate deactivated robot account: %s", robot.Name)
+			return nil
+		}
+		now := time.Now().Unix()
+		if robot.ExpiresAt != -1 && robot.ExpiresAt <= now {
+			log.Errorf("the robot account is expired: %s", robot.Name)
+			return nil
+		}
+
+		log.Debugf("a robot security context generated for request %s %s", req.Method, req.URL.Path)
+		sctx := robotCtx.NewSecurityContext(robot)
+		log.Warningf("got new security context for robot: %v", sctx)
+
+		accessInfo := getAccessInfo(req)
+		log.Warningf("got access info: %v", accessInfo)
+
+		// put this before to set the namespace
+		ns, err := accessInfo.Resource.GetNamespace()
 		if err != nil {
-			log.Errorf("failed to list robots: %v", err)
+			log.Errorf("failed to get namespace in robotjwt: %v", err)
 			return nil
 		}
-		if len(robots) == 0 {
-			return nil
-		}
+		log.Warningf("got namespace: %v", ns)
+		log.Warningf("got resource %s", accessInfo.Resource)
 
-		// Marshal to pretty JSON
-		data, err := json.MarshalIndent(robots, "", "  ")
-		if err != nil {
-			log.Errorf("failed to marshal robots: %v", err)
-			return nil
+		// check if the robot account has the required permissions
+		if sctx.Can(req.Context(), accessInfo.Action, accessInfo.Resource) {
+			return robot
 		}
-		log.Warningf("robots: %s", string(data))
+	}
 
-		for _, robot := range robots {
-			if robot.Disabled {
-				log.Errorf("failed to authenticate deactivated robot account: %s", robot.Name)
-				return nil
+	return nil
+}
+
+// AccessInfo holds details about a parsed access entry
+type AccessInfo struct {
+	ProjectID int64
+	Action    rbac.Action
+	Resource  rbac.Resource
+}
+
+// inspect the access list and gets the required permissions
+func getAccessInfo(req *http.Request) *AccessInfo {
+	// fetch access list from JWT middleware
+	accessList := jwtmiddleware.AccessList(req)
+
+	for _, a := range accessList {
+		switch a.Target {
+		case jwtmiddleware.Catalog:
+			resource := system.NewNamespace().Resource(rbac.ResourceCatalog)
+			return &AccessInfo{
+				ProjectID: 0,
+				Action:    rbac.ActionRead,
+				Resource:  resource,
 			}
-			now := time.Now().Unix()
-			if robot.ExpiresAt != -1 && robot.ExpiresAt <= now {
-				log.Errorf("the robot account is expired: %s", robot.Name)
-				return nil
-			}
 
-			log.Debugf("a robot security context generated for request %s %s", req.Method, req.URL.Path)
-			// robotCtx.NewSecurityContext(robot)
-
-			// get security context for every robot account
-			sctx := robotCtx.NewSecurityContext(robot)
-
-			log.Warningf("got new security context for robot: %v", sctx)
-			project, err := project.Ctl.Get(req.Context(), ai.ProjectName)
+		case jwtmiddleware.Repository:
+			pn := strings.Split(a.Name, "/")[0]
+			// fetch project
+			project, err := project.Ctl.Get(req.Context(), pn)
 			if err != nil {
 				log.Errorf("failed to get project in robotjwt: %v", err)
 				return nil
 			}
 			log.Warningf("got project: %v", project)
-			// apply security context to the RequestMethod
-			// problem is if robot acc is not right we need to remove the security context from the request context
-			// req = req.WithContext(security.NewContext(req.Context(), sctx))
-			// now get the resource hard coded to list tags
+			// determine action and resource
+			action := jwtmiddleware.GetAction(req)
 			resource := rbac_project.NewNamespace(project.ProjectID).Resource(rbac.ResourceRepository)
-			if sctx.Can(req.Context(), rbac.ActionPull, resource) {
-				return robot
+			return &AccessInfo{
+				ProjectID: project.ProjectID,
+				Action:    action,
+				Resource:  resource,
 			}
-
-			// if baseAPI.HasProjectPermission(req.Context(), ai.ProjectName, rbac.ActionPull, rbac.ResourceArtifact) {
-			// 	return robot
-			// }
 		}
-		return nil
 	}
 	return nil
 }
