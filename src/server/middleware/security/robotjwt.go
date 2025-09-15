@@ -15,29 +15,19 @@
 package security
 
 import (
-	"crypto/x509"
-	"encoding/base64"
-	"encoding/json"
-	"encoding/pem"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/goharbor/harbor/src/common"
-	"github.com/goharbor/harbor/src/common/rbac"
-	rbac_project "github.com/goharbor/harbor/src/common/rbac/project"
-	"github.com/goharbor/harbor/src/common/rbac/system"
 	"github.com/goharbor/harbor/src/common/security"
 	robotCtx "github.com/goharbor/harbor/src/common/security/robot"
-	"github.com/goharbor/harbor/src/controller/project"
 	robot_ctl "github.com/goharbor/harbor/src/controller/robot"
-	"github.com/goharbor/harbor/src/lib"
 	"github.com/goharbor/harbor/src/lib/config"
 	"github.com/goharbor/harbor/src/lib/log"
 	"github.com/goharbor/harbor/src/lib/q"
 	"github.com/goharbor/harbor/src/pkg/token"
-	"github.com/goharbor/harbor/src/server/middleware/security/jwtmiddleware"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -47,112 +37,17 @@ func defaultOptions() *token.Options {
 	return token.DefaultTokenOptions()
 }
 
-// mapMethodToAction maps HTTP verbs to Harbor RBAC actions
-// func mapMethodToAction(method string) types.Action {
-// 	switch method {
-// 	case http.MethodGet, http.MethodHead:
-// 		return rbac.ActionPull // GET/HEAD → pull
-// 	case http.MethodPost, http.MethodPut, http.MethodPatch:
-// 		return rbac.ActionPush // POST/PUT/PATCH → push
-// 	case http.MethodDelete:
-// 		return rbac.ActionDelete
-// 	default:
-// 		return "" // unknown
-// 	}
-// }
-
 // TODO: replace this function with a robust one
 // the function should be able to take the jwks-uri and return the public key
-//
-// ParseJWKx5cToPublicKey takes the x5c cert string and converts it to PEM []byte
-func ParseJWKx5cToPublicKey(x5c string) ([]byte, error) {
-	// decode base64 DER cert
-	der, err := base64.StdEncoding.DecodeString(x5c)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode x5c: %w", err)
-	}
-
-	// parse DER into x509.Certificate
-	cert, err := x509.ParseCertificate(der)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse cert: %w", err)
-	}
-
-	// marshal public key (RSA/ECDSA depending on cert)
-	derBytes, err := x509.MarshalPKIXPublicKey(cert.PublicKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal public key: %w", err)
-	}
-
-	// encode to PEM
-	pemBytes := pem.EncodeToMemory(&pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: derBytes,
-	})
-
-	return pemBytes, nil
-}
 
 // TODO: replace this function with a robust one
 // it should be able to take the JWK or PEM from DB and return the public key
-//
-// // ParseJWKtoPublicKey converts JWK (n, e) into PEM []byte
-// func ParseJWKtoPublicKey(n, e string) ([]byte, error) {
-// 	// base64url decode modulus
-// 	nb, err := base64.RawURLEncoding.DecodeString(n)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to decode n: %w", err)
-// 	}
-//
-// 	// base64url decode exponent
-// 	eb, err := base64.RawURLEncoding.DecodeString(e)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to decode e: %w", err)
-// 	}
-//
-// 	// convert exponent bytes to int
-// 	var exp int
-// 	if len(eb) < 4 {
-// 		eb4 := make([]byte, 4)
-// 		copy(eb4[4-len(eb):], eb)
-// 		exp = int(binary.BigEndian.Uint32(eb4))
-// 	} else {
-// 		exp = int(new(big.Int).SetBytes(eb).Int64())
-// 	}
-//
-// 	// construct rsa.PublicKey
-// 	pub := &rsa.PublicKey{
-// 		N: new(big.Int).SetBytes(nb),
-// 		E: exp,
-// 	}
-//
-// 	// convert to PKIX DER
-// 	der, err := x509.MarshalPKIXPublicKey(pub)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to marshal public key: %w", err)
-// 	}
-//
-// 	// encode to PEM
-// 	pemBytes := pem.EncodeToMemory(&pem.Block{
-// 		Type:  "PUBLIC KEY",
-// 		Bytes: der,
-// 	})
-//
-// 	return pemBytes, nil
-// }
 
 // TODO: finally remove debug logs with kumar prefix
 
 func (r *robotjwt) Generate(req *http.Request) security.Context {
 	log.Warningf("if you are seeing this kumar, it means you are starting the robot validation")
 	log := log.G(req.Context())
-
-	// TODO: check if the request is from container runtime
-	// if yes, get the resource needed from the request
-	//
-	// if !strings.HasPrefix(req.URL.Path, "/v2") {
-	// 	return nil
-	// }
 
 	// get the jwt
 	tokenStr := bearerToken(req)
@@ -163,7 +58,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// kumar, log the jwt token
 	log.Warningf("the jwt token is %s", tokenStr)
 
-	// parse the jwt
+	// TODO: get the token options from db
 	defaultOpt := defaultOptions()
 	if defaultOpt == nil {
 		log.Warningf("failed to get default options")
@@ -178,54 +73,31 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 
 	// TODO: no hardcoded JWK, use the JWK from DB
 	//
-	// parse jwk to PublicKey
-	// n := "4cxDjTcJRJFID6UCgepPV45T1XDz_cLXSPgMur00WXB4jJrR9bfnZDx6dWqwps2dCw-lD3Fccj2oItwdRQ99In61l48MgiJaITf5JK2c63halNYiNo22_cyBG__nCkDZTZwEfGdfPRXSOWMg1E0pgGc1PoqwOdHZrQVqTcP3vWJt8bDQSOuoZBHSwVzDSjHPY6LmJMEO42H27t3ZkcYtS5crU8j2Yf-UH5U6rrSEyMdrCpc9IXe9WCmWjz5yOQa0r3U7M5OPEKD1-8wuP6_dPw0DyNO_Ei7UerVtsx5XSTd-Z5ujeB3PFVeAdtGxJ23oRNCq2MCOZBa58EGeRDLR7Q"
-	// e := "AQAB"
-
-	// TODO: no hardcoded values, get everything needed from DB
-	//
 	// TODO: Find a robust library to parse the JWK and PEM for offline use case
 	// TODO: remove the below hardcoded x5c and n, e
-	x5c := `MIIDKzCCAhOgAwIBAgIUDnwm6eRIqGFA3o/P1oBrChvx/nowDQYJKoZIhvcNAQELBQAwJTEjMCEGA1UEAwwaYWN0aW9ucy5zZWxmLXNpZ25lZC5naXRodWIwHhcNMjQwMTIzMTUyNTM2WhcNMzQwMTIwMTUyNTM2WjAlMSMwIQYDVQQDDBphY3Rpb25zLnNlbGYtc2lnbmVkLmdpdGh1YjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAOTGp5svs8LJN8BH7VzXShWXnOK0lhDVuI0xnr5bwHFPc924CwaIEFb6mC7bvW2lZtgd633uaJ2naG6vKaOVGpCdGLE4ohH11nUk+2CNknZL7/oTmDHGSmGeHRb7kjtb0Ng4BJMPzmTYmCNUudfDFhHDcZz1Obuu85GsABrC5ZlzWzspYFXwUSaxvII+rHK/rAbOC2gmt5IOSLmgh3taQfp0mB6Lxlf89HoBPNwtPfBX8DtXTWQVnqODm4W+WfmWBSyXGX54DGNMyZwlTZqR0FjoMXxopId3MIuDGKxa2weDU5cW60N2y/qxikeV99fL3sg5aPA8s9iljKG0+MAfVNUCAwEAAaNTMFEwHQYDVR0OBBYEFIPALo5VanJ6E1B9eLQgGO+uGV65MB8GA1UdIwQYMBaAFIPALo5VanJ6E1B9eLQgGO+uGV65MA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAGS0hZE+DqKIRi49Z2KDOMOaSZnAYgqq6ws9HJHT09MXWlMHB8E/apvy2ZuFrcSu14ZLweJid+PrrooXEXEO6azEakzCjeUb9G1QwlzP4CkTcMGCw1Snh3jWZIuKaw21f7mp2rQ+YNltgHVDKY2s8AD273E8musEsWxJl80/MNvMie8Hfh4n4/Xl2r6t1YPmUJMoXAXdTBb0hkPy1fUu3r2T+1oi7Rw6kuVDfAZjaHupNHzJeDOg2KxUoK/GF2/M2qpVrd19Pv/JXNkQXRE4DFbErMmA7tXpp1tkXJRPhFui/Pv5H9cPgObEf9x6W4KnCXzT3ReeeRDKF8SqGTPELsc=`
+	// x5c := `MIIDKzCCAhOgAwIBAgIUDnwm6eRIqGFA3o/P1oBrChvx/nowDQYJKoZIhvcNAQELBQAwJTEjMCEGA1UEAwwaYWN0aW9ucy5zZWxmLXNpZ25lZC5naXRodWIwHhcNMjQwMTIzMTUyNTM2WhcNMzQwMTIwMTUyNTM2WjAlMSMwIQYDVQQDDBphY3Rpb25zLnNlbGYtc2lnbmVkLmdpdGh1YjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAOTGp5svs8LJN8BH7VzXShWXnOK0lhDVuI0xnr5bwHFPc924CwaIEFb6mC7bvW2lZtgd633uaJ2naG6vKaOVGpCdGLE4ohH11nUk+2CNknZL7/oTmDHGSmGeHRb7kjtb0Ng4BJMPzmTYmCNUudfDFhHDcZz1Obuu85GsABrC5ZlzWzspYFXwUSaxvII+rHK/rAbOC2gmt5IOSLmgh3taQfp0mB6Lxlf89HoBPNwtPfBX8DtXTWQVnqODm4W+WfmWBSyXGX54DGNMyZwlTZqR0FjoMXxopId3MIuDGKxa2weDU5cW60N2y/qxikeV99fL3sg5aPA8s9iljKG0+MAfVNUCAwEAAaNTMFEwHQYDVR0OBBYEFIPALo5VanJ6E1B9eLQgGO+uGV65MB8GA1UdIwQYMBaAFIPALo5VanJ6E1B9eLQgGO+uGV65MA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAGS0hZE+DqKIRi49Z2KDOMOaSZnAYgqq6ws9HJHT09MXWlMHB8E/apvy2ZuFrcSu14ZLweJid+PrrooXEXEO6azEakzCjeUb9G1QwlzP4CkTcMGCw1Snh3jWZIuKaw21f7mp2rQ+YNltgHVDKY2s8AD273E8musEsWxJl80/MNvMie8Hfh4n4/Xl2r6t1YPmUJMoXAXdTBb0hkPy1fUu3r2T+1oi7Rw6kuVDfAZjaHupNHzJeDOg2KxUoK/GF2/M2qpVrd19Pv/JXNkQXRE4DFbErMmA7tXpp1tkXJRPhFui/Pv5H9cPgObEf9x6W4KnCXzT3ReeeRDKF8SqGTPELsc=`
 
 	// TODO: improve the overall flow
-	pubKey, err := ParseJWKx5cToPublicKey(x5c)
-	if err != nil {
-		log.Fatalf("failed: %v", err)
-	}
+	// TODO: get the public key from jwks-uri
+	// start things from the db
+	// pubKey, err := ParseJWKx5cToPublicKey(x5c)
+	// if err != nil {
+	// 	log.Fatalf("failed: %v", err)
+	// }
 
 	// pubKey, err := ParseJWKtoPublicKey(n, e)
 	// if err != nil {
 	// 	log.Fatalf("failed to parse JWK: %v", err)
 	// }
 
-	defaultOpt.PublicKey = pubKey
+	// defaultOpt.PublicKey = pubKey
 
+	// TODO: create more dynamic base claims based on the issuer.
 	cl := &v2TokenClaims{}
 	// kumar, log the claims
 	log.Warningf("the claims is %v", cl)
 
-	// get artifact info
-	ai := lib.GetArtifactInfo(req.Context())
-	bmDigest := ai.BlobMountDigest
-	bmRepo := ai.BlobMountRepository
-	bmProjectName := ai.BlobMountProjectName
-	projectName := ai.ProjectName
-	repository := ai.Repository
-	digest := ai.Digest
-	tag := ai.Tag
-	reference := ai.Reference
-	// get the type of request
-	// RequestMethod := req.Method
-	// if RequestMethod == "" {
-	// 	// hnadle the case when the request method is empty
-	// 	RequestMethod = "GET"
-	// }
-	log.Debugf("bmDigest: %s, bmRepo: %s, bmProjectName: %s", bmDigest, bmRepo, bmProjectName)
-	log.Debugf("projectName: %s, repository: %s, digest: %s, tag: %s, reference: %s", projectName, repository, digest, tag, reference)
-
-	// send the request method and the artifact info to get the right robot account
-	// give me a fucction name
+	// TODO: remove hard coded robot account
 	var name string
 	log.Warningf("going to run get robot account fuunction")
 	robotacc, err := getRobotAccount(req, log)
@@ -238,7 +110,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	log.Warningf("done ran get robot account fuunction")
 	log.Warningf("robot account we got was: %s", name)
 
-	// token.parse will both validate the token with default needed claims and verify the signature
+	// token.parse will just check the validity of the token and parse the token, validating the given claims
 	t, err := token.Parse(defaultOpt, tokenStr, cl)
 	if err != nil {
 		log.Warningf("failed to decode bearer token: %v", err)
@@ -276,15 +148,6 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	}
 	// return v2token.New(req.Context(), claims.Subject, claims.Access)
 	log.Warningf("if you are seeing this kumar, it means you are done with the robot validation")
-
-	// sneak in the robot name
-	// name, secret, ok := req.BasicAuth()
-	// if !ok {
-	// 	return nil
-	// }
-	// if !strings.HasPrefix(name, config.RobotPrefix(req.Context())) {
-	// 	return nil
-	// }
 
 	// kumar, hardcoded robot name
 	// TODO: based on the request, get the robot most qualified robot name
@@ -328,110 +191,8 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	return robotCtx.NewSecurityContext(robot)
 }
 
+// get the robot account with max matching claims
 func getRobotAccount(req *http.Request, log *log.Logger) (*robot_ctl.Robot, error) {
-
-	action := jwtmiddleware.GetAction(req)
-	log.Warningf("going to get all robot accounts")
-	// create a custom query
-	query := q.New(q.KeyWords{
-		"permissions.access.action": action, // only get robot accounts with pull permission
-	})
-	// get all robot accounts
-	robots, err := robot_ctl.Ctl.List(req.Context(),
-		// should do a better query
-		// q.New(q.KeyWords{"name": strings.TrimPrefix(ai.ProjectName, config.RobotPrefix(ctx)),}),
-		query,
-		&robot_ctl.Option{
-			WithPermission: true,
-		})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list robots: %v", err)
-	}
-	if len(robots) == 0 {
-		return nil, fmt.Errorf("robot accounts is empty: %v", err)
-	}
-
-	// Marshal to pretty JSON for logging it debug kumar
-	data, err := json.MarshalIndent(robots, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal robots: %v", err)
-	}
-	log.Warningf("robots: %s", string(data))
-
-	for _, robot := range robots {
-		if robot.Disabled {
-			return nil, fmt.Errorf("failed to authenticate deactivated robot account: %s", robot.Name)
-		}
-		now := time.Now().Unix()
-		if robot.ExpiresAt != -1 && robot.ExpiresAt <= now {
-			return nil, fmt.Errorf("the robot account is expired: %s", robot.Name)
-		}
-
-		log.Debugf("a robot security context generated for request %s %s", req.Method, req.URL.Path)
-		sctx := robotCtx.NewSecurityContext(robot)
-		log.Warningf("got new security context for robot: %v", sctx)
-
-		accessInfo := getAccessInfo(req)
-		log.Warningf("got access info: %v", accessInfo)
-
-		// put this before to set the namespace
-		// ns, err := accessInfo.Resource.GetNamespace()
-		// if err != nil {
-		// 	log.Errorf("failed to get namespace in robotjwt: %v", err)
-		// 	return nil
-		// }
-		// log.Warningf("got namespace: %v", ns)
-		log.Warningf("got resource %s", accessInfo.Resource)
-
-		// check if the robot account has the required permissions
-		if sctx.Can(req.Context(), accessInfo.Action, accessInfo.Resource) {
-			return robot, nil
-		}
-	}
-
+	// TODO: get the robot account with max matching claims
 	return nil, fmt.Errorf("completely failed to get robot account")
-}
-
-// AccessInfo holds details about a parsed access entry
-type AccessInfo struct {
-	ProjectID int64
-	Action    rbac.Action
-	Resource  rbac.Resource
-}
-
-// inspect the access list and gets the required permissions
-func getAccessInfo(req *http.Request) *AccessInfo {
-	// fetch access list from JWT middleware
-	accessList := jwtmiddleware.AccessList(req)
-
-	for _, a := range accessList {
-		switch a.Target {
-		case jwtmiddleware.Catalog:
-			resource := system.NewNamespace().Resource(rbac.ResourceCatalog)
-			return &AccessInfo{
-				ProjectID: 0,
-				Action:    rbac.ActionRead,
-				Resource:  resource,
-			}
-
-		case jwtmiddleware.Repository:
-			pn := strings.Split(a.Name, "/")[0]
-			// fetch project
-			project, err := project.Ctl.Get(req.Context(), pn)
-			if err != nil {
-				log.Errorf("failed to get project in robotjwt: %v", err)
-				return nil
-			}
-			log.Warningf("got project: %v", project)
-			// determine action and resource
-			action := jwtmiddleware.GetAction(req)
-			resource := rbac_project.NewNamespace(project.ProjectID).Resource(rbac.ResourceRepository)
-			return &AccessInfo{
-				ProjectID: project.ProjectID,
-				Action:    action,
-				Resource:  resource,
-			}
-		}
-	}
-	return nil
 }
