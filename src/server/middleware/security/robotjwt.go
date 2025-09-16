@@ -15,6 +15,8 @@
 package security
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -29,6 +31,7 @@ import (
 	"github.com/goharbor/harbor/src/lib/q"
 	"github.com/goharbor/harbor/src/pkg/token"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/lestrrat-go/jwx/v3/jwk"
 )
 
 type robotjwt struct{}
@@ -57,6 +60,24 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 
 	// kumar, log the jwt token
 	log.Warningf("the jwt token is %s", tokenStr)
+
+	// get the jwks key
+	// first get the issuer from the token
+	tokene, _ := jwt.Parse(tokenStr, nil)
+	issuer, err := tokene.Claims.GetIssuer()
+	if err != nil {
+		log.Warningf("failed to get issuer from token: %v", err)
+		return nil
+	}
+
+	// based on the issuer, get the jwks jwks-uri
+	// get it from the database
+	hardjwksUri := "https://token.actions.githubusercontent.com/.well-known/jwks"
+	if issuer == "token.actions.githubusercontent.com" {
+		hardjwksUri = "https://token.actions.githubusercontent.com/.well-known/jwks"
+	}
+
+	GetAndParseJWK(req.Context(), hardjwksUri, log)
 
 	// TODO: get the token options from db
 	defaultOpt := defaultOptions()
@@ -196,3 +217,107 @@ func getRobotAccount(req *http.Request, log *log.Logger) (*robot_ctl.Robot, erro
 	// TODO: get the robot account with max matching claims
 	return nil, fmt.Errorf("completely failed to get robot account")
 }
+
+func GetAndParseJWK(ctx context.Context, jwksUri string, log *log.Logger) {
+	// Use jwk.Cache if you intend to keep reuse the JWKS over and over
+	set, err := jwk.Fetch(ctx, jwksUri)
+	if err != nil {
+		log.Warningf("failed to parse JWK: %s", err)
+		return
+	}
+
+	// Key sets can be serialized back to JSON
+	{
+		jsonbuf, err := json.Marshal(set)
+		if err != nil {
+			log.Warningf("failed to marshal key set into JSON: %s", err)
+			return
+		}
+		log.Warningf("%s", jsonbuf)
+	}
+
+	for i := 0; i < set.Len(); i++ {
+		var rawkey any        // This is where we would like to store the raw key, like *rsa.PrivateKey or *ecdsa.PrivateKey
+		key, ok := set.Key(i) // This retrieves the corresponding jwk.Key
+		if !ok {
+			log.Warningf("failed to get key at index %d", i)
+			return
+		}
+
+		// jws and jwe operations can be performed using jwk.Key, but you could also
+		// covert it to their "raw" forms, such as *rsa.PrivateKey or *ecdsa.PrivateKey
+		if err := jwk.Export(key, &rawkey); err != nil {
+			log.Warningf("failed to create public key: %s", err)
+			return
+		}
+		_ = rawkey
+
+		// You can create jwk.Key from a raw key, too
+		fromRawKey, err := jwk.Import(rawkey)
+		if err != nil {
+			log.Warningf("failed to acquire raw key from jwk.Key: %s", err)
+			return
+		}
+
+		// Keys can be serialized back to JSON
+		jsonbuf, err := json.Marshal(key)
+		if err != nil {
+			log.Warningf("failed to marshal key into JSON: %s", err)
+			return
+		}
+
+		fromJSONKey, err := jwk.Parse(jsonbuf)
+		if err != nil {
+			log.Warningf("failed to parse json: %s", err)
+			return
+		}
+		_ = fromJSONKey
+		_ = fromRawKey
+		// log the above items
+		log.Warningf("the key is %v", key)
+		log.Warningf("the raw key is %v", rawkey)
+		log.Warningf("the from raw key is %v", fromRawKey)
+		log.Warningf("the from json key is %v", fromJSONKey)
+	}
+	// OUTPUT:
+}
+
+//
+// //nolint:govet
+// func Example_jwk_marshal_json() {
+// 	// JWKs that inherently involve randomness such as RSA and EC keys are
+// 	// not used in this example, because they may produce different results
+// 	// depending on the environment.
+// 	//
+// 	// (In fact, even if you use a static source of randomness, tests may fail
+// 	// because of internal changes in the Go runtime).
+//
+// 	raw := []byte("01234567890123456789012345678901234567890123456789ABCDEF")
+//
+// 	// This would create a symmetric key
+// 	key, err := jwk.Import(raw)
+// 	if err != nil {
+// 		fmt.Printf("failed to create symmetric key: %s\n", err)
+// 		return
+// 	}
+// 	if _, ok := key.(jwk.SymmetricKey); !ok {
+// 		fmt.Printf("expected jwk.SymmetricKey, got %T\n", key)
+// 		return
+// 	}
+//
+// 	key.Set(jwk.KeyIDKey, "mykey")
+//
+// 	buf, err := json.MarshalIndent(key, "", "  ")
+// 	if err != nil {
+// 		fmt.Printf("failed to marshal key into JSON: %s\n", err)
+// 		return
+// 	}
+// 	fmt.Printf("%s\n", buf)
+//
+// 	// OUTPUT:
+// 	// {
+// 	//   "k": "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODlBQkNERUY",
+// 	//   "kid": "mykey",
+// 	//   "kty": "oct"
+// 	// }
+// }
