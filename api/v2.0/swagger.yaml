@@ -3864,6 +3864,10 @@ paths:
       operationId: getFederatedIdp
       parameters:
         - $ref: '#/parameters/requestId'
+        - $ref: '#/parameters/query'
+        - $ref: '#/parameters/sort'
+        - $ref: '#/parameters/page'
+        - $ref: '#/parameters/pageSize'
         - name: id
           in: path
           type: integer
