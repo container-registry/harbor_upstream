@@ -40,12 +40,6 @@ func defaultOptions() *token.Options {
 	return token.DefaultTokenOptions()
 }
 
-// TODO: replace this function with a robust one
-// the function should be able to take the jwks-uri and return the public key
-
-// TODO: replace this function with a robust one
-// it should be able to take the JWK or PEM from DB and return the public key
-
 // TODO: finally remove debug logs with kumar prefix
 
 func (r *robotjwt) Generate(req *http.Request) security.Context {
@@ -217,6 +211,12 @@ func getRobotAccount(req *http.Request, log *log.Logger) (*robot_ctl.Robot, erro
 	// TODO: get the robot account with max matching claims
 	return nil, fmt.Errorf("completely failed to get robot account")
 }
+
+// TODO: replace this function with a robust one
+// the function should be able to take the jwks-uri and return the public key
+
+// TODO: replace this function with a robust one
+// it should be able to take the JWK or PEM from DB and return the public key
 
 func GetAndParseJWK(ctx context.Context, jwksUri string, log *log.Logger) {
 	// Use jwk.Cache if you intend to keep reuse the JWKS over and over
