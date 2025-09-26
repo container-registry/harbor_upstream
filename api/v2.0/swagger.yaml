@@ -3955,15 +3955,14 @@ paths:
           in: path
           required: true
           description: Federated IdP ID
+          type: integer
+          format: int64
+        - name: claims
+          in: body
+          required: true
+          description: Claim rules payload
           schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/definitions/ClaimRules'
+            $ref: '#/definitions/ClaimRules'
       responses:
         '201':
           $ref: '#/responses/201'
@@ -3989,30 +3988,26 @@ paths:
         - $ref: '#/parameters/requestId'
         - name: id
           in: path
+          type: integer
+          format: int64
           required: true
           description: Federated IdP ID
-          schema:
-            type: integer
-            format: int64
         - name: claim_path
           in: query
+          type: string
           required: false
           description: Optional claim path to fetch a single rule; if omitted, all rules are returned.
-          schema:
-            type: string
       responses:
         '200':
           description: Success
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/definitions/ClaimRule'
           headers:
             X-Total-Count:
-              description: The total count of claim rules
+              description: The total count of the resources
               type: integer
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ClaimRule'
         '401':
           $ref: '#/responses/401'
         '403':
@@ -4033,15 +4028,13 @@ paths:
           in: path
           required: true
           description: Federated IdP ID
-          schema:
-            type: integer
-            format: int64
+          type: integer
+          format: int64
         - name: claim_path
           in: query
+          type: string
           required: true
           description: The claim_path of the claim rule to delete
-          schema:
-            type: string
       responses:
         '200':
           $ref: '#/responses/200'
@@ -4063,24 +4056,22 @@ paths:
         - $ref: '#/parameters/requestId'
         - name: id
           in: path
+          type: integer
+          format: int64
           required: true
           description: Federated IdP ID
-          schema:
-            type: integer
-            format: int64
         - name: claim_path
           in: query
+          type: integer
+          format: int64
           required: true
           description: The claim_path of the claim rule to update
+        - name: claims
+          in: body
+          required: true
+          description: Claim rules payload
           schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/definitions/ClaimRuleUpdate'
+            $ref: '#/definitions/ClaimRuleUpdate'
       responses:
         '200':
           $ref: '#/responses/200'
