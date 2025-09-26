@@ -3945,7 +3945,7 @@ paths:
   /federated-idps/{id}/claims:
     post:
       summary: Add claim rules to a federated identity provider
-      description: Add validation rules for a JWT claim for a specific IdP.
+      description: Create one or more JWT claim rules for the specified IdP.
       tags:
         - federated-idp
       operationId: addClaimRules
@@ -3976,13 +3976,12 @@ paths:
         '404':
           $ref: '#/responses/404'
         '409':
-          description: Claim rule already exists
+          description: One or more claim rules already exist
         '500':
           $ref: '#/responses/500'
-
     get:
       summary: List claim rules for a federated identity provider
-      description: List all claim rules associated with a specific federated IdP.
+      description: List all claim rules for the specified IdP, or filter by a single claim rule if `claim_path` is provided.
       tags:
         - federated-idp
       operationId: listClaimRules
@@ -3995,13 +3994,21 @@ paths:
           schema:
             type: integer
             format: int64
+        - name: claim_path
+          in: query
+          required: false
+          description: Optional claim path to fetch a single rule; if omitted, all rules are returned.
+          schema:
+            type: string
       responses:
         '200':
           description: Success
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/ClaimRules'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/definitions/ClaimRule'
           headers:
             X-Total-Count:
               description: The total count of claim rules
@@ -4014,13 +4021,12 @@ paths:
           $ref: '#/responses/404'
         '500':
           $ref: '#/responses/500'
-
-    put:
-      summary: Update claim rules for a federated IdP.
-      description: Update claim rules for a specific federated IdP.
+    delete:
+      summary: Delete a single claim rule from a federated identity provider
+      description: Delete a single claim rule from a federated identity provider
       tags:
         - federated-idp
-      operationId: updateClaimRules
+      operationId: deleteClaimRule
       parameters:
         - $ref: '#/parameters/requestId'
         - name: id
@@ -4030,10 +4036,42 @@ paths:
           schema:
             type: integer
             format: int64
-        - name: claim_id
+        - name: claim_path
           in: query
           required: true
-          description: The ID of the claim rule to update
+          description: The claim_path of the claim rule to delete
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/responses/200'
+        '401':
+          $ref: '#/responses/401'
+        '403':
+          $ref: '#/responses/403'
+        '404':
+          $ref: '#/responses/404'
+        '500':
+          $ref: '#/responses/500'
+    put:
+      summary: Update a single claim rule for a federated IdP
+      description: Update a single claim rule for a federated IdP by claim_path.
+      tags:
+        - federated-idp
+      operationId: updateClaimRule
+      parameters:
+        - $ref: '#/parameters/requestId'
+        - name: id
+          in: path
+          required: true
+          description: Federated IdP ID
+          schema:
+            type: integer
+            format: int64
+        - name: claim_path
+          in: query
+          required: true
+          description: The claim_path of the claim rule to update
           schema:
             type: integer
             format: int64
@@ -4058,41 +4096,6 @@ paths:
           description: Conflict with another existing claim rule
         '500':
           $ref: '#/responses/500'
-
-    delete:
-      summary: Remove a claim rule from a federated identity provider
-      description: Delete a claim rule associated with a specific IdP
-      tags:
-        - federated-idp
-      operationId: deleteClaimRule
-      parameters:
-        - $ref: '#/parameters/requestId'
-        - name: id
-          in: path
-          required: true
-          description: Federated IdP ID
-          schema:
-            type: integer
-            format: int64
-        - name: claim_id
-          in: query
-          required: true
-          description: The ID of the claim rule to delete
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          $ref: '#/responses/200'
-        '401':
-          $ref: '#/responses/401'
-        '403':
-          $ref: '#/responses/403'
-        '404':
-          $ref: '#/responses/404'
-        '500':
-          $ref: '#/responses/500'
-
 
   /replication/adapters:
     get:
@@ -7937,6 +7940,14 @@ definitions:
           $ref: '#/definitions/ClaimRule'
     required:
       - rules
+  ClaimRuleUpdate:
+    type: object
+    properties:
+      value:
+        type: string
+        description: The updated expected value for the claim.
+    required:
+      - value
 
   Registry:
     type: object
