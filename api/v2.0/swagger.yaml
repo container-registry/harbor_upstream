@@ -3801,7 +3801,7 @@ paths:
         eliminating the need for long-lived secrets and improving security.
       tags:
         - federated-idp
-      operationId: createFederatedIdp
+      operationId: CreateFederatedIdp
       parameters:
         - $ref: '#/parameters/requestId'
         - name: idp
@@ -3828,7 +3828,7 @@ paths:
       description: List all federated identity providers.
       tags:
         - federated-idp
-      operationId: listFederatedIdps
+      operationId: ListFederatedIdps
       parameters:
         - $ref: '#/parameters/requestId'
         - $ref: '#/parameters/query'
@@ -3892,7 +3892,7 @@ paths:
       description: Delete the specific federated identity provider
       tags:
         - federated-idp
-      operationId: deleteFederatedIdp
+      operationId: DeleteFederatedIdp
       parameters:
         - $ref: '#/parameters/requestId'
         - name: id
@@ -7856,11 +7856,11 @@ definitions:
         type: integer
         format: int64
         description: Project scope of this identity provider.
-      created_at:
+      creation_time:
         type: string
         format: date-time
         description: The create time of identity provider.
-      updated_at:
+      update_time:
         type: string
         format: date-time
         description: The update time of identity provider.

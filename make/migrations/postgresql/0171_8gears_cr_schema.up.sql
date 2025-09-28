@@ -16,15 +16,15 @@ CREATE TABLE IF NOT EXISTS identity_providers (
     jwks_uri TEXT,
     jwks_keys JSONB,
     project_id INT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    creation_time TIMESTAMP DEFAULT NOW(),
+    update_time TIMESTAMP DEFAULT NOW()
 );
 
 -- Description: join table for identity providers and robots
 CREATE TABLE IF NOT EXISTS robot_identity_providers (
     identity_provider_id INT NOT NULL REFERENCES identity_providers(id) ON DELETE CASCADE,
     robot_id INT NOT NULL REFERENCES robot(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT NOW(),
+    creation_time TIMESTAMP DEFAULT NOW(),
     PRIMARY KEY (identity_provider_id, robot_id)
 );
 
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS claim_rules (
     robot_id INT REFERENCES robot(id) ON DELETE CASCADE,
     claim_path TEXT NOT NULL,
     value TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
+    creation_time TIMESTAMP DEFAULT NOW()
 );
 
 -- Unique constraint: ensure no duplicate claim rules per scope
