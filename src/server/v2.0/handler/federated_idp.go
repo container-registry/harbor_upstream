@@ -17,8 +17,6 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -28,16 +26,10 @@ import (
 
 	"github.com/goharbor/harbor/src/common/rbac"
 
-	// robotSc "github.com/goharbor/harbor/src/common/security/robot"
-
-	// robotSc "github.com/goharbor/harbor/src/common/security/robot"
-	"github.com/goharbor/harbor/src/common/utils"
 	federated_idp "github.com/goharbor/harbor/src/controller/federatedidp"
-	"github.com/goharbor/harbor/src/controller/robot"
 	"github.com/goharbor/harbor/src/lib"
 	"github.com/goharbor/harbor/src/lib/errors"
-	"github.com/goharbor/harbor/src/lib/log"
-	"github.com/goharbor/harbor/src/pkg/permission/types"
+	pkg "github.com/goharbor/harbor/src/pkg/federatedidp/model"
 	"github.com/goharbor/harbor/src/server/v2.0/handler/model"
 	"github.com/goharbor/harbor/src/server/v2.0/models"
 	operation "github.com/goharbor/harbor/src/server/v2.0/restapi/operations/federated_idp"
@@ -54,6 +46,31 @@ type fedIDPAPI struct {
 	fedidpCtl federated_idp.Controller
 }
 
+// ListClaimRules
+func (fAPI *fedIDPAPI) ListClaimRules(ctx context.Context, params operation.ListClaimRulesParams) middleware.Responder {
+	// TODO: finish this
+
+	return operation.NewListClaimRulesOK()
+}
+// DeleteClaimRule
+func (fAPI *fedIDPAPI) DeleteClaimRule(ctx context.Context, params operation.DeleteClaimRuleParams) middleware.Responder {
+	// TODO: finish this
+
+	return operation.NewDeleteClaimRuleOK()
+}
+// UpdateClaimRule
+func (fAPI *fedIDPAPI) UpdateClaimRule(ctx context.Context, params operation.UpdateClaimRuleParams) middleware.Responder {
+	// TODO: finish this
+
+	return operation.NewUpdateClaimRuleOK()
+}
+
+func (fAPI *fedIDPAPI) AddClaimRules(ctx context.Context, params operation.AddClaimRulesParams) middleware.Responder {
+	// TODO: finish this
+
+	return operation.NewAddClaimRulesCreated()
+}
+
 func (fAPI *fedIDPAPI) CreateFederatedIdp(ctx context.Context, params operation.CreateFederatedIdpParams) middleware.Responder {
 	if err := validateName(params.Idp.Name); err != nil {
 		return fAPI.SendError(ctx, err)
@@ -63,17 +80,18 @@ func (fAPI *fedIDPAPI) CreateFederatedIdp(ctx context.Context, params operation.
 		return fAPI.SendError(ctx, err)
 	}
 
-	fIdp := &models.FederatedIdp{
+	fIdp := &pkg.FederatedIdp{
 		Name:                params.Idp.Name,
 		Description:         params.Idp.Description,
 		Issuer:              params.Idp.Issuer,
-		OpenidConfigURL:     params.Idp.OpenidConfigURL,
-		JwksURI:             params.Idp.JwksURI,
-		JwksKeys:            toRawMessage(params.Idp.JwksKeys),
+		OpenIDConfigURL:     params.Idp.OpenidConfigURL,
+		JWKSURI:             params.Idp.JwksURI,
+		JWKSKeys:            toRawMessage(params.Idp.JwksKeys),
 		OfflineValidation:   params.Idp.OfflineValidation,
 		SupportedAlgorithms: params.Idp.SupportedAlgorithms,
 		ClaimsSupported:     params.Idp.ClaimsSupported,
 		ProjectID:           params.Idp.ProjectID,
+		CreationTime:        time.Now(),
 		UpdateTime:          time.Now(),
 	}
 
@@ -148,7 +166,7 @@ func (fAPI *fedIDPAPI) ListFederatedIdps(ctx context.Context, params operation.L
 		query.Keywords["ProjectID"] = 0
 	}
 
-	f := &models.FederatedIdp{
+	f := &pkg.FederatedIdp{
 		ProjectID: projectID,
 	}
 	if err := fAPI.requireAccess(ctx, f, rbac.ActionList); err != nil {
@@ -167,7 +185,7 @@ func (fAPI *fedIDPAPI) ListFederatedIdps(ctx context.Context, params operation.L
 
 	var results []*models.FederatedIdp
 	for _, f := range fIdps {
-		results = append(results, f)
+		results = append(results, model.NewFederatedIdp(f).ToSwagger())
 	}
 
 	return operation.NewListFederatedIdpsOK().
@@ -176,88 +194,42 @@ func (fAPI *fedIDPAPI) ListFederatedIdps(ctx context.Context, params operation.L
 		WithPayload(results)
 }
 
-func (fAPI *fedIDPAPI) GetRobotByID(ctx context.Context, params operation.GetRobotByIDParams) middleware.Responder {
+func (fAPI *fedIDPAPI) GetFederatedIdp(ctx context.Context, params operation.GetFederatedIdpParams) middleware.Responder {
 	if err := fAPI.RequireAuthenticated(ctx); err != nil {
 		return fAPI.SendError(ctx, err)
 	}
 
-	r, err := fAPI.robotCtl.Get(ctx, params.RobotID, &robot.Option{
-		WithPermission: true,
-	})
+	f, err := fAPI.fedidpCtl.Get(ctx, params.ID)
 	if err != nil {
 		return fAPI.SendError(ctx, err)
 	}
-	if err := fAPI.requireAccess(ctx, r, rbac.ActionRead); err != nil {
+	if err := fAPI.requireAccess(ctx, f, rbac.ActionRead); err != nil {
 		return fAPI.SendError(ctx, err)
 	}
 
-	return operation.NewGetRobotByIDOK().WithPayload(model.NewRobot(r).ToSwagger())
+	return operation.NewGetFederatedIdpOK().WithPayload(model.NewFederatedIdp(f).ToSwagger())
 }
 
-func (fAPI *fedIDPAPI) UpdateRobot(ctx context.Context, params operation.UpdateRobotParams) middleware.Responder {
+func (fAPI *fedIDPAPI) UpdateFederatedIdp(ctx context.Context, params operation.UpdateFederatedIdpParams) middleware.Responder {
 	var err error
 	if err := fAPI.RequireAuthenticated(ctx); err != nil {
 		return fAPI.SendError(ctx, err)
 	}
-	r, err := fAPI.robotCtl.Get(ctx, params.RobotID, &robot.Option{
-		WithPermission: true,
-	})
+	f, err := fAPI.fedidpCtl.Get(ctx, params.ID)
 	if err != nil {
 		return fAPI.SendError(ctx, err)
 	}
 
-	if !r.Editable {
-		err = errors.DeniedError(nil).WithMessage("editing of legacy robot is not allowed")
-	} else {
-		err = fAPI.updateV2Robot(ctx, params, r)
-	}
+	err = fAPI.updateFedIdp(ctx, params, f)
+
 	if err != nil {
 		return fAPI.SendError(ctx, err)
 	}
 
-	return operation.NewUpdateRobotOK()
+	return operation.NewUpdateFederatedIdpOK()
 }
 
-func (fAPI *fedIDPAPI) RefreshSec(ctx context.Context, params operation.RefreshSecParams) middleware.Responder {
-	if err := fAPI.RequireAuthenticated(ctx); err != nil {
-		return fAPI.SendError(ctx, err)
-	}
-
-	r, err := fAPI.robotCtl.Get(ctx, params.RobotID, nil)
-	if err != nil {
-		return fAPI.SendError(ctx, err)
-	}
-
-	if err := fAPI.requireAccess(ctx, r, rbac.ActionUpdate); err != nil {
-		return fAPI.SendError(ctx, err)
-	}
-
-	var secret string
-	robotSec := &models.RobotSec{}
-	if params.RobotSec.Secret != "" {
-		if !robot.IsValidSec(params.RobotSec.Secret) {
-			return fAPI.SendError(ctx, errors.New("the secret must be 8-128, inclusively, characters long with at least 1 uppercase letter, 1 lowercase letter and 1 number").WithCode(errors.BadRequestCode))
-		}
-		secret = utils.Encrypt(params.RobotSec.Secret, r.Salt, utils.SHA256)
-		robotSec.Secret = ""
-	} else {
-		sec, pwd, _, err := robot.CreateSec(r.Salt)
-		if err != nil {
-			return fAPI.SendError(ctx, err)
-		}
-		secret = sec
-		robotSec.Secret = pwd
-	}
-
-	r.Secret = secret
-	if err := fAPI.robotCtl.Update(ctx, r, nil); err != nil {
-		return fAPI.SendError(ctx, err)
-	}
-
-	return operation.NewRefreshSecOK().WithPayload(robotSec)
-}
-
-func (fAPI *fedIDPAPI) requireAccess(ctx context.Context, f *models.FederatedIdp, action rbac.Action) error {
+func (fAPI *fedIDPAPI) requireAccess(ctx context.Context, f *pkg.FederatedIdp, action rbac.Action) error {
 	if f.ProjectID > 0 {
 		var ns interface{}
 		ns = f.ProjectID
@@ -287,94 +259,19 @@ func (fAPI *fedIDPAPI) validate(fedIdp *models.FederatedIdp) error {
 		// is supported algo && claims supported
 	}
 
-	if !isValidLevel(level) {
-		return errors.New(nil).WithMessagef("bad request error level input: %s", level).WithCode(errors.BadRequestCode)
-	}
-
-	if len(permissions) == 0 {
-		return errors.New(nil).WithMessage("bad request empty permission").WithCode(errors.BadRequestCode)
-	}
-
-	for _, perm := range permissions {
-		if len(perm.Access) == 0 {
-			return errors.New(nil).WithMessage("bad request empty access").WithCode(errors.BadRequestCode)
-		}
-	}
-
-	// to create a project robot, the permission must be only one project scope.
-	if level == robot.LEVELPROJECT && len(permissions) > 1 {
-		return errors.New(nil).WithMessage("bad request permission").WithCode(errors.BadRequestCode)
-	}
-
-	provider := rbac.GetPermissionProvider()
-	// to validate the access scope
-	for _, perm := range permissions {
-		if perm.Kind == robot.LEVELSYSTEM {
-			polices := provider.GetPermissions(rbac.ScopeSystem)
-			for _, acc := range perm.Access {
-				if !containsAccess(polices, acc) {
-					return errors.New(nil).WithMessagef("bad request permission: %s:%s", acc.Resource, acc.Action).WithCode(errors.BadRequestCode)
-				}
-			}
-		} else if perm.Kind == robot.LEVELPROJECT {
-			polices := provider.GetPermissions(rbac.ScopeProject)
-			for _, acc := range perm.Access {
-				if !containsAccess(polices, acc) {
-					return errors.New(nil).WithMessagef("bad request permission: %s:%s", acc.Resource, acc.Action).WithCode(errors.BadRequestCode)
-				}
-			}
-		} else {
-			return errors.New(nil).WithMessagef("bad request permission level: %s", perm.Kind).WithCode(errors.BadRequestCode)
-		}
-	}
-
 	return nil
 }
 
-func (fAPI *fedIDPAPI) updateV2Robot(ctx context.Context, params operation.UpdateRobotParams, r *robot.Robot) error {
-	if params.Robot.Duration == nil {
-		params.Robot.Duration = &r.Duration
+func (fAPI *fedIDPAPI) updateFedIdp(ctx context.Context, params operation.UpdateFederatedIdpParams, f *pkg.FederatedIdp) error {
+	if f != nil {
+		f = applyUpdate(f, params.Idp)
 	}
-	if err := fAPI.validate(*params.Robot.Duration, params.Robot.Level, params.Robot.Permissions); err != nil {
+
+	if err := fAPI.validate(model.NewFederatedIdp(f).ToSwagger()); err != nil {
 		return err
 	}
-	if r.Level != robot.LEVELSYSTEM {
-		projectID, err := getProjectID(ctx, params.Robot.Permissions[0].Namespace)
-		if err != nil {
-			return err
-		}
-		if r.ProjectID != projectID {
-			return errors.BadRequestError(nil).WithMessage("cannot update the project id of robot")
-		}
-	}
-	r.ProjectNameOrID = params.Robot.Permissions[0].Namespace
-	if err := fAPI.requireAccess(ctx, r, rbac.ActionUpdate); err != nil {
-		return err
-	}
-	if params.Robot.Level != r.Level || params.Robot.Name != r.Name {
-		return errors.BadRequestError(nil).WithMessage("cannot update the level or name of robot")
-	}
 
-	if r.Duration != *params.Robot.Duration {
-		r.Duration = *params.Robot.Duration
-		if *params.Robot.Duration == -1 {
-			r.ExpiresAt = -1
-		} else {
-			r.ExpiresAt = r.CreationTime.AddDate(0, 0, int(*params.Robot.Duration)).Unix()
-		}
-	}
-
-	r.Description = params.Robot.Description
-	r.Disabled = params.Robot.Disable
-	if len(params.Robot.Permissions) != 0 {
-		if err := lib.JSONCopy(&r.Permissions, params.Robot.Permissions); err != nil {
-			log.Warningf("failed to call JSONCopy on robot permission when updateV2Robot, error: %v", err)
-		}
-	}
-
-	if err := fAPI.robotCtl.Update(ctx, r, &robot.Option{
-		WithPermission: true,
-	}); err != nil {
+	if err := fAPI.fedidpCtl.Update(ctx, f); err != nil {
 		return err
 	}
 	return nil
@@ -429,45 +326,6 @@ func validateJWKSKeys(keys interface{}) error {
 	return nil
 }
 
-// --- Supported Algorithms ---
-func validateSupportedAlgorithms(algs []string) error {
-	allowedAlgs := map[string]bool{
-		"RS256": true, "RS384": true, "RS512": true,
-		"ES256": true, "ES384": true, "ES512": true,
-		"PS256": true, "PS384": true, "PS512": true,
-	}
-	for _, alg := range algs {
-		if !allowedAlgs[alg] {
-			return errors.BadRequestError(nil).
-				WithMessage(fmt.Sprintf("unsupported or insecure signing algorithm: %s", alg))
-		}
-	}
-	return nil
-}
-
-// --- Supported Claims ---
-func validateClaimsSupported(claims []string) error {
-	// Example: restrict to common claims; adjust based on your needs
-	allowedClaims := map[string]bool{
-		"sub": true, "email": true, "name": true, "groups": true,
-	}
-	for _, claim := range claims {
-		if !allowedClaims[claim] {
-			return errors.BadRequestError(nil).
-				WithMessage(fmt.Sprintf("unsupported claim: %s", claim))
-		}
-	}
-	return nil
-}
-
-func isValidLevel(l string) bool {
-	return l == robot.LEVELSYSTEM || l == robot.LEVELPROJECT
-}
-
-func isValidDuration(d int64) bool {
-	return d == -1 || (d > 0 && d < math.MaxInt32)
-}
-
 // validateName validates the robot name, especially '+' cannot be a valid character
 func validateFedIdpName(name string) error {
 	federatedidpName := `^[a-z0-9]+(?:[._-][a-z0-9]+)*$`
@@ -478,53 +336,6 @@ func validateFedIdpName(name string) error {
 	return nil
 }
 
-func containsAccess(policies []*types.Policy, item *models.Access) bool {
-	for _, po := range policies {
-		if po.Resource.String() == item.Resource && po.Action.String() == item.Action {
-			return true
-		}
-	}
-	return false
-}
-
-// isValidPermissionScope checks if permission slice A is a subset of permission slice B
-func isValidPermissionScope(creating []*models.RobotPermission, creator []*robot.Permission) bool {
-	creatorMap := make(map[string]*robot.Permission)
-	for _, creatorPerm := range creator {
-		key := fmt.Sprintf("%s:%s", creatorPerm.Kind, creatorPerm.Namespace)
-		creatorMap[key] = creatorPerm
-	}
-
-	hasLessThanOrEqualAccess := func(creating []*models.Access, creator []*types.Policy) bool {
-		creatorMap := make(map[string]*types.Policy)
-		for _, creatorP := range creator {
-			key := fmt.Sprintf("%s:%s:%s", creatorP.Resource, creatorP.Action, creatorP.Effect)
-			creatorMap[key] = creatorP
-		}
-		for _, creatingP := range creating {
-			key := fmt.Sprintf("%s:%s:%s", creatingP.Resource, creatingP.Action, creatingP.Effect)
-			if _, found := creatorMap[key]; !found {
-				return false
-			}
-		}
-		return true
-	}
-
-	for _, pCreating := range creating {
-		key := fmt.Sprintf("%s:%s", pCreating.Kind, pCreating.Namespace)
-		creatorPerm, found := creatorMap[key]
-		if !found {
-			allProjects := fmt.Sprintf("%s:*", pCreating.Kind)
-			if creatorPerm, found = creatorMap[allProjects]; !found {
-				return false
-			}
-		}
-		if !hasLessThanOrEqualAccess(pCreating.Access, creatorPerm.Access) {
-			return false
-		}
-	}
-	return true
-}
 func toRawMessage(v interface{}) json.RawMessage {
 	switch val := v.(type) {
 	case json.RawMessage:
@@ -537,4 +348,46 @@ func toRawMessage(v interface{}) json.RawMessage {
 		b, _ := json.Marshal(val) // fallback: encode to JSON
 		return b
 	}
+}
+
+// ApplyUpdate converts a FederatedIdpUpdate to pkg.FederatedIdp, applying only non-nil fields.
+func applyUpdate(p *pkg.FederatedIdp, update *models.FederatedIdpUpdate) *pkg.FederatedIdp {
+	if p == nil || update == nil {
+		return p
+	}
+
+	// Update only non-nil fields
+	if update.Name != nil {
+		p.Name = *update.Name
+	}
+	if update.Description != nil {
+		p.Description = *update.Description
+	}
+	if update.Issuer != nil {
+		p.Issuer = *update.Issuer
+	}
+	if update.OpenidConfigURL != nil {
+		p.OpenIDConfigURL = *update.OpenidConfigURL
+	}
+	if update.JwksURI != nil {
+		p.JWKSURI = *update.JwksURI
+	}
+	if update.OfflineValidation != nil {
+		p.OfflineValidation = *update.OfflineValidation
+	}
+	if update.ClaimsSupported != nil {
+		p.ClaimsSupported = update.ClaimsSupported
+	}
+	if update.SupportedAlgorithms != nil {
+		p.SupportedAlgorithms = update.SupportedAlgorithms
+	}
+	if update.JwksKeys != nil {
+		// Convert interface{} to json.RawMessage
+		raw, err := json.Marshal(update.JwksKeys)
+		if err == nil {
+			p.JWKSKeys = raw
+		}
+	}
+
+	return p
 }
