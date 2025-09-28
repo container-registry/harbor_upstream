@@ -22,22 +22,21 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/go-openapi/strfmt"
 
 	"github.com/goharbor/harbor/src/common/rbac"
-	"github.com/goharbor/harbor/src/common/security/local"
-	robotSc "github.com/goharbor/harbor/src/common/security/robot"
+
+	// robotSc "github.com/goharbor/harbor/src/common/security/robot"
+
+	// robotSc "github.com/goharbor/harbor/src/common/security/robot"
 	"github.com/goharbor/harbor/src/common/utils"
 	federated_idp "github.com/goharbor/harbor/src/controller/federatedidp"
 	"github.com/goharbor/harbor/src/controller/robot"
 	"github.com/goharbor/harbor/src/lib"
-	"github.com/goharbor/harbor/src/lib/config"
 	"github.com/goharbor/harbor/src/lib/errors"
 	"github.com/goharbor/harbor/src/lib/log"
-	"github.com/goharbor/harbor/src/lib/q"
-	pkg "github.com/goharbor/harbor/src/pkg/federatedidp/model"
 	"github.com/goharbor/harbor/src/pkg/permission/types"
 	"github.com/goharbor/harbor/src/server/v2.0/handler/model"
 	"github.com/goharbor/harbor/src/server/v2.0/models"
@@ -55,7 +54,7 @@ type fedIDPAPI struct {
 	fedidpCtl federated_idp.Controller
 }
 
-func (fAPI *fedIDPAPI) CreateRobot(ctx context.Context, params operation.CreateFederatedIdpParams) middleware.Responder {
+func (fAPI *fedIDPAPI) CreateFederatedIdp(ctx context.Context, params operation.CreateFederatedIdpParams) middleware.Responder {
 	if err := validateName(params.Idp.Name); err != nil {
 		return fAPI.SendError(ctx, err)
 	}
@@ -64,103 +63,55 @@ func (fAPI *fedIDPAPI) CreateRobot(ctx context.Context, params operation.CreateF
 		return fAPI.SendError(ctx, err)
 	}
 
-	sc, err := fAPI.GetSecurityContext(ctx)
+	fIdp := &models.FederatedIdp{
+		Name:                params.Idp.Name,
+		Description:         params.Idp.Description,
+		Issuer:              params.Idp.Issuer,
+		OpenidConfigURL:     params.Idp.OpenidConfigURL,
+		JwksURI:             params.Idp.JwksURI,
+		JwksKeys:            toRawMessage(params.Idp.JwksKeys),
+		OfflineValidation:   params.Idp.OfflineValidation,
+		SupportedAlgorithms: params.Idp.SupportedAlgorithms,
+		ClaimsSupported:     params.Idp.ClaimsSupported,
+		ProjectID:           params.Idp.ProjectID,
+		UpdateTime:          time.Now(),
+	}
+
+	if err := fAPI.requireAccess(ctx, fIdp, rbac.ActionCreate); err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+
+	_, err := fAPI.fedidpCtl.Create(ctx, fIdp)
 	if err != nil {
 		return fAPI.SendError(ctx, err)
 	}
 
-	f := pkg.FederatedIdp{
-		// Name:        params.Robot.Name,
-	}
-
-	if err := fAPI.requireAccess(ctx, r, rbac.ActionCreate); err != nil {
-		return fAPI.SendError(ctx, err)
-	}
-
-	var creatorRef int64
-	switch s := sc.(type) {
-	case *local.SecurityContext:
-		creatorRef = int64(s.User().UserID)
-	case *robotSc.SecurityContext:
-		creatorRef = s.User().ID
-	default:
-		return fAPI.SendError(ctx, errors.New(nil).WithMessage("invalid security context"))
-	}
-	r.CreatorType = sc.Name()
-	r.CreatorRef = creatorRef
-
-	if err := lib.JSONCopy(&r.Permissions, params.Robot.Permissions); err != nil {
-		log.Warningf("failed to call JSONCopy on robot permission when CreateRobot, error: %v", err)
-	}
-
-	if err := robot.SetProject(ctx, r); err != nil {
-		return fAPI.SendError(ctx, err)
-	}
-
-	if _, ok := sc.(*robotSc.SecurityContext); ok {
-		creatorRobots, err := fAPI.robotCtl.List(ctx, q.New(q.KeyWords{
-			"name":       strings.TrimPrefix(sc.GetUsername(), config.RobotPrefix(ctx)),
-			"project_id": r.ProjectID,
-		}), &robot.Option{
-			WithPermission: true,
-		})
-		if err != nil {
-			return fAPI.SendError(ctx, err)
-		}
-		if len(creatorRobots) == 0 {
-			return fAPI.SendError(ctx, errors.DeniedError(nil))
-		}
-
-		if !isValidPermissionScope(params.Robot.Permissions, creatorRobots[0].Permissions) {
-			return fAPI.SendError(ctx, errors.New(nil).WithMessagef("permission scope is invalid. It must be equal to or more restrictive than the creator robot's permissions: %s", creatorRobots[0].Name).WithCode(errors.DENIED))
-		}
-	}
-
-	rid, pwd, err := fAPI.robotCtl.Create(ctx, r)
-	if err != nil {
-		return fAPI.SendError(ctx, err)
-	}
-
-	created, err := fAPI.robotCtl.Get(ctx, rid, nil)
-	if err != nil {
-		return fAPI.SendError(ctx, err)
-	}
-
-	location := fmt.Sprintf("%s/%d", strings.TrimSuffix(params.HTTPRequest.URL.Path, "/"), created.ID)
-	return operation.NewCreateRobotCreated().WithLocation(location).WithPayload(&models.RobotCreated{
-		ID:           created.ID,
-		Name:         created.Name,
-		Secret:       pwd,
-		CreationTime: strfmt.DateTime(created.CreationTime),
-		ExpiresAt:    created.ExpiresAt,
-	})
+	// TODO: check if we need the location
+	// location := fmt.Sprintf("%s/%d", strings.TrimSuffix(params.HTTPRequest.URL.Path, "/"), created.ID)
+	return operation.NewCreateFederatedIdpCreated()
 }
 
-func (fAPI *robotAPI) DeleteRobot(ctx context.Context, params operation.DeleteRobotParams) middleware.Responder {
+func (fAPI *fedIDPAPI) DeleteFederatedIdp(ctx context.Context, params operation.DeleteFederatedIdpParams) middleware.Responder {
 	if err := fAPI.RequireAuthenticated(ctx); err != nil {
 		return fAPI.SendError(ctx, err)
 	}
 
-	r, err := fAPI.robotCtl.Get(ctx, params.RobotID, nil)
+	f, err := fAPI.fedidpCtl.Get(ctx, params.ID)
 	if err != nil {
 		return fAPI.SendError(ctx, err)
 	}
 
-	if err := fAPI.requireAccess(ctx, r, rbac.ActionDelete); err != nil {
+	if err := fAPI.requireAccess(ctx, f, rbac.ActionDelete); err != nil {
 		return fAPI.SendError(ctx, err)
 	}
 
-	if err := fAPI.robotCtl.Delete(ctx, params.RobotID); err != nil {
-		// for the version 1 robot account, has to ignore the no permission error.
-		if !r.Editable && errors.IsNotFoundErr(err) {
-			return operation.NewDeleteRobotOK()
-		}
+	if err := fAPI.fedidpCtl.Delete(ctx, params.ID); err != nil {
 		return fAPI.SendError(ctx, err)
 	}
-	return operation.NewDeleteRobotOK()
+	return operation.NewDeleteFederatedIdpOK()
 }
 
-func (fAPI *robotAPI) ListRobot(ctx context.Context, params operation.ListRobotParams) middleware.Responder {
+func (fAPI *fedIDPAPI) ListFederatedIdps(ctx context.Context, params operation.ListFederatedIdpsParams) middleware.Responder {
 	if err := fAPI.RequireAuthenticated(ctx); err != nil {
 		return fAPI.SendError(ctx, err)
 	}
@@ -172,14 +123,15 @@ func (fAPI *robotAPI) ListRobot(ctx context.Context, params operation.ListRobotP
 
 	var projectID int64
 	var level string
-	// GET /api/v2.0/robots or GET /api/v2.0/robots?q=Level=system to get all of system level robots.
-	// GET /api/v2.0/robots?q=Level=project,ProjectID=1
+	// GET /api/v2.0/federated-idp or GET /api/v2.0/federated-idp?q=Level=system to get all of system level federated idps.
+	// GET /api/v2.0/federated-idp?q=Level=project to get all of project level federated idps.
+	// GET /api/v2.0/federated-idp?q=Level=project,ProjectID=1
 	if _, ok := query.Keywords["Level"]; ok {
 		if !isValidLevel(query.Keywords["Level"].(string)) {
 			return fAPI.SendError(ctx, errors.New(nil).WithMessage("bad request error level input").WithCode(errors.BadRequestCode))
 		}
 		level = query.Keywords["Level"].(string)
-		if level == robot.LEVELPROJECT {
+		if level == federated_idp.LEVELPROJECT {
 			if _, ok := query.Keywords["ProjectID"]; !ok {
 				return fAPI.SendError(ctx, errors.BadRequestError(nil).WithMessage("must with project ID when to query project robots"))
 			}
@@ -188,47 +140,43 @@ func (fAPI *robotAPI) ListRobot(ctx context.Context, params operation.ListRobotP
 				return fAPI.SendError(ctx, errors.BadRequestError(nil).WithMessage("ProjectID must be a positive integer"))
 			}
 			projectID = pid
-		} else if level == robot.LEVELSYSTEM {
+		} else if level == federated_idp.LEVELSYSTEM {
 			query.Keywords["ProjectID"] = 0
 		}
 	} else {
-		level = robot.LEVELSYSTEM
+		level = federated_idp.LEVELSYSTEM
 		query.Keywords["ProjectID"] = 0
 	}
-	query.Keywords["Visible"] = true
 
-	r := &robot.Robot{
-		ProjectNameOrID: projectID,
-		Level:           level,
+	f := &models.FederatedIdp{
+		ProjectID: projectID,
 	}
-	if err := fAPI.requireAccess(ctx, r, rbac.ActionList); err != nil {
+	if err := fAPI.requireAccess(ctx, f, rbac.ActionList); err != nil {
 		return fAPI.SendError(ctx, err)
 	}
 
-	total, err := fAPI.robotCtl.Count(ctx, query)
+	total, err := fAPI.fedidpCtl.Count(ctx, query)
 	if err != nil {
 		return fAPI.SendError(ctx, err)
 	}
 
-	robots, err := fAPI.robotCtl.List(ctx, query, &robot.Option{
-		WithPermission: true,
-	})
+	fIdps, err := fAPI.fedidpCtl.List(ctx, query)
 	if err != nil {
 		return fAPI.SendError(ctx, err)
 	}
 
-	var results []*models.Robot
-	for _, r := range robots {
-		results = append(results, model.NewRobot(r).ToSwagger())
+	var results []*models.FederatedIdp
+	for _, f := range fIdps {
+		results = append(results, f)
 	}
 
-	return operation.NewListRobotOK().
+	return operation.NewListFederatedIdpsOK().
 		WithXTotalCount(total).
 		WithLink(fAPI.Links(ctx, params.HTTPRequest.URL, total, query.PageNumber, query.PageSize).String()).
 		WithPayload(results)
 }
 
-func (fAPI *robotAPI) GetRobotByID(ctx context.Context, params operation.GetRobotByIDParams) middleware.Responder {
+func (fAPI *fedIDPAPI) GetRobotByID(ctx context.Context, params operation.GetRobotByIDParams) middleware.Responder {
 	if err := fAPI.RequireAuthenticated(ctx); err != nil {
 		return fAPI.SendError(ctx, err)
 	}
@@ -246,7 +194,7 @@ func (fAPI *robotAPI) GetRobotByID(ctx context.Context, params operation.GetRobo
 	return operation.NewGetRobotByIDOK().WithPayload(model.NewRobot(r).ToSwagger())
 }
 
-func (fAPI *robotAPI) UpdateRobot(ctx context.Context, params operation.UpdateRobotParams) middleware.Responder {
+func (fAPI *fedIDPAPI) UpdateRobot(ctx context.Context, params operation.UpdateRobotParams) middleware.Responder {
 	var err error
 	if err := fAPI.RequireAuthenticated(ctx); err != nil {
 		return fAPI.SendError(ctx, err)
@@ -270,7 +218,7 @@ func (fAPI *robotAPI) UpdateRobot(ctx context.Context, params operation.UpdateRo
 	return operation.NewUpdateRobotOK()
 }
 
-func (fAPI *robotAPI) RefreshSec(ctx context.Context, params operation.RefreshSecParams) middleware.Responder {
+func (fAPI *fedIDPAPI) RefreshSec(ctx context.Context, params operation.RefreshSecParams) middleware.Responder {
 	if err := fAPI.RequireAuthenticated(ctx); err != nil {
 		return fAPI.SendError(ctx, err)
 	}
@@ -309,21 +257,14 @@ func (fAPI *robotAPI) RefreshSec(ctx context.Context, params operation.RefreshSe
 	return operation.NewRefreshSecOK().WithPayload(robotSec)
 }
 
-func (fAPI *robotAPI) requireAccess(ctx context.Context, r *robot.Robot, action rbac.Action) error {
-	if r.Level == robot.LEVELSYSTEM {
-		return fAPI.RequireSystemAccess(ctx, action, rbac.ResourceRobot)
-	} else if r.Level == robot.LEVELPROJECT {
+func (fAPI *fedIDPAPI) requireAccess(ctx context.Context, f *models.FederatedIdp, action rbac.Action) error {
+	if f.ProjectID > 0 {
 		var ns interface{}
-		if r.ProjectNameOrID != nil {
-			ns = r.ProjectNameOrID
-		} else if r.ProjectID > 0 {
-			ns = r.ProjectID
-		} else if r.ProjectName != "" {
-			ns = r.ProjectName
-		}
-		return fAPI.RequireProjectAccess(ctx, ns, action, rbac.ResourceRobot)
+		ns = f.ProjectID
+		return fAPI.RequireProjectAccess(ctx, ns, action, rbac.ResourceFederatedIdp)
+	} else if f.ProjectID == 0 {
+		return fAPI.RequireSystemAccess(ctx, action, rbac.ResourceFederatedIdp)
 	}
-
 	return errors.ForbiddenError(nil)
 }
 
@@ -390,7 +331,7 @@ func (fAPI *fedIDPAPI) validate(fedIdp *models.FederatedIdp) error {
 	return nil
 }
 
-func (fAPI *robotAPI) updateV2Robot(ctx context.Context, params operation.UpdateRobotParams, r *robot.Robot) error {
+func (fAPI *fedIDPAPI) updateV2Robot(ctx context.Context, params operation.UpdateRobotParams, r *robot.Robot) error {
 	if params.Robot.Duration == nil {
 		params.Robot.Duration = &r.Duration
 	}
@@ -583,4 +524,17 @@ func isValidPermissionScope(creating []*models.RobotPermission, creator []*robot
 		}
 	}
 	return true
+}
+func toRawMessage(v interface{}) json.RawMessage {
+	switch val := v.(type) {
+	case json.RawMessage:
+		return val
+	case []byte:
+		return json.RawMessage(val)
+	case string:
+		return json.RawMessage([]byte(val))
+	default:
+		b, _ := json.Marshal(val) // fallback: encode to JSON
+		return b
+	}
 }
