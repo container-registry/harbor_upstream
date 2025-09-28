@@ -3861,7 +3861,7 @@ paths:
       description: Get the specific federated identity provider
       tags:
         - federated-idp
-      operationId: getFederatedIdp
+      operationId: GetFederatedIdp
       parameters:
         - $ref: '#/parameters/requestId'
         - $ref: '#/parameters/query'
@@ -3917,7 +3917,7 @@ paths:
       description: Update the specific federated identity provider
       tags:
         - federated-idp
-      operationId: updateFederatedIdp
+      operationId: UpdateFederatedIdp
       parameters:
         - $ref: '#/parameters/requestId'
         - name: id
@@ -3952,7 +3952,7 @@ paths:
       description: Create one or more JWT claim rules for the specified IdP.
       tags:
         - federated-idp
-      operationId: addClaimRules
+      operationId: AddClaimRules
       parameters:
         - $ref: '#/parameters/requestId'
         - name: id
@@ -3987,7 +3987,7 @@ paths:
       description: List all claim rules for the specified IdP, or filter by a single claim rule if `claim_path` is provided.
       tags:
         - federated-idp
-      operationId: listClaimRules
+      operationId: ListClaimRules
       parameters:
         - $ref: '#/parameters/requestId'
         - name: id
@@ -4025,7 +4025,7 @@ paths:
       description: Delete a single claim rule from a federated identity provider
       tags:
         - federated-idp
-      operationId: deleteClaimRule
+      operationId: DeleteClaimRule
       parameters:
         - $ref: '#/parameters/requestId'
         - name: id
@@ -4055,7 +4055,7 @@ paths:
       description: Update a single claim rule for a federated IdP by claim_path.
       tags:
         - federated-idp
-      operationId: updateClaimRule
+      operationId: UpdateClaimRule
       parameters:
         - $ref: '#/parameters/requestId'
         - name: id
