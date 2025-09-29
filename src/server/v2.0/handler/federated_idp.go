@@ -79,7 +79,7 @@ func (fAPI *fedIDPAPI) ListClaimRules(ctx context.Context, params operation.List
 }
 
 // DeleteClaimRule
-func (fAPI *fedIDPAPI) DeleteClaimRules(ctx context.Context, params operation.DeleteClaimRuleParams) middleware.Responder {
+func (fAPI *fedIDPAPI) DeleteClaimRules(ctx context.Context, params operation.DeleteClaimRulesParams) middleware.Responder {
 	if err := fAPI.RequireAuthenticated(ctx); err != nil {
 		return fAPI.SendError(ctx, err)
 	}
@@ -105,10 +105,10 @@ func (fAPI *fedIDPAPI) DeleteClaimRules(ctx context.Context, params operation.De
 		return fAPI.SendError(ctx, err)
 	}
 
-	return operation.NewDeleteClaimRuleOK()
+	return operation.NewDeleteClaimRulesOK()
 }
 
-func (fAPI *fedIDPAPI) CreateClaimRules(ctx context.Context, params operation.AddClaimRulesParams) middleware.Responder {
+func (fAPI *fedIDPAPI) CreateClaimRules(ctx context.Context, params operation.CreateClaimRulesParams) middleware.Responder {
 	if err := fAPI.RequireAuthenticated(ctx); err != nil {
 		return fAPI.SendError(ctx, err)
 	}
@@ -134,7 +134,7 @@ func (fAPI *fedIDPAPI) CreateClaimRules(ctx context.Context, params operation.Ad
 		return fAPI.SendError(ctx, err)
 	}
 
-	return operation.NewAddClaimRulesCreated()
+	return operation.NewCreateClaimRulesCreated()
 }
 
 func (fAPI *fedIDPAPI) CreateFederatedIdp(ctx context.Context, params operation.CreateFederatedIdpParams) middleware.Responder {
