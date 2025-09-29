@@ -49,6 +49,9 @@ type DAO interface {
 
 	// ListClaims ...
 	ListClaims(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error)
+
+	// CreateClaims ...
+	CreateClaims(ctx context.Context, claims []model.ClaimRule) error
 }
 
 // New creates a default implementation for Dao
@@ -165,4 +168,70 @@ func (d *dao) ListClaims(ctx context.Context, id int64, claimPath string) ([]mod
 	var rules []model.ClaimRule
 	_, err = qs.All(&rules)
 	return rules, err
+}
+
+// CreateClaims inserts multiple ClaimRule records into the DB
+func (d *dao) CreateClaims(ctx context.Context, claims []model.ClaimRule) error {
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	if len(claims) == 0 {
+		return nil // nothing to insert
+	}
+
+	// InsertMulti takes (bulkSize, slice)
+	_, err = ormer.InsertMulti(len(claims), claims)
+	return err
+}
+
+// DeleteClaim deletes a claim rule by IdentityProviderID+ClaimPath or RobotID+ClaimPath
+func (d *dao) DeleteClaim(ctx context.Context, claim model.ClaimRule) error {
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	if (claim.IdentityProviderID == 0 && claim.RobotID == 0) || claim.ClaimPath == "" {
+		return errors.New(nil).WithCode(errors.BadRequestCode).
+			WithMessage("invalid claim rule: missing identifiers or claim path")
+	}
+
+	qs := ormer.QueryTable(new(model.ClaimRule))
+
+	// apply filter based on which ID is provided
+	if claim.RobotID > 0 {
+		qs = qs.Filter("robot_id", claim.RobotID)
+	} else if claim.IdentityProviderID > 0 {
+		qs = qs.Filter("identity_provider_id", claim.IdentityProviderID)
+	}
+
+	qs = qs.Filter("claim_path", claim.ClaimPath)
+
+	count, err := qs.Count()
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return errors.New(nil).WithCode(errors.NotFoundCode).
+			WithMessage("claim rule not found")
+	} else if count > 1 {
+		return errors.New(nil).WithCode(errors.BadRequestCode).
+			WithMessage("multiple claim rules found, cannot delete, give more specific claim rule")
+  }
+
+	// delete matching record(s)
+	num, err := qs.Delete()
+	if err != nil {
+		return err
+	}
+
+	if num == 0 {
+		return errors.New(nil).WithCode(errors.NotFoundCode).
+			WithMessage("claim rule not found")
+	}
+
+	return nil
 }

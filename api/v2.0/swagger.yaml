@@ -4021,8 +4021,8 @@ paths:
         '500':
           $ref: '#/responses/500'
     delete:
-      summary: Delete a single claim rule from a federated identity provider
-      description: Delete a single claim rule from a federated identity provider
+      summary: Delete a single claim rule from a federated identity provider and robot
+      description: Delete a single claim rule from a federated identity provider and robot
       tags:
         - federated-idp
       operationId: DeleteClaimRule
@@ -4034,61 +4034,21 @@ paths:
           description: Federated IdP ID
           type: integer
           format: int64
-        - name: claim_path
-          in: query
-          type: string
-          required: true
-          description: The claim_path of the claim rule to delete
-      responses:
-        '200':
-          $ref: '#/responses/200'
-        '401':
-          $ref: '#/responses/401'
-        '403':
-          $ref: '#/responses/403'
-        '404':
-          $ref: '#/responses/404'
-        '500':
-          $ref: '#/responses/500'
-    put:
-      summary: Update a single claim rule for a federated IdP
-      description: Update a single claim rule for a federated IdP by claim_path.
-      tags:
-        - federated-idp
-      operationId: UpdateClaimRule
-      parameters:
-        - $ref: '#/parameters/requestId'
-        - name: id
-          in: path
-          type: integer
-          format: int64
-          required: true
-          description: Federated IdP ID
-        - name: claim_path
-          in: query
-          type: integer
-          format: int64
-          required: true
-          description: The claim_path of the claim rule to update
-        - name: claims
+        - name: claim
           in: body
           required: true
-          description: Claim rules payload
+          description: Claim rule to delete
           schema:
-            $ref: '#/definitions/ClaimRuleUpdate'
+            $ref: '#/definitions/ClaimRule'
       responses:
         '200':
           $ref: '#/responses/200'
-        '400':
-          $ref: '#/responses/400'
         '401':
           $ref: '#/responses/401'
         '403':
           $ref: '#/responses/403'
         '404':
           $ref: '#/responses/404'
-        '409':
-          description: Conflict with another existing claim rule
         '500':
           $ref: '#/responses/500'
 

@@ -110,3 +110,8 @@ func (m *manager) List(ctx context.Context, query *q.Query) ([]*model.FederatedI
 func (m *manager) ListClaims(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error) {
 	return m.dao.ListClaims(ctx, id, claim_path)
 }
+
+// CreateClaims ...
+func (m *manager) CreateClaims(ctx context.Context,claims []model.ClaimRule) ( error) {
+	return m.dao.CreateClaims(ctx, claims)
+}

@@ -154,3 +154,7 @@ func (c *controller) Delete(ctx context.Context, id int64) error {
 func (c *controller) ListClaims(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error) {
 	return c.fidpMgr.ListClaims(ctx, id, claim_path)
 }
+
+func (c *controller) CreateClaims(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error) {
+	return c.fidpMgr.CreateClaims(ctx, id, claim_path)
+}
