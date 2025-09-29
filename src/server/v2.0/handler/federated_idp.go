@@ -71,19 +71,30 @@ func (fAPI *fedIDPAPI) ListClaimRules(ctx context.Context, params operation.List
 
 	var results []*models.ClaimRule
 	for _, c := range claims {
-		results = append(results, model.NewFederatedIdp(c).ToSwagger())
+		results = append(results, model.NewClaimRule(&c).ToSwagger())
 	}
 
-	return operation.NewListFederatedIdpsOK().
-		WithXTotalCount(total).
-		WithLink(fAPI.Links(ctx, params.HTTPRequest.URL, total, query.PageNumber, query.PageSize).String()).
+	return operation.NewListClaimRulesOK().
 		WithPayload(results)
-	return operation.NewListClaimRulesOK()
 }
 
 // DeleteClaimRule
 func (fAPI *fedIDPAPI) DeleteClaimRule(ctx context.Context, params operation.DeleteClaimRuleParams) middleware.Responder {
 	// TODO: finish this
+	if err := fAPI.RequireAuthenticated(ctx); err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+
+	f := &pkg.FederatedIdp{
+		ID: params.ID,
+	}
+	if err := fAPI.requireAccess(ctx, f, rbac.ActionList); err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+	var claimpath string
+	if len(*params.ClaimPath) > 0 {
+		claimpath = *params.ClaimPath
+	}
 
 	return operation.NewDeleteClaimRuleOK()
 }
