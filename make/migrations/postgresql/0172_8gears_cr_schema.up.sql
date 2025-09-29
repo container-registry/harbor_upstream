@@ -1,12 +1,6 @@
--- Description:
---
--- Human-readable name of the identity provider
--- Optional description
--- OIDC issuer URL (unique per provider)
--- URL to the OIDC discovery document (.well-known/openid-configuration)
--- URL to fetch signing keys (JWKS)
--- JWKS for offline validation
--- Scope of trust; -1 = system-level, otherwise project-level
+-- Table: identity_providers
+-- Stores federated identity providers
+
 CREATE TABLE IF NOT EXISTS identity_providers (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
@@ -20,7 +14,9 @@ CREATE TABLE IF NOT EXISTS identity_providers (
     update_time TIMESTAMP DEFAULT NOW()
 );
 
--- Description: join table for identity providers and robots
+-- Table: robot_identity_providers
+-- Join table linking robots and identity providers
+
 CREATE TABLE IF NOT EXISTS robot_identity_providers (
     identity_provider_id INT NOT NULL REFERENCES identity_providers(id) ON DELETE CASCADE,
     robot_id INT NOT NULL REFERENCES robot(id) ON DELETE CASCADE,
@@ -28,10 +24,10 @@ CREATE TABLE IF NOT EXISTS robot_identity_providers (
     PRIMARY KEY (identity_provider_id, robot_id)
 );
 
--- Description:
---
--- claim_rules stores required JWT claim/value pairs for authentication
--- scoped to either an identity provider or a specific robot.
+-- Table: claim_rules
+-- Stores JWT claim/value pairs for authentication
+-- Scoped to identity provider or specific robot
+
 CREATE TABLE IF NOT EXISTS claim_rules (
     id SERIAL PRIMARY KEY,
     identity_provider_id INT NOT NULL REFERENCES identity_providers(id) ON DELETE CASCADE,
@@ -41,7 +37,19 @@ CREATE TABLE IF NOT EXISTS claim_rules (
     creation_time TIMESTAMP DEFAULT NOW()
 );
 
--- Unique constraint: ensure no duplicate claim rules per scope
-ALTER TABLE claim_rules
-    ADD CONSTRAINT IF NOT EXISTS claim_rules_unique
-    UNIQUE (identity_provider_id, robot_id, claim_path, value);
+-- Unique constraint for claim_rules
+-- Use a conditional check to avoid errors if the constraint exists
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.table_constraints
+        WHERE table_name='claim_rules'
+          AND constraint_type='UNIQUE'
+          AND constraint_name='claim_rules_unique'
+    ) THEN
+        ALTER TABLE claim_rules
+            ADD CONSTRAINT claim_rules_unique
+            UNIQUE (identity_provider_id, robot_id, claim_path, value);
+    END IF;
+END$$;
