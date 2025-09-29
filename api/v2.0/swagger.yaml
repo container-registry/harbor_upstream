@@ -7828,14 +7828,14 @@ definitions:
         description: The OIDC issuer URL of the identity provider.
       supported_algorithms:
         type: array
+        description: Signing algorithms supported (from `id_token_signing_alg_values_supported`).
         items:
           type: string
-        description: Signing algorithms supported (from `id_token_signing_alg_values_supported`).
       claims_supported:
         type: array
+        description: Claims supported by the IdP (optional).
         items:
           type: string
-        description: Claims supported by the IdP (optional).
       offline_validation:
         type: boolean
         description: >-
@@ -7881,16 +7881,16 @@ definitions:
         x-nullable: true
       supported_algorithms:
         type: array
+        description: Signing algorithms supported (from `id_token_signing_alg_values_supported`).
         items:
           type: string
-        description: Signing algorithms supported (from `id_token_signing_alg_values_supported`).
-        x-nullable: true
+        # x-nullable: true
       claims_supported:
         type: array
+        description: Claims supported by the IdP (optional).
         items:
           type: string
-        description: Claims supported by the IdP (optional).
-        x-nullable: true
+        # x-nullable: true
       offline_validation:
         type: boolean
         description: >-
