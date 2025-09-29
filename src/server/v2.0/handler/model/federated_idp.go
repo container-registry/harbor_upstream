@@ -17,6 +17,7 @@ package model
 import (
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 
@@ -78,7 +79,7 @@ func NewClaimRule(c *pkg.ClaimRule) *ClaimRule {
 	}
 }
 
-// ToSwagger converts a pkg.FederatedIdp to the swagger models.FederatedIdp
+// ToSwagger converts a pkg.ClaimRule to the swagger models.ClaimRule
 func (p *ClaimRule) ToSwagger() *models.ClaimRule {
 	if p == nil {
 		return nil
@@ -91,5 +92,21 @@ func (p *ClaimRule) ToSwagger() *models.ClaimRule {
 		ClaimPath:          p.ClaimPath,
 		Value:              p.Value,
 		CreationTime:       strfmt.DateTime(p.CreationTime),
+	}
+}
+
+// FromSwagger converts a models.ClaimRule to pkg.ClaimRule
+func FromSwagger(m *models.ClaimRule) pkg.ClaimRule {
+	if m == nil {
+		return pkg.ClaimRule{}
+	}
+
+	return pkg.ClaimRule{
+		ID:                 m.ID,
+		IdentityProviderID: m.IdentityProviderID,
+		RobotID:            m.RobotID,
+		ClaimPath:          m.ClaimPath,
+		Value:              m.Value,
+		CreationTime:       time.Time(m.CreationTime), // convert strfmt.DateTime to time.Time
 	}
 }

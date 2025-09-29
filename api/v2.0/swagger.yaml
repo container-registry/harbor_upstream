@@ -3952,7 +3952,7 @@ paths:
       description: Create one or more JWT claim rules for the specified IdP.
       tags:
         - federated-idp
-      operationId: AddClaimRules
+      operationId: CreateClaimRules
       parameters:
         - $ref: '#/parameters/requestId'
         - name: id
@@ -4025,7 +4025,7 @@ paths:
       description: Delete a single claim rule from a federated identity provider and robot
       tags:
         - federated-idp
-      operationId: DeleteClaimRule
+      operationId: DeleteClaimRules
       parameters:
         - $ref: '#/parameters/requestId'
         - name: id
