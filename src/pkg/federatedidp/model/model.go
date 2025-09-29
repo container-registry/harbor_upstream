@@ -29,19 +29,19 @@ func init() {
 
 // FederatedIdp holds the details of a federated idp.
 type FederatedIdp struct {
-	ID                  int64           `orm:"pk;auto;column(id)" json:"id"`
-	Name                string          `orm:"column(name)" json:"name" sort:"default"`
-	Description         string          `orm:"column(description)" json:"description"`
-	Issuer              string          `orm:"column(issuer);unique" json:"issuer"`
-	OpenIDConfigURL     string          `orm:"column(openid_config_url)" json:"openid_config_url"`
-	JWKSURI             string          `orm:"column(jwks_uri)" json:"jwks_uri"`
-	JWKSKeys            json.RawMessage `orm:"column(jwks_keys)" json:"jwks_keys"` // store JWKS JSON
-	OfflineValidation   bool            `orm:"column(offline_validation)" json:"offline_validation"`
-	SupportedAlgorithms []string        `orm:"column(supported_algorithms);type:text[]" json:"supported_algorithms"`
-	ClaimsSupported     []string        `orm:"column(claims_supported);type:text[]" json:"claims_supported"`
-	ProjectID           int64           `orm:"column(project_id)" json:"project_id"`
-	CreationTime        time.Time       `orm:"column(creation_time);auto_now_add" json:"creation_time"`
-	UpdateTime          time.Time       `orm:"column(update_time);auto_now" json:"update_time"`
+	ID                  int64     `orm:"pk;auto;column(id)" json:"id"`
+	Name                string    `orm:"column(name)" json:"name" sort:"default"`
+	Description         string    `orm:"column(description)" json:"description"`
+	Issuer              string    `orm:"column(issuer);unique" json:"issuer"`
+	OpenIDConfigURL     string    `orm:"column(openid_config_url)" json:"openid_config_url"`
+	JWKSURI             string    `orm:"column(jwks_uri)" json:"jwks_uri"`
+	JWKSKeys            string    `orm:"column(jwks_keys);type(jsonb)" json:"jwks_keys"` // store JWKS JSON
+	OfflineValidation   bool      `orm:"column(offline_validation)" json:"offline_validation"`
+	SupportedAlgorithms []string  `orm:"column(supported_algorithms);type:text[]" json:"supported_algorithms"`
+	ClaimsSupported     []string  `orm:"column(claims_supported);type:text[]" json:"claims_supported"`
+	ProjectID           int64     `orm:"column(project_id)" json:"project_id"`
+	CreationTime        time.Time `orm:"column(creation_time);auto_now_add" json:"creation_time"`
+	UpdateTime          time.Time `orm:"column(update_time);auto_now" json:"update_time"`
 }
 
 // TableName ...

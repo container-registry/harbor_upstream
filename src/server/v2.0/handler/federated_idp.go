@@ -52,12 +52,14 @@ func (fAPI *fedIDPAPI) ListClaimRules(ctx context.Context, params operation.List
 
 	return operation.NewListClaimRulesOK()
 }
+
 // DeleteClaimRule
 func (fAPI *fedIDPAPI) DeleteClaimRule(ctx context.Context, params operation.DeleteClaimRuleParams) middleware.Responder {
 	// TODO: finish this
 
 	return operation.NewDeleteClaimRuleOK()
 }
+
 // UpdateClaimRule
 func (fAPI *fedIDPAPI) UpdateClaimRule(ctx context.Context, params operation.UpdateClaimRuleParams) middleware.Responder {
 	// TODO: finish this
@@ -72,7 +74,15 @@ func (fAPI *fedIDPAPI) AddClaimRules(ctx context.Context, params operation.AddCl
 }
 
 func (fAPI *fedIDPAPI) CreateFederatedIdp(ctx context.Context, params operation.CreateFederatedIdpParams) middleware.Responder {
-	if err := validateName(params.Idp.Name); err != nil {
+	if err := validateFedIdpName(params.Idp.Name); err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+
+	if err := validateJWKSKeys(params.Idp.JwksKeys); err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+
+	if err := validateJWKSURI(params.Idp.JwksURI); err != nil {
 		return fAPI.SendError(ctx, err)
 	}
 
@@ -86,7 +96,7 @@ func (fAPI *fedIDPAPI) CreateFederatedIdp(ctx context.Context, params operation.
 		Issuer:              params.Idp.Issuer,
 		OpenIDConfigURL:     params.Idp.OpenidConfigURL,
 		JWKSURI:             params.Idp.JwksURI,
-		JWKSKeys:            toRawMessage(params.Idp.JwksKeys),
+		JWKSKeys:            string(toRawMessage(params.Idp.JwksKeys)),
 		OfflineValidation:   params.Idp.OfflineValidation,
 		SupportedAlgorithms: params.Idp.SupportedAlgorithms,
 		ClaimsSupported:     params.Idp.ClaimsSupported,
@@ -231,7 +241,7 @@ func (fAPI *fedIDPAPI) UpdateFederatedIdp(ctx context.Context, params operation.
 
 func (fAPI *fedIDPAPI) requireAccess(ctx context.Context, f *pkg.FederatedIdp, action rbac.Action) error {
 	if f.ProjectID > 0 {
-		var ns interface{}
+		var ns any
 		ns = f.ProjectID
 		return fAPI.RequireProjectAccess(ctx, ns, action, rbac.ResourceFederatedIdp)
 	} else if f.ProjectID == 0 {
@@ -300,19 +310,19 @@ func isValidOpenIDConfigURL(configURL string) bool {
 	return true
 }
 
-func validateJWKSURI(jwksURI string) (string, error) {
+func validateJWKSURI(jwksURI string) error {
 	if jwksURI == "" {
-		return "", nil // optional
+		return nil // optional
 	}
-	url, err := lib.ValidateURL(jwksURI)
+	_, err := lib.ValidateURL(jwksURI)
 	if err != nil {
-		return "", errors.BadRequestError(nil).WithMessage("invalid jwks_uri")
+		return errors.BadRequestError(nil).WithMessage("invalid jwks_uri")
 	}
-	return url, nil
+	return nil
 }
 
 // --- JWKS Keys (offline validation) ---
-func validateJWKSKeys(keys interface{}) error {
+func validateJWKSKeys(keys any) error {
 	if keys == nil {
 		return errors.BadRequestError(nil).
 			WithMessage("jwks_keys must be provided when offline validation is enabled")
@@ -336,7 +346,7 @@ func validateFedIdpName(name string) error {
 	return nil
 }
 
-func toRawMessage(v interface{}) json.RawMessage {
+func toRawMessage(v any) json.RawMessage {
 	switch val := v.(type) {
 	case json.RawMessage:
 		return val
@@ -382,10 +392,10 @@ func applyUpdate(p *pkg.FederatedIdp, update *models.FederatedIdpUpdate) *pkg.Fe
 		p.SupportedAlgorithms = update.SupportedAlgorithms
 	}
 	if update.JwksKeys != nil {
-		// Convert interface{} to json.RawMessage
+		// Convert any to json.RawMessage string
 		raw, err := json.Marshal(update.JwksKeys)
 		if err == nil {
-			p.JWKSKeys = raw
+			p.JWKSKeys = string(raw)
 		}
 	}
 

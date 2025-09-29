@@ -36,9 +36,9 @@ func (p *FederatedIdp) ToSwagger() *models.FederatedIdp {
 
 	// convert JWKSKeys (json.RawMessage) to interface{}
 	var jwks any
-	if len(p.JWKSKeys) > 0 {
-		// Unmarshal raw JSON into interface{} for swagger type
-		_ = json.Unmarshal(p.JWKSKeys, &jwks)
+	// Unmarshal raw JSON into interface{} for swagger type
+	if p.JWKSKeys != "" {
+		_ = json.Unmarshal([]byte(p.JWKSKeys), &jwks)
 	}
 
 	return &models.FederatedIdp{
