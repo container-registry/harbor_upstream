@@ -45,6 +45,8 @@ type Controller interface {
 	Update(ctx context.Context, federatedIdp *model.FederatedIdp, props ...string) (err error)
 	// Delete the federated idp specified by ID
 	Delete(ctx context.Context, id int64) (err error)
+	// ListClaims returns the claims of the federated idp specified by ID
+	ListClaims(ctx context.Context, id int64, claim_path string) (claims []model.ClaimRule, err error)
 }
 
 // NewController creates an instance of the federated idp controller
@@ -147,4 +149,8 @@ func (c *controller) Update(ctx context.Context, registry *model.FederatedIdp, p
 
 func (c *controller) Delete(ctx context.Context, id int64) error {
 	return c.fidpMgr.Delete(ctx, id)
+}
+
+func (c *controller) ListClaims(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error) {
+	return c.fidpMgr.ListClaims(ctx, id, claim_path)
 }

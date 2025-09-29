@@ -27,6 +27,10 @@ var (
 	Mgr = NewManager()
 )
 
+// separate claims type
+// claim path -> claim value.
+type Claims map[string]string
+
 // Manager ...
 type Manager interface {
 	// Get ...
@@ -49,6 +53,9 @@ type Manager interface {
 
 	// List ...
 	List(ctx context.Context, query *q.Query) ([]*model.FederatedIdp, error)
+
+	// ListClaims ...
+	ListClaims(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error)
 }
 
 var _ Manager = &manager{}
@@ -97,4 +104,9 @@ func (m *manager) Update(ctx context.Context, f *model.FederatedIdp, props ...st
 // List ...
 func (m *manager) List(ctx context.Context, query *q.Query) ([]*model.FederatedIdp, error) {
 	return m.dao.List(ctx, query)
+}
+
+// ListClaims ...
+func (m *manager) ListClaims(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error) {
+	return m.dao.ListClaims(ctx, id, claim_path)
 }

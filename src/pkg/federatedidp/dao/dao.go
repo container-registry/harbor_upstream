@@ -46,6 +46,9 @@ type DAO interface {
 
 	// DeleteByProjectID ...
 	DeleteByProjectID(ctx context.Context, projectID int64) error
+
+	// ListClaims ...
+	ListClaims(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error)
 }
 
 // New creates a default implementation for Dao
@@ -145,4 +148,21 @@ func (d *dao) DeleteByProjectID(ctx context.Context, projectID int64) error {
 	_, err = ormer.Raw("DELETE FROM identity_providers WHERE project_id = ?", projectID).Exec()
 
 	return err
+}
+
+func (d *dao) ListClaims(ctx context.Context, id int64, claimPath string) ([]model.ClaimRule, error) {
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	qs := ormer.QueryTable(new(model.ClaimRule)).Filter("identity_provider_id", id)
+
+	if claimPath != "" {
+		qs = qs.Filter("claim_path", claimPath)
+	}
+
+	var rules []model.ClaimRule
+	_, err = qs.All(&rules)
+	return rules, err
 }

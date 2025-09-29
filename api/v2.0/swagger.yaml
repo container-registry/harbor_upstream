@@ -7914,6 +7914,11 @@ definitions:
   ClaimRule:
     type: object
     properties:
+      id:
+        type: integer
+        format: int64
+        description: The claim rule ID.
+        x-omitempty: false
       claim_path:
         type: string
         description: The path/key of the JWT claim (dot notation allowed)
@@ -7925,6 +7930,14 @@ definitions:
       value:
         type: string
         description: expected value for the claim
+      identity_provider_id:
+        type: integer
+        format: int64
+        description: Identity provider ID.
+      creation_time:
+        type: string
+        format: date-time
+        description: The create time of claim rule.
   ClaimRules:
     type: object
     properties:

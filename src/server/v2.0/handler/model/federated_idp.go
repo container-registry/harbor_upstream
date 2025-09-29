@@ -29,6 +29,11 @@ type FederatedIdp struct {
 	*pkg.FederatedIdp
 }
 
+// ClaimRule ...
+type ClaimRule struct {
+	*pkg.ClaimRule
+}
+
 // ToSwagger converts a pkg.FederatedIdp to the swagger models.FederatedIdp
 func (p *FederatedIdp) ToSwagger() *models.FederatedIdp {
 	if p == nil {
@@ -63,5 +68,28 @@ func (p *FederatedIdp) ToSwagger() *models.FederatedIdp {
 func NewFederatedIdp(f *pkg.FederatedIdp) *FederatedIdp {
 	return &FederatedIdp{
 		FederatedIdp: f,
+	}
+}
+
+// NewClaimRule ...
+func NewClaimRule(c *pkg.ClaimRule) *ClaimRule {
+	return &ClaimRule{
+		ClaimRule: c,
+	}
+}
+
+// ToSwagger converts a pkg.FederatedIdp to the swagger models.FederatedIdp
+func (p *ClaimRule) ToSwagger() *models.ClaimRule {
+	if p == nil {
+		return nil
+	}
+
+	return &models.ClaimRule{
+		ID:                 p.ID,
+		IdentityProviderID: p.IdentityProviderID,
+		RobotID:            p.RobotID,
+		ClaimPath:          p.ClaimPath,
+		Value:              p.Value,
+		CreationTime:       strfmt.DateTime(p.CreationTime),
 	}
 }

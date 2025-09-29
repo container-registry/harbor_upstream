@@ -25,6 +25,7 @@ import (
 
 func init() {
 	orm.RegisterModel(&FederatedIdp{})
+	orm.RegisterModel(&ClaimRule{})
 }
 
 // FederatedIdp holds the details of a federated idp.
@@ -65,5 +66,37 @@ func (f *FederatedIdp) ToJSON() (string, error) {
 		return "", err
 	}
 
+	return string(data), nil
+}
+
+// ClaimRule represents a single claim/value pair scoped to an IdP or Robot.
+type ClaimRule struct {
+	ID                 int64     `orm:"pk;auto;column(id)" json:"id"`
+	IdentityProviderID int64     `orm:"column(identity_provider_id)" json:"identity_provider_id"`
+	RobotID            int64     `orm:"column(robot_id)" json:"robot_id"`
+	ClaimPath          string    `orm:"column(claim_path)" json:"claim_path"`
+	Value              string    `orm:"column(value)" json:"value"`
+	CreationTime       time.Time `orm:"column(creation_time);auto_now_add" json:"creation_time"`
+}
+
+// TableName overrides the table name for Beego ORM.
+func (c *ClaimRule) TableName() string {
+	return "claim_rules"
+}
+
+// FromJSON parses ClaimRule from a JSON string
+func (c *ClaimRule) FromJSON(jsonData string) error {
+	if len(jsonData) == 0 {
+		return errors.New("empty json data to parse")
+	}
+	return json.Unmarshal([]byte(jsonData), c)
+}
+
+// ToJSON marshals ClaimRule to a JSON string
+func (c *ClaimRule) ToJSON() (string, error) {
+	data, err := json.Marshal(c)
+	if err != nil {
+		return "", err
+	}
 	return string(data), nil
 }
