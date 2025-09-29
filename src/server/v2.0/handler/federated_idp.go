@@ -91,12 +91,12 @@ func (fAPI *fedIDPAPI) DeleteClaimRules(ctx context.Context, params operation.De
 		return fAPI.SendError(ctx, err)
 	}
 
-	if len(params.Claim.Rules) == 0 {
+	if len(params.Claims.Rules) == 0 {
 		return fAPI.SendError(ctx, errors.New(nil).WithMessage("no claim rules provided").WithCode(errors.BadRequestCode))
 	}
 
 	var rules []pkg.ClaimRule
-	for _, c := range params.Claim.Rules {
+	for _, c := range params.Claims.Rules {
 		rules = append(rules, model.FromSwagger(c))
 	}
 
@@ -109,7 +109,30 @@ func (fAPI *fedIDPAPI) DeleteClaimRules(ctx context.Context, params operation.De
 }
 
 func (fAPI *fedIDPAPI) CreateClaimRules(ctx context.Context, params operation.AddClaimRulesParams) middleware.Responder {
-	// TODO: finish this
+	if err := fAPI.RequireAuthenticated(ctx); err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+
+	f := &pkg.FederatedIdp{
+		ID: params.ID,
+	}
+	if err := fAPI.requireAccess(ctx, f, rbac.ActionCreate); err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+
+	if len(params.Claims.Rules) == 0 {
+		return fAPI.SendError(ctx, errors.New(nil).WithMessage("no claim rules provided").WithCode(errors.BadRequestCode))
+	}
+
+	var rules []pkg.ClaimRule
+	for _, c := range params.Claims.Rules {
+		rules = append(rules, model.FromSwagger(c))
+	}
+
+	err := fAPI.fedidpCtl.CreateClaims(ctx, rules)
+	if err != nil {
+		return fAPI.SendError(ctx, err)
+	}
 
 	return operation.NewAddClaimRulesCreated()
 }

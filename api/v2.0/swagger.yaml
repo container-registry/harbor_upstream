@@ -4034,7 +4034,7 @@ paths:
           description: Federated IdP ID
           type: integer
           format: int64
-        - name: claim
+        - name: claims
           in: body
           required: true
           description: Claim rules to delete
