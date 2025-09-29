@@ -16,6 +16,7 @@ package model
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/go-openapi/strfmt"
 
@@ -50,8 +51,8 @@ func (p *FederatedIdp) ToSwagger() *models.FederatedIdp {
 		JwksURI:             p.JWKSURI,
 		JwksKeys:            jwks,
 		OfflineValidation:   p.OfflineValidation,
-		SupportedAlgorithms: p.SupportedAlgorithms,
-		ClaimsSupported:     p.ClaimsSupported,
+		SupportedAlgorithms: strings.Split(p.SupportedAlgorithms, ","),
+		ClaimsSupported:     strings.Split(p.ClaimsSupported, ","),
 		ProjectID:           p.ProjectID,
 		CreationTime:        strfmt.DateTime(p.CreationTime),
 		UpdateTime:          strfmt.DateTime(p.UpdateTime),

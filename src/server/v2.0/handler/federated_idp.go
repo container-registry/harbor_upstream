@@ -98,8 +98,8 @@ func (fAPI *fedIDPAPI) CreateFederatedIdp(ctx context.Context, params operation.
 		JWKSURI:             params.Idp.JwksURI,
 		JWKSKeys:            string(toRawMessage(params.Idp.JwksKeys)),
 		OfflineValidation:   params.Idp.OfflineValidation,
-		SupportedAlgorithms: params.Idp.SupportedAlgorithms,
-		ClaimsSupported:     params.Idp.ClaimsSupported,
+		SupportedAlgorithms: strings.Join(params.Idp.SupportedAlgorithms, ","),
+		ClaimsSupported:     strings.Join(params.Idp.ClaimsSupported, ","),
 		ProjectID:           params.Idp.ProjectID,
 		CreationTime:        time.Now(),
 		UpdateTime:          time.Now(),
@@ -386,10 +386,10 @@ func applyUpdate(p *pkg.FederatedIdp, update *models.FederatedIdpUpdate) *pkg.Fe
 		p.OfflineValidation = *update.OfflineValidation
 	}
 	if update.ClaimsSupported != nil {
-		p.ClaimsSupported = update.ClaimsSupported
+		p.ClaimsSupported = strings.Join(update.ClaimsSupported, ",")
 	}
 	if update.SupportedAlgorithms != nil {
-		p.SupportedAlgorithms = update.SupportedAlgorithms
+		p.SupportedAlgorithms = strings.Join(update.SupportedAlgorithms, ",")
 	}
 	if update.JwksKeys != nil {
 		// Convert any to json.RawMessage string
