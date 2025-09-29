@@ -7850,7 +7850,6 @@ definitions:
         description: The URL to fetch signing keys (JWKS).
       jwks_keys:
         type: object
-        x-go-type: json.RawMessage
         additionalProperties: true
         description: Inline JWKS JSON for offline validation of tokens.
       project_id:
@@ -7909,7 +7908,6 @@ definitions:
         x-nullable: true
       jwks_keys:
         type: object
-        x-go-type: json.RawMessage
         additionalProperties: true
         description: Inline JWKS JSON for offline validation of tokens.
         x-nullable: true
