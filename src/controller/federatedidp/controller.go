@@ -16,7 +16,6 @@ package federated_idp
 
 import (
 	"context"
-	"time"
 
 	"github.com/goharbor/harbor/src/lib"
 	"github.com/goharbor/harbor/src/lib/errors"
@@ -30,7 +29,6 @@ import (
 
 // Ctl is a global registry controller instance
 var Ctl = NewController()
-var regularHealthCheckInterval = 5 * time.Minute
 
 type Controller interface {
 	// Create the federated idp
@@ -47,6 +45,10 @@ type Controller interface {
 	Delete(ctx context.Context, id int64) (err error)
 	// ListClaims returns the claims of the federated idp specified by ID
 	ListClaims(ctx context.Context, id int64, claim_path string) (claims []model.ClaimRule, err error)
+	// CreateClaims creates the claims
+	CreateClaims(ctx context.Context, claims []model.ClaimRule) (err error)
+	// DeleteClaims deletes the claims according to the query
+	DeleteClaims(ctx context.Context, claims []model.ClaimRule) (err error)
 }
 
 // NewController creates an instance of the federated idp controller
@@ -155,6 +157,10 @@ func (c *controller) ListClaims(ctx context.Context, id int64, claim_path string
 	return c.fidpMgr.ListClaims(ctx, id, claim_path)
 }
 
-func (c *controller) CreateClaims(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error) {
-	return c.fidpMgr.CreateClaims(ctx, id, claim_path)
+func (c *controller) CreateClaims(ctx context.Context, claims []model.ClaimRule) error {
+	return c.fidpMgr.CreateClaims(ctx, claims)
+}
+
+func (c *controller) DeleteClaims(ctx context.Context, claims []model.ClaimRule) error {
+	return c.fidpMgr.DeleteClaims(ctx, claims)
 }

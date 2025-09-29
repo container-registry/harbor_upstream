@@ -4037,9 +4037,9 @@ paths:
         - name: claim
           in: body
           required: true
-          description: Claim rule to delete
+          description: Claim rules to delete
           schema:
-            $ref: '#/definitions/ClaimRule'
+            $ref: '#/definitions/ClaimRules'
       responses:
         '200':
           $ref: '#/responses/200'

@@ -18,8 +18,8 @@ import (
 	"context"
 
 	"github.com/goharbor/harbor/src/lib/q"
-	"github.com/goharbor/harbor/src/pkg/federatedidp/model"
 	"github.com/goharbor/harbor/src/pkg/federatedidp/dao"
+	"github.com/goharbor/harbor/src/pkg/federatedidp/model"
 )
 
 var (
@@ -56,6 +56,12 @@ type Manager interface {
 
 	// ListClaims ...
 	ListClaims(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error)
+
+	// CreateClaims ...
+	CreateClaims(ctx context.Context, claims []model.ClaimRule) error
+
+	// DeleteClaims ...
+	DeleteClaims(ctx context.Context, claims []model.ClaimRule) error
 }
 
 var _ Manager = &manager{}
@@ -112,6 +118,11 @@ func (m *manager) ListClaims(ctx context.Context, id int64, claim_path string) (
 }
 
 // CreateClaims ...
-func (m *manager) CreateClaims(ctx context.Context,claims []model.ClaimRule) ( error) {
+func (m *manager) CreateClaims(ctx context.Context, claims []model.ClaimRule) error {
 	return m.dao.CreateClaims(ctx, claims)
+}
+
+// DeleteClaims ...
+func (m *manager) DeleteClaims(ctx context.Context, claims []model.ClaimRule) error {
+	return m.dao.DeleteClaims(ctx, claims)
 }

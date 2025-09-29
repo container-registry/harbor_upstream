@@ -52,6 +52,9 @@ type DAO interface {
 
 	// CreateClaims ...
 	CreateClaims(ctx context.Context, claims []model.ClaimRule) error
+
+	// DeleteClaims ...
+	DeleteClaims(ctx context.Context, claims []model.ClaimRule) error
 }
 
 // New creates a default implementation for Dao
@@ -187,14 +190,39 @@ func (d *dao) CreateClaims(ctx context.Context, claims []model.ClaimRule) error 
 }
 
 // DeleteClaim deletes a claim rule by IdentityProviderID+ClaimPath or RobotID+ClaimPath
-func (d *dao) DeleteClaim(ctx context.Context, claim model.ClaimRule) error {
-	ormer, err := orm.FromContext(ctx)
-	if err != nil {
-		return err
+func (d *dao) DeleteClaims(ctx context.Context, claims []model.ClaimRule) error {
+	// Phase 1: Validation of all claims to be deleted
+	var qsList []orm.QuerySeter
+	for _, claim := range claims {
+		qs, err := d.validateClaimAndGetQuery(ctx, claim)
+		if err != nil {
+			return err
+		}
+		qsList = append(qsList, qs)
 	}
 
-	if (claim.IdentityProviderID == 0 && claim.RobotID == 0) || claim.ClaimPath == "" {
-		return errors.New(nil).WithCode(errors.BadRequestCode).
+	// Phase 2: Deletion
+	for i, qs := range qsList {
+		num, err := qs.Delete()
+		if err != nil {
+			return err
+		}
+		if num == 0 {
+			return errors.New(nil).WithCode(errors.NotFoundCode).
+				WithMessagef("claim rule not found for claim path: %s", claims[i].ClaimPath)
+		}
+	}
+	return nil
+}
+
+func (d *dao) validateClaimAndGetQuery(ctx context.Context, claim model.ClaimRule) (orm.QuerySeter, error) {
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if claim.IdentityProviderID == 0 || claim.ClaimPath == "" {
+		return nil, errors.New(nil).WithCode(errors.BadRequestCode).
 			WithMessage("invalid claim rule: missing identifiers or claim path")
 	}
 
@@ -211,27 +239,16 @@ func (d *dao) DeleteClaim(ctx context.Context, claim model.ClaimRule) error {
 
 	count, err := qs.Count()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if count == 0 {
-		return errors.New(nil).WithCode(errors.NotFoundCode).
+		return nil, errors.New(nil).WithCode(errors.NotFoundCode).
 			WithMessage("claim rule not found")
 	} else if count > 1 {
-		return errors.New(nil).WithCode(errors.BadRequestCode).
+		return nil, errors.New(nil).WithCode(errors.BadRequestCode).
 			WithMessage("multiple claim rules found, cannot delete, give more specific claim rule")
-  }
-
-	// delete matching record(s)
-	num, err := qs.Delete()
-	if err != nil {
-		return err
 	}
 
-	if num == 0 {
-		return errors.New(nil).WithCode(errors.NotFoundCode).
-			WithMessage("claim rule not found")
-	}
-
-	return nil
+	return qs, nil
 }
