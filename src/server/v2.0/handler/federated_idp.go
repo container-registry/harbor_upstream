@@ -60,7 +60,7 @@ func (fAPI *fedIDPAPI) ListClaimRules(ctx context.Context, params operation.List
 	}
 
 	var claimpath string
-	if len(*params.ClaimPath) > 0 {
+  if params.ClaimPath != nil && *params.ClaimPath != "" {
 		claimpath = *params.ClaimPath
 	}
 
