@@ -71,6 +71,9 @@ type Manager interface {
 
 	// DeleteRobotIdpByRobotID ...
 	DeleteRobotIdpByRobotID(ctx context.Context, robotID int64) error
+
+	// HasRobotIdpByRobotID ...
+	HasRobotIdpByRobotID(ctx context.Context, robotID int64) (bool, error)
 }
 
 var _ Manager = &manager{}
@@ -149,4 +152,9 @@ func (m *manager) DeleteRobotIdpByIdpID(ctx context.Context, idpID int64) error 
 // DeleteRobotIdpByRobotID ...
 func (m *manager) DeleteRobotIdpByRobotID(ctx context.Context, robotID int64) error {
 	return m.dao.DeleteRobotIdpByRobotID(ctx, robotID)
+}
+
+// HasRobotIdpByRobotID ...
+func (m *manager) HasRobotIdpByRobotID(ctx context.Context, robotID int64) (bool, error) {
+	return m.dao.HasRobotIdpByRobotID(ctx, robotID)
 }

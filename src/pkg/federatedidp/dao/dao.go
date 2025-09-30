@@ -64,6 +64,9 @@ type DAO interface {
 
 	// DeleteRobotIdpByRobotID ...
 	DeleteRobotIdpByRobotID(ctx context.Context, robotID int64) error
+
+	// HasRobotIdpByRobotID ...
+	HasRobotIdpByRobotID(ctx context.Context, robotID int64) (bool, error)
 }
 
 // New creates a default implementation for Dao
@@ -260,6 +263,21 @@ func (d *dao) DeleteRobotIdpByRobotID(ctx context.Context, robotID int64) error 
 	_, err = ormer.Raw("DELETE FROM robot_identity_providers WHERE robot_id = ?", robotID).Exec()
 
 	return err
+}
+
+// HasRobotIdp checks if a given robot has at least one associated identity provider.
+func (d *dao) HasRobotIdpByRobotID(ctx context.Context, robotID int64) (bool, error) {
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	// Only need to know if at least one record exists
+	exists := ormer.QueryTable(new(model.RobotIdentityProvider)).
+		Filter("robot_id", robotID).
+		Exist()
+
+	return exists, nil
 }
 
 func (d *dao) validateClaimAndGetQuery(ctx context.Context, claim model.ClaimRule) (orm.QuerySeter, error) {

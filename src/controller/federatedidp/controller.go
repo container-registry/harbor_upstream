@@ -49,6 +49,14 @@ type Controller interface {
 	CreateClaims(ctx context.Context, claims []model.ClaimRule) (err error)
 	// DeleteClaims deletes the claims according to the query
 	DeleteClaims(ctx context.Context, claims []model.ClaimRule) (err error)
+	// CreateRobotIdp creates a new RobotIdentityProvider record
+	CreateRobotIdp(ctx context.Context, idpID, robotID int64) (int64, error)
+	// DeleteRobotIdpByIdpID deletes a RobotIdentityProvider record
+	DeleteRobotIdpByIdpID(ctx context.Context, idpID int64) error
+	// DeleteRobotIdpByRobotID deletes a RobotIdentityProvider record
+	DeleteRobotIdpByRobotID(ctx context.Context, robotID int64) error
+	// HasRobotIdpByRobotID checks if a given robot has at least one associated identity provider.
+	HasRobotIdpByRobotID(ctx context.Context, robotID int64) (bool, error)
 }
 
 // NewController creates an instance of the federated idp controller
@@ -163,4 +171,24 @@ func (c *controller) CreateClaims(ctx context.Context, claims []model.ClaimRule)
 
 func (c *controller) DeleteClaims(ctx context.Context, claims []model.ClaimRule) error {
 	return c.fidpMgr.DeleteClaims(ctx, claims)
+}
+
+func (c *controller) CreateRobotIdp(ctx context.Context, idpID, robotID int64) (int64, error) {
+	idp := &model.RobotIdentityProvider{
+		IdentityProviderID: idpID,
+		RobotID:            robotID,
+	}
+	return c.fidpMgr.CreateRobotIdp(ctx, idp)
+}
+
+func (c *controller) DeleteRobotIdpByIdpID(ctx context.Context, idpID int64) error {
+	return c.fidpMgr.DeleteRobotIdpByIdpID(ctx, idpID)
+}
+
+func (c *controller) DeleteRobotIdpByRobotID(ctx context.Context, robotID int64) error {
+	return c.fidpMgr.DeleteRobotIdpByRobotID(ctx, robotID)
+}
+
+func (c *controller) HasRobotIdpByRobotID(ctx context.Context, robotID int64) (bool, error) {
+	return c.fidpMgr.HasRobotIdpByRobotID(ctx, robotID)
 }
