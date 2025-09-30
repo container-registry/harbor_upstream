@@ -29,6 +29,7 @@ import (
 	"github.com/goharbor/harbor/src/common/security/local"
 	robotSc "github.com/goharbor/harbor/src/common/security/robot"
 	"github.com/goharbor/harbor/src/common/utils"
+	federated_idp "github.com/goharbor/harbor/src/controller/federatedidp"
 	"github.com/goharbor/harbor/src/controller/robot"
 	"github.com/goharbor/harbor/src/lib"
 	"github.com/goharbor/harbor/src/lib/config"
@@ -50,7 +51,8 @@ func newRobotAPI() *robotAPI {
 
 type robotAPI struct {
 	BaseAPI
-	robotCtl robot.Controller
+	robotCtl  robot.Controller
+	fedidpCtl federated_idp.Controller
 }
 
 func (rAPI *robotAPI) CreateRobot(ctx context.Context, params operation.CreateRobotParams) middleware.Responder {
@@ -126,11 +128,14 @@ func (rAPI *robotAPI) CreateRobot(ctx context.Context, params operation.CreateRo
 		return rAPI.SendError(ctx, err)
 	}
 
-	if params.Robot.FederatedIDPID != 0 {
-		rAPI.robotCtl.CreateRobotIdp(ctx, &model.RobotIdentityProvider{
-			IdentityProviderID: idpID,
-			RobotID:            rid,
-		})
+	if params.Robot.FederatedidpID != nil {
+		idpID := *params.Robot.FederatedidpID
+		if idpID > 0 {
+			_, err := rAPI.fedidpCtl.CreateRobotIdp(ctx, idpID, rid)
+			if err != nil {
+				return rAPI.SendError(ctx, err)
+			}
+		}
 	}
 
 	created, err := rAPI.robotCtl.Get(ctx, rid, nil)
@@ -169,6 +174,15 @@ func (rAPI *robotAPI) DeleteRobot(ctx context.Context, params operation.DeleteRo
 		}
 		return rAPI.SendError(ctx, err)
 	}
+
+	// check if robotidp record exists if yes, delete it
+	if err := rAPI.fedidpCtl.DeleteRobotIdpByRobotID(ctx, params.RobotID); err != nil {
+		if errors.IsNotFoundErr(err) {
+			return operation.NewDeleteRobotOK()
+		}
+		return rAPI.SendError(ctx, err)
+	}
+
 	return operation.NewDeleteRobotOK()
 }
 
@@ -290,6 +304,14 @@ func (rAPI *robotAPI) RefreshSec(ctx context.Context, params operation.RefreshSe
 	r, err := rAPI.robotCtl.Get(ctx, params.RobotID, nil)
 	if err != nil {
 		return rAPI.SendError(ctx, err)
+	}
+
+	hasIdp, err := rAPI.fedidpCtl.HasRobotIdpByRobotID(ctx, r.ID)
+	if err != nil {
+		return rAPI.SendError(ctx, err)
+	}
+	if hasIdp {
+		return rAPI.SendError(ctx, errors.New(nil).WithMessage("cannot refresh secret, robot has identity provider associated").WithCode(errors.BadRequestCode))
 	}
 
 	if err := rAPI.requireAccess(ctx, r, rbac.ActionUpdate); err != nil {
