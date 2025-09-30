@@ -8246,6 +8246,11 @@ definitions:
       creator_ref:
         type: integer
         description: The reference of the robot creator, like the id of harbor user.
+      federatedidp_id:
+        type: integer
+        format: int64
+        x-nullable: true
+        description: The ID of the federated IDP
       creation_time:
         type: string
         format: date-time
@@ -8277,6 +8282,11 @@ definitions:
         type: integer
         format: int64
         description: The duration of the robot in days, duration must be either -1(Never) or a positive integer
+      federatedidp_id:
+        type: integer
+        format: int64
+        x-nullable: true
+        description: The ID of the federated IDP
       permissions:
         type: array
         items:
@@ -8295,6 +8305,11 @@ definitions:
       secret:
         type: string
         description: The secret of the robot
+      federatedidp_id:
+        type: integer
+        format: int64
+        x-nullable: true
+        description: The ID of the federated IDP
       creation_time:
         type: string
         format: date-time
