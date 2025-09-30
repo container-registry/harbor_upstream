@@ -55,6 +55,15 @@ type DAO interface {
 
 	// DeleteClaims ...
 	DeleteClaims(ctx context.Context, claims []model.ClaimRule) error
+
+	// CreateRobotIdp ...
+	CreateRobotIdp(ctx context.Context, r *model.RobotIdentityProvider) (int64, error)
+
+	// DeleteRobotIdpByIdpID ...
+	DeleteRobotIdpByIdpID(ctx context.Context, idpID int64) error
+
+	// DeleteRobotIdpByRobotID ...
+	DeleteRobotIdpByRobotID(ctx context.Context, robotID int64) error
 }
 
 // New creates a default implementation for Dao
@@ -213,6 +222,44 @@ func (d *dao) DeleteClaims(ctx context.Context, claims []model.ClaimRule) error 
 		}
 	}
 	return nil
+}
+
+// CreateRobotIdentityProvider creates a new RobotIdentityProvider record
+func (d *dao) CreateRobotIdp(ctx context.Context, r *model.RobotIdentityProvider) (int64, error) {
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+	r.CreationTime = time.Now()
+	id, err := ormer.Insert(r)
+	if err != nil {
+		return 0, orm.WrapConflictError(err, "robot identity provider %d:%d already exists", r.RobotID, r.IdentityProviderID)
+	}
+	return id, err
+}
+
+// DeleteRobotIdentityProvider deletes a RobotIdentityProvider record
+func (d *dao) DeleteRobotIdpByIdpID(ctx context.Context, idpID int64) error {
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = ormer.Raw("DELETE FROM robot_identity_providers WHERE identity_provider_id = ?", idpID).Exec()
+
+	return err
+}
+
+// DeleteRobotIdpByRobotID deletes a RobotIdentityProvider record
+func (d *dao) DeleteRobotIdpByRobotID(ctx context.Context, robotID int64) error {
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = ormer.Raw("DELETE FROM robot_identity_providers WHERE robot_id = ?", robotID).Exec()
+
+	return err
 }
 
 func (d *dao) validateClaimAndGetQuery(ctx context.Context, claim model.ClaimRule) (orm.QuerySeter, error) {

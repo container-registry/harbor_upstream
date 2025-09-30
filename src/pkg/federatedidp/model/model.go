@@ -100,3 +100,32 @@ func (c *ClaimRule) ToJSON() (string, error) {
 	}
 	return string(data), nil
 }
+
+// RobotIdentityProvider represents the mapping between a robot and an identity provider.
+type RobotIdentityProvider struct {
+	IdentityProviderID int64     `orm:"column(identity_provider_id)" json:"identity_provider_id"`
+	RobotID            int64     `orm:"column(robot_id)" json:"robot_id"`
+	CreationTime       time.Time `orm:"column(creation_time);auto_now_add" json:"creation_time"`
+}
+
+// TableName overrides the default table name.
+func (r *RobotIdentityProvider) TableName() string {
+	return "robot_identity_providers"
+}
+
+// FromJSON parses RobotIdentityProvider from a JSON string
+func (c *RobotIdentityProvider) FromJSON(jsonData string) error {
+	if len(jsonData) == 0 {
+		return errors.New("empty json data to parse")
+	}
+	return json.Unmarshal([]byte(jsonData), c)
+}
+
+// ToJSON marshals RobotIdentityProvider to a JSON string
+func (c *RobotIdentityProvider) ToJSON() (string, error) {
+	data, err := json.Marshal(c)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}

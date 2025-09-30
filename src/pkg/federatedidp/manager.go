@@ -62,6 +62,15 @@ type Manager interface {
 
 	// DeleteClaims ...
 	DeleteClaims(ctx context.Context, claims []model.ClaimRule) error
+
+	// CreateRobotIdp ...
+	CreateRobotIdp(ctx context.Context, r *model.RobotIdentityProvider) (int64, error)
+
+	// DeleteRobotIdpByIdpID ...
+	DeleteRobotIdpByIdpID(ctx context.Context, idpID int64) error
+
+	// DeleteRobotIdpByRobotID ...
+	DeleteRobotIdpByRobotID(ctx context.Context, robotID int64) error
 }
 
 var _ Manager = &manager{}
@@ -125,4 +134,19 @@ func (m *manager) CreateClaims(ctx context.Context, claims []model.ClaimRule) er
 // DeleteClaims ...
 func (m *manager) DeleteClaims(ctx context.Context, claims []model.ClaimRule) error {
 	return m.dao.DeleteClaims(ctx, claims)
+}
+
+// CreateRobotIdp ...
+func (m *manager) CreateRobotIdp(ctx context.Context, r *model.RobotIdentityProvider) (int64, error) {
+	return m.dao.CreateRobotIdp(ctx, r)
+}
+
+// DeleteRobotIdpByIdpID ...
+func (m *manager) DeleteRobotIdpByIdpID(ctx context.Context, idpID int64) error {
+	return m.dao.DeleteRobotIdpByIdpID(ctx, idpID)
+}
+
+// DeleteRobotIdpByRobotID ...
+func (m *manager) DeleteRobotIdpByRobotID(ctx context.Context, robotID int64) error {
+	return m.dao.DeleteRobotIdpByRobotID(ctx, robotID)
 }
