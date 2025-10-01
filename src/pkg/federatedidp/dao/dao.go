@@ -306,6 +306,69 @@ func (d *dao) GetTopMatchedRobot(ctx context.Context, issuerID int64, tokenClaim
 	return robotID, nil
 }
 
+// Only with orm no raw sql
+// // GetTopMatchedRobot finds the robot with the most matching claims for the given issuer and token claims.
+// func (d *dao) GetTopMatchedRobot(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error) {
+// 	ormer, err := orm.FromContext(ctx)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+//
+// 	// Flatten token claims into key/value strings
+// 	claimPairs := map[string]string{}
+// 	for k, v := range tokenClaims {
+// 		claimPairs[k] = fmt.Sprintf("%v", v)
+// 	}
+// 	if len(claimPairs) == 0 {
+// 		return 0, errors.New("no claims in token")
+// 	}
+//
+// 	// Query all rules for this IdP *only for the claim paths we care about*
+// 	paths := make([]string, 0, len(claimPairs))
+// 	for k := range claimPairs {
+// 		paths = append(paths, k)
+// 	}
+//
+// 	var rules []model.ClaimRule
+// 	_, err = ormer.QueryTable(new(model.ClaimRule)).
+// 		Filter("identity_provider_id", issuerID).
+// 		Filter("claim_path__in", paths).
+// 		All(&rules)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// 	if len(rules) == 0 {
+// 		return 0, errors.NotFoundError(nil).
+// 			WithMessagef("no claim rules for issuer %d matched given claims", issuerID)
+// 	}
+//
+// 	// Count matches per robot
+// 	matchCount := make(map[int64]int)
+// 	for _, r := range rules {
+// 		if val, ok := claimPairs[r.ClaimPath]; ok && val == r.Value {
+// 			matchCount[r.RobotID]++
+// 		}
+// 	}
+//
+// 	// Find robot with max matches
+// 	var topRobotID int64
+// 	var maxMatches int
+// 	for robotID, count := range matchCount {
+// 		if count > maxMatches {
+// 			topRobotID = robotID
+// 			maxMatches = count
+// 		}
+// 	}
+//
+// 	if topRobotID == 0 {
+// 		return 0, errors.NotFoundError(nil).
+// 			WithMessage("no robot matched the given claims")
+// 	}
+// 	return topRobotID, nil
+// }
+
+
+// very low performant version
 // // GetTopMatchedRobot returns the robot_id that matches the most claims for a given issuer.
 // func (d *dao) GetTopMatchedRobot(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error) {
 // 	// Step 1: resolve the FederatedIdp by issuer
