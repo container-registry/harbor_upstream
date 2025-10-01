@@ -19,16 +19,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/goharbor/harbor/src/common"
 	"github.com/goharbor/harbor/src/common/security"
 	robotCtx "github.com/goharbor/harbor/src/common/security/robot"
+	federated_idp "github.com/goharbor/harbor/src/controller/federatedidp"
 	robot_ctl "github.com/goharbor/harbor/src/controller/robot"
-	"github.com/goharbor/harbor/src/lib/config"
 	"github.com/goharbor/harbor/src/lib/log"
-	"github.com/goharbor/harbor/src/lib/q"
 	"github.com/goharbor/harbor/src/pkg/token"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lestrrat-go/jwx/v3/jwk"
@@ -66,12 +64,37 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 
 	// based on the issuer, get the jwks jwks-uri
 	// get it from the database
-	hardjwksUri := "https://token.actions.githubusercontent.com/.well-known/jwks"
-	if issuer == "token.actions.githubusercontent.com" {
-		hardjwksUri = "https://token.actions.githubusercontent.com/.well-known/jwks"
+	// federated_idp.Ctl.Get(req.Context(), issuer, *&model.FederatedIdp{})
+	idp, err := federated_idp.Ctl.GetIdpByIssuer(req.Context(), issuer)
+	if err != nil {
+		log.Warningf("failed to get federated idp by issuer: %s", err)
+		return nil
 	}
 
-	GetAndParseJWK(req.Context(), hardjwksUri, log)
+	var jwkskeys string
+	if idp.OfflineValidation {
+		// do offline validation
+		jwkskeys = idp.JWKSKeys
+		if len(jwkskeys) == 0 {
+			log.Warningf("federated idp %s has no jwks keys", idp.Name)
+			return nil
+		}
+	} else {
+		// do online validation
+		jwkskeys, err := GetAndParseJWK(req.Context(), idp.JWKSURI, log)
+		if err != nil {
+			log.Warningf("failed to get jwks keys: %s", err)
+			return nil
+		}
+		if len(jwkskeys) == 0 {
+			log.Warningf("federated idp %s has no jwks keys", idp.Name)
+			return nil
+		}
+	}
+
+	// query for the right robot account
+
+	// validate jwt token against the jwks key
 
 	// TODO: get the token options from db
 	defaultOpt := defaultOptions()
@@ -81,7 +104,8 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	}
 
 	// kumar, update the default Options, temporarily for testing and verifying
-	defaultOpt.Issuer = "https://gitlab.com"
+	defaultOpt.Issuer = idp.Issuer
+	// TODO: remove hardcoded to RS256
 	defaultOpt.SignMethod = jwt.GetSigningMethod("RS256")
 	defaultOpt.PrivateKey = []byte("")
 	defaultOpt.PublicKey = []byte("")
@@ -108,22 +132,11 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// defaultOpt.PublicKey = pubKey
 
 	// TODO: create more dynamic base claims based on the issuer.
-	cl := &v2TokenClaims{}
+	// put claims from the issuer
+	cl := jwt.MapClaims{}
+
 	// kumar, log the claims
 	log.Warningf("the claims is %v", cl)
-
-	// TODO: remove hard coded robot account
-	var name string
-	log.Warningf("going to run get robot account fuunction")
-	robotacc, err := getRobotAccount(req, log)
-	if err != nil {
-		log.Errorf("failed to get robot account so now assinging the default robot account - robot_potta: %v", err)
-		name = "robot_potta"
-	} else {
-		name = robotacc.Name
-	}
-	log.Warningf("done ran get robot account fuunction")
-	log.Warningf("robot account we got was: %s", name)
 
 	// token.parse will just check the validity of the token and parse the token, validating the given claims
 	t, err := token.Parse(defaultOpt, tokenStr, cl)
@@ -135,6 +148,20 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// check if the signature is valid
 	if !t.Valid {
 		log.Warningf("the token is invalid: %v", t)
+		return nil
+	}
+
+	tokenClaims := t.Claims.(jwt.MapClaims)
+
+	// get list of claims from the token
+	// Now you can access everything, e.g.
+	for k, v := range tokenClaims {
+		fmt.Println("claim:", k, "value:", v)
+	}
+	// query the token claims on idp and get robot
+	rid, err := federated_idp.Ctl.GetTopMatchedRobot(req.Context(), idp.ID, tokenClaims)
+	if err != nil {
+		log.Warningf("failed to get robot id: %v", err)
 		return nil
 	}
 
@@ -174,42 +201,28 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// below are the normal steps for robot account flow
 
 	// The robot name can be used as the unique identifier to locate robot as it contains the project name.
-	robots, err := robot_ctl.Ctl.List(req.Context(), q.New(q.KeyWords{
-		"name": strings.TrimPrefix(name, config.RobotPrefix(req.Context())),
-	}), &robot_ctl.Option{
+	robot, err := robot_ctl.Ctl.Get(req.Context(), rid, &robot_ctl.Option{
 		WithPermission: true,
 	})
 	if err != nil {
-		log.Errorf("failed to list robots: %v", err)
+		log.Errorf("failed to get robot with id: %d, %v", rid, err)
 		return nil
 	}
-	if len(robots) == 0 {
+	if robot == nil {
 		return nil
 	}
-
-	robot := robots[0]
-	// if utils.Encrypt(secret, robot.Salt, utils.SHA256) != robot.Secret {
-	// 	log.Errorf("failed to authenticate robot account: %s", name)
-	// 	return nil
-	// }
 	if robot.Disabled {
-		log.Errorf("failed to authenticate deactivated robot account: %s", name)
+		log.Errorf("failed to authenticate deactivated robot account: %s", robot.Name)
 		return nil
 	}
 	now := time.Now().Unix()
 	if robot.ExpiresAt != -1 && robot.ExpiresAt <= now {
-		log.Errorf("the robot account is expired: %s", name)
+		log.Errorf("the robot account is expired: %s", robot.Name)
 		return nil
 	}
 
 	log.Debugf("a robot security context generated for request %s %s", req.Method, req.URL.Path)
 	return robotCtx.NewSecurityContext(robot)
-}
-
-// get the robot account with max matching claims
-func getRobotAccount(req *http.Request, log *log.Logger) (*robot_ctl.Robot, error) {
-	// TODO: get the robot account with max matching claims
-	return nil, fmt.Errorf("completely failed to get robot account")
 }
 
 // TODO: replace this function with a robust one
@@ -218,12 +231,11 @@ func getRobotAccount(req *http.Request, log *log.Logger) (*robot_ctl.Robot, erro
 // TODO: replace this function with a robust one
 // it should be able to take the JWK or PEM from DB and return the public key
 
-func GetAndParseJWK(ctx context.Context, jwksUri string, log *log.Logger) {
-	// Use jwk.Cache if you intend to keep reuse the JWKS over and over
+func GetAndParseJWK(ctx context.Context, jwksUri string, log *log.Logger) ([]jwk.Key, error) {
 	set, err := jwk.Fetch(ctx, jwksUri)
 	if err != nil {
 		log.Warningf("failed to parse JWK: %s", err)
-		return
+		return nil, err
 	}
 
 	// Key sets can be serialized back to JSON
@@ -231,24 +243,25 @@ func GetAndParseJWK(ctx context.Context, jwksUri string, log *log.Logger) {
 		jsonbuf, err := json.Marshal(set)
 		if err != nil {
 			log.Warningf("failed to marshal key set into JSON: %s", err)
-			return
+			return nil, err
 		}
-		log.Warningf("%s", jsonbuf)
+		log.Warningf("jsonbuf: %s", jsonbuf)
 	}
 
+	var keys []jwk.Key
 	for i := 0; i < set.Len(); i++ {
 		var rawkey any        // This is where we would like to store the raw key, like *rsa.PrivateKey or *ecdsa.PrivateKey
 		key, ok := set.Key(i) // This retrieves the corresponding jwk.Key
 		if !ok {
 			log.Warningf("failed to get key at index %d", i)
-			return
+			return nil, err
 		}
 
 		// jws and jwe operations can be performed using jwk.Key, but you could also
 		// covert it to their "raw" forms, such as *rsa.PrivateKey or *ecdsa.PrivateKey
 		if err := jwk.Export(key, &rawkey); err != nil {
 			log.Warningf("failed to create public key: %s", err)
-			return
+			return nil, err
 		}
 		_ = rawkey
 
@@ -256,20 +269,20 @@ func GetAndParseJWK(ctx context.Context, jwksUri string, log *log.Logger) {
 		fromRawKey, err := jwk.Import(rawkey)
 		if err != nil {
 			log.Warningf("failed to acquire raw key from jwk.Key: %s", err)
-			return
+			return nil, err
 		}
 
 		// Keys can be serialized back to JSON
 		jsonbuf, err := json.Marshal(key)
 		if err != nil {
 			log.Warningf("failed to marshal key into JSON: %s", err)
-			return
+			return nil, err
 		}
 
 		fromJSONKey, err := jwk.Parse(jsonbuf)
 		if err != nil {
 			log.Warningf("failed to parse json: %s", err)
-			return
+			return nil, err
 		}
 		_ = fromJSONKey
 		_ = fromRawKey
@@ -278,8 +291,10 @@ func GetAndParseJWK(ctx context.Context, jwksUri string, log *log.Logger) {
 		log.Warningf("the raw key is %v", rawkey)
 		log.Warningf("the from raw key is %v", fromRawKey)
 		log.Warningf("the from json key is %v", fromJSONKey)
+
+		keys = append(keys, key)
 	}
-	// OUTPUT:
+	return keys, nil
 }
 
 //
