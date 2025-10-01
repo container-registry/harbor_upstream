@@ -25,6 +25,7 @@ import (
 	"github.com/goharbor/harbor/src/pkg/federatedidp/model"
 	"github.com/goharbor/harbor/src/pkg/project"
 	"github.com/goharbor/harbor/src/pkg/replication"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // Ctl is a global registry controller instance
@@ -39,6 +40,10 @@ type Controller interface {
 	List(ctx context.Context, query *q.Query) (federatedIdps []*model.FederatedIdp, err error)
 	// Get the federated idp specified by ID
 	Get(ctx context.Context, id int64) (federatedIdp *model.FederatedIdp, err error)
+	// Get the federated idp specified by IDP Name
+	GetIdpByIssuer(ctx context.Context, issuer string) (federatedIdp *model.FederatedIdp, err error)
+	// GetTopMatchedRobot ...
+	GetTopMatchedRobot(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error)
 	// Update the specified federated idp
 	Update(ctx context.Context, federatedIdp *model.FederatedIdp, props ...string) (err error)
 	// Delete the federated idp specified by ID
@@ -148,6 +153,14 @@ func (c *controller) List(ctx context.Context, query *q.Query) ([]*model.Federat
 
 func (c *controller) Get(ctx context.Context, id int64) (*model.FederatedIdp, error) {
 	return c.fidpMgr.Get(ctx, id)
+}
+
+func (c *controller) GetIdpByIssuer(ctx context.Context, issuer string) (*model.FederatedIdp, error) {
+	return c.fidpMgr.GetIdpByIssuer(ctx, issuer)
+}
+
+func (c *controller) GetTopMatchedRobot(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error) {
+	return c.fidpMgr.GetTopMatchedRobot(ctx, issuerID, tokenClaims)
 }
 
 func (c *controller) Update(ctx context.Context, registry *model.FederatedIdp, props ...string) error {

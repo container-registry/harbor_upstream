@@ -20,6 +20,7 @@ import (
 	"github.com/goharbor/harbor/src/lib/q"
 	"github.com/goharbor/harbor/src/pkg/federatedidp/dao"
 	"github.com/goharbor/harbor/src/pkg/federatedidp/model"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var (
@@ -35,6 +36,12 @@ type Claims map[string]string
 type Manager interface {
 	// Get ...
 	Get(ctx context.Context, id int64) (*model.FederatedIdp, error)
+
+	// GetIdpByIssuer ...
+	GetIdpByIssuer(ctx context.Context, issuer string) (*model.FederatedIdp, error)
+
+	// GetTopMatchedRobot ...
+	GetTopMatchedRobot(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error)
 
 	// Count returns the total count of robots according to the query
 	Count(ctx context.Context, query *q.Query) (total int64, err error)
@@ -92,6 +99,16 @@ func NewManager() Manager {
 // Get ...
 func (m *manager) Get(ctx context.Context, id int64) (*model.FederatedIdp, error) {
 	return m.dao.Get(ctx, id)
+}
+
+// GetIdpByName ...
+func (m *manager) GetIdpByIssuer(ctx context.Context, issuer string) (*model.FederatedIdp, error) {
+	return m.dao.GetIdpByIssuer(ctx, issuer)
+}
+
+// GetTopMatchedRobot ...
+func (m *manager) GetTopMatchedRobot(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error) {
+	return m.dao.GetTopMatchedRobot(ctx, issuerID, tokenClaims)
 }
 
 // Count ...

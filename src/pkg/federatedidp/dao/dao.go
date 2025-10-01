@@ -16,12 +16,14 @@ package dao
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/goharbor/harbor/src/lib/errors"
 	"github.com/goharbor/harbor/src/lib/orm"
 	"github.com/goharbor/harbor/src/lib/q"
 	"github.com/goharbor/harbor/src/pkg/federatedidp/model"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // DAO defines the interface to access the federatedidp data model
@@ -34,6 +36,12 @@ type DAO interface {
 
 	// Get ...
 	Get(ctx context.Context, id int64) (*model.FederatedIdp, error)
+
+	// GetIdpByIssuer ...
+	GetIdpByIssuer(ctx context.Context, issuer string) (*model.FederatedIdp, error)
+
+	// GetTopMatchedRobot ...
+	GetTopMatchedRobot(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error)
 
 	// Count returns the total count of federatedidps according to the query
 	Count(ctx context.Context, query *q.Query) (total int64, err error)
@@ -115,6 +123,20 @@ func (d *dao) Get(ctx context.Context, id int64) (*model.FederatedIdp, error) {
 	}
 	if err := ormer.Read(f); err != nil {
 		return nil, orm.WrapNotFoundError(err, "federatedidp %d not found", id)
+	}
+	return f, nil
+}
+
+func (d *dao) GetIdpByIssuer(ctx context.Context, issuer string) (*model.FederatedIdp, error) {
+	f := &model.FederatedIdp{
+		Issuer: issuer,
+	}
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := ormer.Read(f); err != nil {
+		return nil, orm.WrapNotFoundError(err, "federatedidp with issuer: %s not found", issuer)
 	}
 	return f, nil
 }
@@ -226,6 +248,115 @@ func (d *dao) DeleteClaims(ctx context.Context, claims []model.ClaimRule) error 
 	}
 	return nil
 }
+
+// GetTopMatchedRobot finds the robot with the most matching claims for the given issuer and token claims.
+func (d *dao) GetTopMatchedRobot(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error) {
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	// Flatten token claims into key/value strings
+	claimPairs := map[string]string{}
+	for k, v := range tokenClaims {
+		claimPairs[k] = fmt.Sprintf("%v", v)
+	}
+
+	// If no claims, nothing to do
+	if len(claimPairs) == 0 {
+		return 0, errors.New("no claims in token")
+	}
+
+	// Build dynamic SQL with placeholders
+	var args []any
+	sql := `
+		SELECT robot_id, COUNT(*) AS match_count
+		FROM claim_rule
+		WHERE identity_provider_id = ?
+	`
+	args = append(args, issuerID)
+
+	// Add OR conditions for each claim
+	sql += " AND ("
+	i := 0
+	for k, v := range claimPairs {
+		if i > 0 {
+			sql += " OR "
+		}
+		sql += "(claim_path = ? AND value = ?)"
+		args = append(args, k, v)
+		i++
+	}
+	sql += ")"
+
+	// Group by robot_id and pick the one with most matches
+	sql += " GROUP BY robot_id ORDER BY match_count DESC LIMIT 1"
+
+	// Execute query
+	var robotID int64
+	var matchCount int64
+	err = ormer.Raw(sql, args...).QueryRow(&robotID, &matchCount)
+	if err == orm.ErrNoRows {
+		return 0, errors.NotFoundError(nil).WithMessage("no robot matched the given claims")
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	return robotID, nil
+}
+
+// // GetTopMatchedRobot returns the robot_id that matches the most claims for a given issuer.
+// func (d *dao) GetTopMatchedRobot(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error) {
+// 	// Step 1: resolve the FederatedIdp by issuer
+// 	ormer, err := orm.FromContext(ctx)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+//
+// 	// Step 2: flatten token claims into key/value strings
+// 	claimPairs := map[string]string{}
+// 	for k, v := range tokenClaims {
+// 		claimPairs[k] = fmt.Sprintf("%v", v)
+// 	}
+//
+// 	// Step 3: query all rules for this IdP
+// 	var rules []model.ClaimRule
+// 	_, err = ormer.QueryTable(new(model.ClaimRule)).
+// 		Filter("identity_provider_id", issuerID).
+// 		All(&rules)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+//
+// 	if len(rules) == 0 {
+// 		return 0, errors.NotFoundError(nil).WithMessagef("no claim rules for issuer with id: %d", issuerID)
+// 	}
+//
+// 	// Step 4: count matches per robot_id
+// 	matchCount := make(map[int64]int)
+// 	for _, r := range rules {
+// 		if val, ok := claimPairs[r.ClaimPath]; ok && val == r.Value {
+// 			matchCount[r.RobotID]++
+// 		}
+// 	}
+//
+// 	// Step 5: pick robot with most matches
+// 	var topRobotID int64
+// 	var maxMatches int
+// 	for robotID, count := range matchCount {
+// 		if count > maxMatches {
+// 			maxMatches = count
+// 			topRobotID = robotID
+// 		}
+// 	}
+//
+// 	if topRobotID == 0 {
+// 		return 0, errors.NotFoundError(nil).WithMessage("no robot matched the given claims")
+// 	}
+//
+// 	return topRobotID, nil
+// }
 
 // CreateRobotIdentityProvider creates a new RobotIdentityProvider record
 func (d *dao) CreateRobotIdp(ctx context.Context, r *model.RobotIdentityProvider) (int64, error) {
