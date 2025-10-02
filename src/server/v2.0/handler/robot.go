@@ -46,6 +46,7 @@ import (
 func newRobotAPI() *robotAPI {
 	return &robotAPI{
 		robotCtl: robot.Ctl,
+		fedidpCtl: federated_idp.Ctl,
 	}
 }
 
