@@ -76,6 +76,14 @@ const routes: Routes = [
                     ),
             },
             {
+                path: 'federated-idps',
+                canActivate: [SystemAdminGuard],
+                loadChildren: () =>
+                    import('./left-side-nav/federated-idps/idp.module').then(
+                        m => m.EndpointModule
+                    ),
+            },
+            {
                 path: 'replications',
                 canActivate: [SystemAdminGuard],
                 loadChildren: () =>
