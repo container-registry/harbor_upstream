@@ -16,6 +16,7 @@ package security
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
@@ -39,11 +40,11 @@ import (
 
 // JWK represents a single JSON Web Key
 type JWK struct {
-	Kid *string `json:"kid,omitempty"` // Key ID
-	Kty *string `json:"kty,omitempty"` // Key Type
-	Use *string `json:"use,omitempty"` // Public Key Use
-	N   *string `json:"n,omitempty"`   // RSA modulus
-	E   *string `json:"e,omitempty"`   // RSA exponent
+	Kid *string  `json:"kid,omitempty"` // Key ID
+	Kty *string  `json:"kty,omitempty"` // Key Type
+	Use *string  `json:"use,omitempty"` // Public Key Use
+	N   *string  `json:"n,omitempty"`   // RSA modulus
+	E   *string  `json:"e,omitempty"`   // RSA exponent
 	X5c []string `json:"x5c,omitempty"`
 	// Add other fields as needed with omitempty
 }
@@ -164,36 +165,34 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	log.Warningf("the kid is %v", kid)
 	log.Warningf("the sign method is %v", signMethod)
 
-	// rsaPubKey, err := getRSAPublicKeyFromJWK(jwkKey)
-	// if err != nil {
-	// 	log.Fatalf("failed to convert JWK to RSA public key: %v", err)
-	// }
-
-	// Convert to PEM bytes
-	pubKeyPEM, err := jwkToPublicKey(*jwkKey)
+	rsaPubKey, err := getRSAPublicKeyFromJWK(jwkKey)
 	if err != nil {
-		log.Fatalf("failed to convert RSA public key to PEM: %v", err)
+		log.Fatalf("failed to convert JWK to RSA public key: %v", err)
 	}
 
-	// kumar, update the default Options, temporarily for testing and verifying
-	defaultOpt.Issuer = idp.Issuer
+	//convert jwk in bytes and return a new key
+	// jwkeySet, err := jwk.Parse([]byte(jwkskeys))
+	// if err != nil {
+	// 	fmt.Printf("failed to parse key: %s\n", err)
+	// 	return nil
+	// }
+
+	// jwKey, ok := jwkeySet.LookupKeyID(kid)
+	// if !ok {
+	// 	fmt.Printf("failed to find key with kid: %s\n", kid)
+	// 	return nil
+	// }
+
 	// TODO: remove hardcoded to RS256
-	defaultOpt.SignMethod = jwt.GetSigningMethod(signMethod)
-	defaultOpt.PrivateKey = []byte("")
-	defaultOpt.PublicKey = pubKeyPEM
+	SignMethod := jwt.GetSigningMethod(signMethod)
+	// defaultOpt.PrivateKey = []byte("")
+	// defaultOpt.PublicKey = []byte(jwKey.PublicKey().(rsa.PublicKey).N.String())
 
 	// token.parse will just check the validity of the token and parse the token, validating the given claims
-	t, err := token.Parse(defaultOpt, tokenStr, cl)
+	t, err := ParseToken(SignMethod, rsaPubKey, tokenStr, cl)
 	if err != nil {
 		log.Warningf("failed to decode bearer token: %v", err)
 		return nil
-	}
-
-	// check if the signature is valid
-	if !t.Valid {
-		log.Warningf("the token is invalid: %v", t)
-		// TODO: remove comment and return if the token is invalid
-		// return nil
 	}
 
 	tokenClaims := t.Claims.(jwt.MapClaims)
@@ -468,6 +467,34 @@ func publicKeyToPEMBytes(pubKey *rsa.PublicKey) ([]byte, error) {
 	})
 
 	return pemBytes, nil
+}
+
+func ParseToken(signMethod jwt.SigningMethod, publicKey any, rawToken string, claims jwt.Claims) (*token.Token, error) {
+	var parser = jwt.NewParser(jwt.WithLeeway(common.JwtLeeway), jwt.WithValidMethods([]string{signMethod.Alg()}))
+	tokn, err := parser.ParseWithClaims(rawToken, claims, func(_ *jwt.Token) (any, error) {
+		switch signMethod.Alg() {
+		case "RS256":
+			pk := publicKey.(rsa.PublicKey)
+			return &pk, nil
+		case "ES256":
+			pk := publicKey.(ecdsa.PublicKey)
+			return &pk, nil
+		default:
+			return publicKey, nil
+		}
+	})
+	if err != nil {
+		log.Errorf("parse token error, %v", err)
+		return nil, err
+	}
+
+	if !tokn.Valid {
+		log.Errorf("invalid jwt token, %v", tokn)
+		return nil, fmt.Errorf("invalid jwt token")
+	}
+	return &token.Token{
+		Token: *tokn,
+	}, nil
 }
 
 // //nolint:govet
