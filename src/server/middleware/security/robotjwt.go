@@ -363,18 +363,23 @@ func getRSAPublicKeyFromJWK(jwk *JWK) (*rsa.PublicKey, error) {
 		return nil, fmt.Errorf("missing modulus or exponent in JWK")
 	}
 
-	// Decode base64url modulus
+	// Decode modulus (base64url)
 	nBytes, err := base64.RawURLEncoding.DecodeString(*jwk.N)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode modulus: %w", err)
 	}
-	// Decode base64url exponent
+
+	// Decode exponent (base64url)
 	eBytes, err := base64.RawURLEncoding.DecodeString(*jwk.E)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode exponent: %w", err)
+		// Try standard URLEncoding with padding just in case
+		eBytes, err = base64.URLEncoding.DecodeString(*jwk.E)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode exponent: %w", err)
+		}
 	}
 
-	// Convert exponent bytes to int
+	// Convert exponent bytes to int (big-endian)
 	e := 0
 	for _, b := range eBytes {
 		e = e<<8 + int(b)
