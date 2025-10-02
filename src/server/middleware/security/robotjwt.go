@@ -165,31 +165,39 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	log.Warningf("the kid is %v", kid)
 	log.Warningf("the sign method is %v", signMethod)
 
-	rsaPubKey, err := getRSAPublicKeyFromJWK(jwkKey)
+	// convert jwk in bytes and return a new key
+	jwkeySet, err := jwk.Parse([]byte(jwkskeys))
 	if err != nil {
-		log.Fatalf("failed to convert JWK to RSA public key: %v", err)
+		fmt.Printf("failed to parse key: %s\n", err)
+		return nil
 	}
 
-	//convert jwk in bytes and return a new key
-	// jwkeySet, err := jwk.Parse([]byte(jwkskeys))
-	// if err != nil {
-	// 	fmt.Printf("failed to parse key: %s\n", err)
-	// 	return nil
-	// }
+	jwKey, ok := jwkeySet.LookupKeyID(kid)
+	if !ok {
+		fmt.Printf("failed to find key with kid: %s\n", kid)
+		return nil
+	}
 
-	// jwKey, ok := jwkeySet.LookupKeyID(kid)
-	// if !ok {
-	// 	fmt.Printf("failed to find key with kid: %s\n", kid)
-	// 	return nil
-	// }
+	jwkBytes1, err := jwk.EncodePEM(jwkKey)
+	if err != nil {
+		log.Warningf("failed to convert JWK to public key bytes: %v", err)
+	}
+
+	jwkBytes2, err := jwk.EncodePEM(jwKey)
+	if err != nil {
+		log.Warningf("failed to convert JWK to public key bytes: %v", err)
+	}
+
+	log.Warningf("the jwk bytes1 are %v", jwkBytes1)
+	log.Warningf("the jwk bytes2 are %v", jwkBytes2)
 
 	// TODO: remove hardcoded to RS256
-	SignMethod := jwt.GetSigningMethod(signMethod)
-	// defaultOpt.PrivateKey = []byte("")
-	// defaultOpt.PublicKey = []byte(jwKey.PublicKey().(rsa.PublicKey).N.String())
+	defaultOpt.Issuer = issuer
+	defaultOpt.PrivateKey = []byte("")
+	defaultOpt.PublicKey = jwkBytes1
 
 	// token.parse will just check the validity of the token and parse the token, validating the given claims
-	t, err := ParseToken(SignMethod, rsaPubKey, tokenStr, cl)
+	t, err := token.Parse(defaultOpt, tokenStr, cl)
 	if err != nil {
 		log.Warningf("failed to decode bearer token: %v", err)
 		return nil
