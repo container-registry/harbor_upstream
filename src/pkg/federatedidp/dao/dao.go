@@ -135,7 +135,7 @@ func (d *dao) GetIdpByIssuer(ctx context.Context, issuer string) (*model.Federat
 	if err != nil {
 		return nil, err
 	}
-	if err := ormer.Read(f); err != nil {
+	if err := ormer.Read(f, "issuer"); err != nil {
 		return nil, orm.WrapNotFoundError(err, "federatedidp with issuer: %s not found", issuer)
 	}
 	return f, nil
@@ -366,7 +366,6 @@ func (d *dao) GetTopMatchedRobot(ctx context.Context, issuerID int64, tokenClaim
 // 	}
 // 	return topRobotID, nil
 // }
-
 
 // very low performant version
 // // GetTopMatchedRobot returns the robot_id that matches the most claims for a given issuer.
