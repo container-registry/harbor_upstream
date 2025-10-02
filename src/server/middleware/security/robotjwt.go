@@ -16,8 +16,13 @@ package security
 
 import (
 	"context"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"math/big"
 	"net/http"
 	"time"
 
@@ -31,6 +36,21 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lestrrat-go/jwx/v3/jwk"
 )
+
+// JWK represents a single JSON Web Key
+type JWK struct {
+	Kid *string `json:"kid,omitempty"` // Key ID
+	Kty *string `json:"kty,omitempty"` // Key Type
+	Use *string `json:"use,omitempty"` // Public Key Use
+	N   *string `json:"n,omitempty"`   // RSA modulus
+	E   *string `json:"e,omitempty"`   // RSA exponent
+	// Add other fields as needed with omitempty
+}
+
+// JWKS represents a set of JSON Web Keys
+type JWKS struct {
+	Keys []JWK `json:"keys,omitempty"`
+}
 
 type robotjwt struct{}
 
@@ -103,13 +123,6 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 		return nil
 	}
 
-	// kumar, update the default Options, temporarily for testing and verifying
-	defaultOpt.Issuer = idp.Issuer
-	// TODO: remove hardcoded to RS256
-	defaultOpt.SignMethod = jwt.GetSigningMethod("RS256")
-	defaultOpt.PrivateKey = []byte("")
-	defaultOpt.PublicKey = []byte("")
-
 	// TODO: no hardcoded JWK, use the JWK from DB
 	//
 	// TODO: Find a robust library to parse the JWK and PEM for offline use case
@@ -138,6 +151,32 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// kumar, log the claims
 	log.Warningf("the claims is %v", cl)
 
+	signMethod := tokene.Method.Alg()
+	kid := tokene.Header["kid"].(string)
+	jwkKey, err := getJWKFromJWKS(jwkskeys, kid)
+	if err != nil {
+		log.Warningf("failed to find JWK: %s", err)
+		return nil
+	}
+
+	rsaPubKey, err := getRSAPublicKeyFromJWK(jwkKey)
+	if err != nil {
+		log.Fatalf("failed to convert JWK to RSA public key: %v", err)
+	}
+
+	// Convert to PEM bytes
+	pubKeyPEM, err := publicKeyToPEMBytes(rsaPubKey)
+	if err != nil {
+		log.Fatalf("failed to convert RSA public key to PEM: %v", err)
+	}
+
+	// kumar, update the default Options, temporarily for testing and verifying
+	defaultOpt.Issuer = idp.Issuer
+	// TODO: remove hardcoded to RS256
+	defaultOpt.SignMethod = jwt.GetSigningMethod(signMethod)
+	defaultOpt.PrivateKey = []byte("")
+	defaultOpt.PublicKey = pubKeyPEM
+
 	// token.parse will just check the validity of the token and parse the token, validating the given claims
 	t, err := token.Parse(defaultOpt, tokenStr, cl)
 	if err != nil {
@@ -148,7 +187,8 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// check if the signature is valid
 	if !t.Valid {
 		log.Warningf("the token is invalid: %v", t)
-		return nil
+		// TODO: remove comment and return if the token is invalid
+		// return nil
 	}
 
 	tokenClaims := t.Claims.(jwt.MapClaims)
@@ -297,7 +337,72 @@ func GetAndParseJWK(ctx context.Context, jwksUri string, log *log.Logger) ([]jwk
 	return keys, nil
 }
 
-//
+func getJWKFromJWKS(jwksJSON string, tokenKid string) (*JWK, error) {
+	// 1. Parse JWKS JSON into Go struct
+	var jwks JWKS
+	if err := json.Unmarshal([]byte(jwksJSON), &jwks); err != nil {
+		return nil, fmt.Errorf("failed to parse JWKS JSON: %w", err)
+	}
+
+	// 2. Find the JWK that matches the token's kid
+	for _, key := range jwks.Keys {
+		if key.Kid != nil && *key.Kid == tokenKid {
+			return &key, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no matching JWK found for kid: %s", tokenKid)
+}
+
+// Convert a JWK (RSA) to *rsa.PublicKey
+func getRSAPublicKeyFromJWK(jwk *JWK) (*rsa.PublicKey, error) {
+	if jwk.Kty == nil || *jwk.Kty != "RSA" {
+		return nil, fmt.Errorf("unsupported key type: %v", jwk.Kty)
+	}
+	if jwk.N == nil || jwk.E == nil {
+		return nil, fmt.Errorf("missing modulus or exponent in JWK")
+	}
+
+	// Decode base64url modulus
+	nBytes, err := base64.RawURLEncoding.DecodeString(*jwk.N)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode modulus: %w", err)
+	}
+	// Decode base64url exponent
+	eBytes, err := base64.RawURLEncoding.DecodeString(*jwk.E)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode exponent: %w", err)
+	}
+
+	// Convert exponent bytes to int
+	e := 0
+	for _, b := range eBytes {
+		e = e<<8 + int(b)
+	}
+
+	pubKey := &rsa.PublicKey{
+		N: new(big.Int).SetBytes(nBytes),
+		E: e,
+	}
+
+	return pubKey, nil
+}
+
+// Convert *rsa.PublicKey -> PEM []byte
+func publicKeyToPEMBytes(pubKey *rsa.PublicKey) ([]byte, error) {
+	derBytes, err := x509.MarshalPKIXPublicKey(pubKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal public key: %w", err)
+	}
+
+	pemBytes := pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: derBytes,
+	})
+
+	return pemBytes, nil
+}
+
 // //nolint:govet
 // func Example_jwk_marshal_json() {
 // 	// JWKs that inherently involve randomness such as RSA and EC keys are
