@@ -21,10 +21,11 @@ CREATE TABLE IF NOT EXISTS identity_providers (
 -- Join table linking robots and identity providers
 
 CREATE TABLE IF NOT EXISTS robot_identity_providers (
+    id SERIAL PRIMARY KEY,
     identity_provider_id INT NOT NULL REFERENCES identity_providers(id) ON DELETE CASCADE,
     robot_id INT NOT NULL REFERENCES robot(id) ON DELETE CASCADE,
     creation_time TIMESTAMP DEFAULT NOW(),
-    PRIMARY KEY (identity_provider_id, robot_id)
+    UNIQUE (identity_provider_id, robot_id)
 );
 
 -- Table: claim_rules
@@ -39,20 +40,3 @@ CREATE TABLE IF NOT EXISTS claim_rules (
     value TEXT,
     creation_time TIMESTAMP DEFAULT NOW()
 );
-
--- Unique constraint for claim_rules
--- Use a conditional check to avoid errors if the constraint exists
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM information_schema.table_constraints
-        WHERE table_name='claim_rules'
-          AND constraint_type='UNIQUE'
-          AND constraint_name='claim_rules_unique'
-    ) THEN
-        ALTER TABLE claim_rules
-            ADD CONSTRAINT claim_rules_unique
-            UNIQUE (identity_provider_id, robot_id, claim_path, value);
-    END IF;
-END$$;

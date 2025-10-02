@@ -26,6 +26,7 @@ import (
 func init() {
 	orm.RegisterModel(&FederatedIdp{})
 	orm.RegisterModel(&ClaimRule{})
+	orm.RegisterModel(&RobotIdentityProvider{})
 }
 
 // FederatedIdp holds the details of a federated idp.
@@ -103,6 +104,7 @@ func (c *ClaimRule) ToJSON() (string, error) {
 
 // RobotIdentityProvider represents the mapping between a robot and an identity provider.
 type RobotIdentityProvider struct {
+	ID                 int64     `orm:"pk;auto;column(id)" json:"id"`
 	IdentityProviderID int64     `orm:"column(identity_provider_id)" json:"identity_provider_id"`
 	RobotID            int64     `orm:"column(robot_id)" json:"robot_id"`
 	CreationTime       time.Time `orm:"column(creation_time);auto_now_add" json:"creation_time"`
