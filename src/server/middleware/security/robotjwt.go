@@ -159,6 +159,10 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 		return nil
 	}
 
+	log.Warningf("the jwk is %v", jwkKey)
+	log.Warningf("the kid is %v", kid)
+	log.Warningf("the sign method is %v", signMethod)
+
 	rsaPubKey, err := getRSAPublicKeyFromJWK(jwkKey)
 	if err != nil {
 		log.Fatalf("failed to convert JWK to RSA public key: %v", err)
