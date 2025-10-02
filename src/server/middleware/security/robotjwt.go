@@ -44,6 +44,7 @@ type JWK struct {
 	Use *string `json:"use,omitempty"` // Public Key Use
 	N   *string `json:"n,omitempty"`   // RSA modulus
 	E   *string `json:"e,omitempty"`   // RSA exponent
+	X5c []string `json:"x5c,omitempty"`
 	// Add other fields as needed with omitempty
 }
 
@@ -163,13 +164,13 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	log.Warningf("the kid is %v", kid)
 	log.Warningf("the sign method is %v", signMethod)
 
-	rsaPubKey, err := getRSAPublicKeyFromJWK(jwkKey)
-	if err != nil {
-		log.Fatalf("failed to convert JWK to RSA public key: %v", err)
-	}
+	// rsaPubKey, err := getRSAPublicKeyFromJWK(jwkKey)
+	// if err != nil {
+	// 	log.Fatalf("failed to convert JWK to RSA public key: %v", err)
+	// }
 
 	// Convert to PEM bytes
-	pubKeyPEM, err := publicKeyToPEMBytes(rsaPubKey)
+	pubKeyPEM, err := jwkToPublicKey(*jwkKey)
 	if err != nil {
 		log.Fatalf("failed to convert RSA public key to PEM: %v", err)
 	}
@@ -358,7 +359,61 @@ func getJWKFromJWKS(jwksJSON string, tokenKid string) (*JWK, error) {
 	return nil, fmt.Errorf("no matching JWK found for kid: %s", tokenKid)
 }
 
-// Convert a JWK (RSA) to *rsa.PublicKey
+// jwkToPublicKey converts a JWK to a PKIX-encoded public key byte slice.
+func jwkToPublicKey(jwk JWK) ([]byte, error) {
+	// First, try to use the x5c field if it's available. This is the preferred method.
+	if len(jwk.X5c) > 0 {
+		certBytes, err := base64.StdEncoding.DecodeString(jwk.X5c[0])
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode certificate from x5c: %w", err)
+		}
+
+		cert, err := x509.ParseCertificate(certBytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse certificate: %w", err)
+		}
+
+		pkixBytes, err := x509.MarshalPKIXPublicKey(cert.PublicKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal public key from certificate: %w", err)
+		}
+		return pkixBytes, nil
+	}
+
+	// If x5c is not present, fall back to decoding n and e.
+	if jwk.N == nil || jwk.E == nil {
+		return nil, fmt.Errorf("JWK does not contain 'n', 'e', or 'x5c' fields")
+	}
+
+	// Decode 'n' (modulus)
+	modulusBytes, err := base64.RawURLEncoding.DecodeString(*jwk.N)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode modulus 'n': %w", err)
+	}
+	modulus := new(big.Int).SetBytes(modulusBytes)
+
+	// Decode 'e' (exponent)
+	exponentBytes, err := base64.RawURLEncoding.DecodeString(*jwk.E)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode exponent 'e': %w", err)
+	}
+	exponent := new(big.Int).SetBytes(exponentBytes).Int64()
+
+	// Create an rsa.PublicKey struct
+	pubKey := &rsa.PublicKey{
+		N: modulus,
+		E: int(exponent),
+	}
+
+	// Marshal the public key to PKIX format
+	pkixBytes, err := x509.MarshalPKIXPublicKey(pubKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal public key: %w", err)
+	}
+	return pkixBytes, nil
+}
+
+// getRSAPublicKeyFromJWK converts a JWK RSA key into Go's rsa.PublicKey
 func getRSAPublicKeyFromJWK(jwk *JWK) (*rsa.PublicKey, error) {
 	if jwk.Kty == nil || *jwk.Kty != "RSA" {
 		return nil, fmt.Errorf("unsupported key type: %v", jwk.Kty)
@@ -367,34 +422,37 @@ func getRSAPublicKeyFromJWK(jwk *JWK) (*rsa.PublicKey, error) {
 		return nil, fmt.Errorf("missing modulus or exponent in JWK")
 	}
 
-	// Decode modulus (base64url)
+	// --- Decode modulus N ---
 	nBytes, err := base64.RawURLEncoding.DecodeString(*jwk.N)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode modulus: %w", err)
 	}
+	n := new(big.Int).SetBytes(nBytes)
 
-	// Decode exponent (base64url)
+	// --- Decode exponent E ---
+	// handle "AQAB" and similar short exponents
 	eBytes, err := base64.RawURLEncoding.DecodeString(*jwk.E)
 	if err != nil {
-		// Try standard URLEncoding with padding just in case
+		// fallback: try with standard padding
 		eBytes, err = base64.URLEncoding.DecodeString(*jwk.E)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode exponent: %w", err)
 		}
 	}
 
-	// Convert exponent bytes to int (big-endian)
+	// convert exponent bytes to int
 	e := 0
 	for _, b := range eBytes {
-		e = e<<8 + int(b)
+		e = e<<8 | int(b)
+	}
+	if e == 0 {
+		return nil, fmt.Errorf("invalid exponent: 0")
 	}
 
-	pubKey := &rsa.PublicKey{
-		N: new(big.Int).SetBytes(nBytes),
+	return &rsa.PublicKey{
+		N: n,
 		E: e,
-	}
-
-	return pubKey, nil
+	}, nil
 }
 
 // Convert *rsa.PublicKey -> PEM []byte
