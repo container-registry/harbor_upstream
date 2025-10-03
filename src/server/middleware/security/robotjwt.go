@@ -135,7 +135,8 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	parsedToken, err := jwthandler.ParseToken(tokenStr, jwkSet)
 	if err != nil {
 		log.Warningf("failed to parse token: %v", err)
-		return nil
+		// TODO: return error
+		// return nil
 	}
 
 	log.Warningf("parsedToken is: %v", parsedToken)
