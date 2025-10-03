@@ -17,6 +17,7 @@ package dao
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/goharbor/harbor/src/lib/errors"
@@ -42,6 +43,9 @@ type DAO interface {
 
 	// GetTopMatchedRobot ...
 	GetTopMatchedRobot(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error)
+
+	// GetTopMatchedRobot ...
+	GetTopMatchedRobots(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error)
 
 	// Count returns the total count of federatedidps according to the query
 	Count(ctx context.Context, query *q.Query) (total int64, err error)
@@ -321,6 +325,88 @@ func (d *dao) GetTopMatchedRobot(ctx context.Context, issuerID int64, tokenClaim
 	}
 	if err != nil {
 		return 0, err
+	}
+
+	return robotID, nil
+}
+
+// gemini version
+// GetTopMatchedRobot finds the robot with the most matching claims for the given issuer and token claims.
+// It executes a single database query to count matching claims per robot, and returns the ID of the top match.
+// Note: For complex aggregation (JOIN, GROUP BY, COUNT, ORDER BY DESC, LIMIT 1) with dynamic WHERE clauses,
+// using the ORM's Raw query method remains the most performant and straight-forward approach.
+func (d *dao) GetTopMatchedRobots(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error) {
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	// 1. Flatten token claims into key/value strings for SQL comparison
+	claimPairs := map[string]string{}
+	for k, v := range tokenClaims {
+		// Use fmt.Sprintf("%v", v) to handle various interface{} types and convert to string
+		claimPairs[k] = fmt.Sprintf("%v", v)
+	}
+
+	// Handle case where no claims are provided to match against
+	if len(claimPairs) == 0 {
+		return 0, nil // No claims, no matches possible by definition
+	}
+
+	// 2. Dynamically build the SQL WHERE clause and parameter list.
+	var conditions []string
+	var params []interface{}
+
+	// The first parameter for the raw query will be the issuerID, as it's outside the loop.
+	params = append(params, issuerID)
+
+	// Build an OR condition for every claim provided in the JWT
+	for key, value := range claimPairs {
+		// Add the condition for claim path AND claim value.
+		conditions = append(conditions, "(rc.claim_path = ? AND rc.claim_value = ?)")
+		// Add the key and value as parameters in the correct order.
+		params = append(params, key, value)
+	}
+
+	// Join all claim conditions using OR
+	claimWhereClause := strings.Join(conditions, " OR ")
+
+	// 3. Construct the main SQL query.
+	// We query the 'claim_rules' table (cr), filter by identity_provider_id (issuerID) AND the dynamic claims,
+	// group by robot_id to count the matches, and order to get the top one.
+	sql := fmt.Sprintf(`
+		SELECT
+			cr.robot_id
+		FROM
+			claim_rules cr
+		WHERE
+			cr.identity_provider_id = ? AND (%s)
+		GROUP BY
+			cr.robot_id
+		ORDER BY
+			COUNT(cr.robot_id) DESC, cr.robot_id ASC
+		LIMIT 1
+	`, claimWhereClause)
+
+	// 4. Execute the raw query and map the result.
+	var robotID int64
+
+	// ormer.Raw() executes the query. The .QueryRow() method is used to get a single row result.
+	// The parameters slice contains the issuerID, followed by all key/value pairs for the claims.
+	// .Scan(&robotID) maps the result column to the robotID variable.
+	// err = ormer.Raw(sql, params...).QueryRow().Scan(&robotID)
+	// Execute the Raw query and assign the RawSeter to an explicit variable.
+	rawSeter := ormer.Raw(sql, params...)
+
+	// QueryRow() on the RawSeter fetches the single row, and Scan() maps the result to robotID.
+	err = rawSeter.QueryRow(&robotID)
+
+	if err != nil {
+		// A common error is "no row in result set". We use orm.IsNoRowsError() to check this.
+		if orm.ErrNoRows.Error() == err.Error() {
+			return 0, nil // No matching robot found
+		}
+		return 0, fmt.Errorf("failed to query top matched robot: %w", err)
 	}
 
 	return robotID, nil
