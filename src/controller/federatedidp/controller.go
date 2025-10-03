@@ -48,8 +48,10 @@ type Controller interface {
 	Update(ctx context.Context, federatedIdp *model.FederatedIdp, props ...string) (err error)
 	// Delete the federated idp specified by ID
 	Delete(ctx context.Context, id int64) (err error)
-	// ListClaims returns the claims of the federated idp specified by ID
+	// ListClaims returns all the claims associated with federated idp specified by ID
 	ListClaims(ctx context.Context, id int64, claim_path string) (claims []model.ClaimRule, err error)
+	// ListClaimsIdpOnly returns the claims of the federated idp only specified by ID
+	ListClaimsIdpOnly(ctx context.Context, id int64, claim_path string) (claims []model.ClaimRule, err error)
 	// CreateClaims creates the claims
 	CreateClaims(ctx context.Context, claims []model.ClaimRule) (err error)
 	// DeleteClaims deletes the claims according to the query
@@ -176,6 +178,10 @@ func (c *controller) Delete(ctx context.Context, id int64) error {
 
 func (c *controller) ListClaims(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error) {
 	return c.fidpMgr.ListClaims(ctx, id, claim_path)
+}
+
+func (c *controller) ListClaimsIdpOnly(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error) {
+	return c.fidpMgr.ListClaimsIdpOnly(ctx, id, claim_path)
 }
 
 func (c *controller) CreateClaims(ctx context.Context, claims []model.ClaimRule) error {
