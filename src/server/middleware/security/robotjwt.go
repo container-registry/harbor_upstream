@@ -57,10 +57,6 @@ type JWKS struct {
 
 type robotjwt struct{}
 
-func defaultOptions() *token.Options {
-	return token.DefaultTokenOptions()
-}
-
 // TODO: finally remove debug logs with kumar prefix
 
 func (r *robotjwt) Generate(req *http.Request) security.Context {
@@ -77,11 +73,13 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// kumar, log the jwt token
 	log.Warningf("the jwt token is %s", tokenStr)
 
-	jwtToken, err := jwt.Parse(tokenStr, nil)
-	if err != nil {
-		log.Warningf("failed to parse token: %v", err)
-		return nil
-	}
+	jwtToken, _ := jwt.Parse(tokenStr, nil)
+	// if err != nil {
+	//  log.Warningf("failed to parse token: %v", err)
+	// 	if jwtToken != nil {
+	// 		log.Warningf("okay, the parsed jwt token is %v", jwtToken)
+	// 	}
+	// }
 
 	issuer, err := jwtToken.Claims.GetIssuer()
 	if err != nil {
@@ -106,6 +104,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 			log.Warningf("federated idp %s has no jwks keys", idp.Name)
 			return nil
 		}
+		log.Warningf("federated idp jwks keys: %s", idp.JWKSKeys)
 		jwkSet, err = jwk.Parse([]byte(jwkskeysString))
 		if err != nil {
 			log.Warningf("failed to parse JWK set: %v", err)
