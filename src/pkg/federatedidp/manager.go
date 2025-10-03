@@ -64,6 +64,9 @@ type Manager interface {
 	// ListClaims ...
 	ListClaims(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error)
 
+	// ListClaimsIdpOnly ...
+	ListClaimsIdpOnly(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error)
+
 	// CreateClaims ...
 	CreateClaims(ctx context.Context, claims []model.ClaimRule) error
 
@@ -144,6 +147,11 @@ func (m *manager) List(ctx context.Context, query *q.Query) ([]*model.FederatedI
 // ListClaims ...
 func (m *manager) ListClaims(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error) {
 	return m.dao.ListClaims(ctx, id, claim_path)
+}
+
+// ListClaimsIdpOnly ...
+func (m *manager) ListClaimsIdpOnly(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error) {
+	return m.dao.ListClaimsIdpOnly(ctx, id, claim_path)
 }
 
 // CreateClaims ...
