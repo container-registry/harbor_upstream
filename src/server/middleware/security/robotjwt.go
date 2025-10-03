@@ -34,6 +34,7 @@ import (
 	robot_ctl "github.com/goharbor/harbor/src/controller/robot"
 	"github.com/goharbor/harbor/src/lib/log"
 	"github.com/goharbor/harbor/src/pkg/token"
+	"github.com/goharbor/harbor/src/server/middleware/security/jwthandler"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lestrrat-go/jwx/v3/jwk"
 )
@@ -65,6 +66,7 @@ func defaultOptions() *token.Options {
 func (r *robotjwt) Generate(req *http.Request) security.Context {
 	log.Warningf("if you are seeing this kumar, it means you are starting the robot validation")
 	log := log.G(req.Context())
+	var jwkSet jwk.Set
 
 	// get the jwt
 	tokenStr := bearerToken(req)
@@ -75,14 +77,18 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// kumar, log the jwt token
 	log.Warningf("the jwt token is %s", tokenStr)
 
-	// get the jwks key
-	// first get the issuer from the token
-	tokene, _ := jwt.Parse(tokenStr, nil)
-	issuer, err := tokene.Claims.GetIssuer()
+	jwtToken, err := jwt.Parse(tokenStr, nil)
+	if err != nil {
+		log.Warningf("failed to parse token: %v", err)
+		return nil
+	}
+
+	issuer, err := jwtToken.Claims.GetIssuer()
 	if err != nil {
 		log.Warningf("failed to get issuer from token: %v", err)
 		return nil
 	}
+	kid := jwtToken.Header["kid"].(string)
 
 	// based on the issuer, get the jwks jwks-uri
 	// get it from the database
@@ -93,123 +99,86 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 		return nil
 	}
 
-	var jwkskeys string
 	if idp.OfflineValidation {
 		// do offline validation
-		jwkskeys = idp.JWKSKeys
-		if len(jwkskeys) == 0 {
+		jwkskeysString := idp.JWKSKeys
+		if len(jwkskeysString) == 0 {
 			log.Warningf("federated idp %s has no jwks keys", idp.Name)
+			return nil
+		}
+		jwkSet, err = jwk.Parse([]byte(jwkskeysString))
+		if err != nil {
+			log.Warningf("failed to parse JWK set: %v", err)
+			return nil
+		}
+		log.Warningf("\n\n JWK Set: %v", jwkSet)
+		_, ok := jwkSet.LookupKeyID(kid)
+		if !ok {
+			log.Warningf("failed to find key with kid: %s", kid)
 			return nil
 		}
 	} else {
 		// do online validation
-		jwkskeys, err := GetAndParseJWK(req.Context(), idp.JWKSURI, log)
+		jwkSet, err = GetAndParseJWK(req.Context(), idp.JWKSURI, log)
 		if err != nil {
-			log.Warningf("failed to get jwks keys: %s", err)
+			log.Warningf("failed to get jwks set: %v", err)
 			return nil
 		}
-		if len(jwkskeys) == 0 {
-			log.Warningf("federated idp %s has no jwks keys", idp.Name)
+		log.Warningf("\n\n JWK Set: %v", jwkSet)
+		_, ok := jwkSet.LookupKeyID(kid)
+		if !ok {
+			log.Warningf("failed to find key with kid: %s", kid)
 			return nil
 		}
 	}
 
-	// query for the right robot account
-
-	// validate jwt token against the jwks key
-
-	// TODO: get the token options from db
-	defaultOpt := defaultOptions()
-	if defaultOpt == nil {
-		log.Warningf("failed to get default options")
+	// parse and validate the token
+	parsedToken, err := jwthandler.ParseToken(tokenStr, jwkSet)
+	if err != nil {
+		log.Warningf("failed to parse token: %v", err)
 		return nil
 	}
 
-	// TODO: no hardcoded JWK, use the JWK from DB
-	//
-	// TODO: Find a robust library to parse the JWK and PEM for offline use case
-	// TODO: remove the below hardcoded x5c and n, e
-	// x5c := `MIIDKzCCAhOgAwIBAgIUDnwm6eRIqGFA3o/P1oBrChvx/nowDQYJKoZIhvcNAQELBQAwJTEjMCEGA1UEAwwaYWN0aW9ucy5zZWxmLXNpZ25lZC5naXRodWIwHhcNMjQwMTIzMTUyNTM2WhcNMzQwMTIwMTUyNTM2WjAlMSMwIQYDVQQDDBphY3Rpb25zLnNlbGYtc2lnbmVkLmdpdGh1YjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAOTGp5svs8LJN8BH7VzXShWXnOK0lhDVuI0xnr5bwHFPc924CwaIEFb6mC7bvW2lZtgd633uaJ2naG6vKaOVGpCdGLE4ohH11nUk+2CNknZL7/oTmDHGSmGeHRb7kjtb0Ng4BJMPzmTYmCNUudfDFhHDcZz1Obuu85GsABrC5ZlzWzspYFXwUSaxvII+rHK/rAbOC2gmt5IOSLmgh3taQfp0mB6Lxlf89HoBPNwtPfBX8DtXTWQVnqODm4W+WfmWBSyXGX54DGNMyZwlTZqR0FjoMXxopId3MIuDGKxa2weDU5cW60N2y/qxikeV99fL3sg5aPA8s9iljKG0+MAfVNUCAwEAAaNTMFEwHQYDVR0OBBYEFIPALo5VanJ6E1B9eLQgGO+uGV65MB8GA1UdIwQYMBaAFIPALo5VanJ6E1B9eLQgGO+uGV65MA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAGS0hZE+DqKIRi49Z2KDOMOaSZnAYgqq6ws9HJHT09MXWlMHB8E/apvy2ZuFrcSu14ZLweJid+PrrooXEXEO6azEakzCjeUb9G1QwlzP4CkTcMGCw1Snh3jWZIuKaw21f7mp2rQ+YNltgHVDKY2s8AD273E8musEsWxJl80/MNvMie8Hfh4n4/Xl2r6t1YPmUJMoXAXdTBb0hkPy1fUu3r2T+1oi7Rw6kuVDfAZjaHupNHzJeDOg2KxUoK/GF2/M2qpVrd19Pv/JXNkQXRE4DFbErMmA7tXpp1tkXJRPhFui/Pv5H9cPgObEf9x6W4KnCXzT3ReeeRDKF8SqGTPELsc=`
+	log.Warningf("parsedToken is: %v", parsedToken)
 
-	// TODO: improve the overall flow
-	// TODO: get the public key from jwks-uri
-	// start things from the db
-	// pubKey, err := ParseJWKx5cToPublicKey(x5c)
-	// if err != nil {
-	// 	log.Fatalf("failed: %v", err)
-	// }
-
-	// pubKey, err := ParseJWKtoPublicKey(n, e)
-	// if err != nil {
-	// 	log.Fatalf("failed to parse JWK: %v", err)
-	// }
-
-	// defaultOpt.PublicKey = pubKey
-
-	// TODO: create more dynamic base claims based on the issuer.
 	// put claims from the issuer
 	cl := jwt.MapClaims{}
-
-	// kumar, log the claims
+	cl = jwtToken.Claims.(jwt.MapClaims)
+	log.Warningf("claims supported by idp: %v", idp.ClaimsSupported)
 	log.Warningf("the claims is %v", cl)
 
-	signMethod := tokene.Method.Alg()
-	kid := tokene.Header["kid"].(string)
-	jwkKey, err := getJWKFromJWKS(jwkskeys, kid)
+	// make sure it satisfies all the identity provider's claims
+	idpClaims, err := federated_idp.Ctl.ListClaimsIdpOnly(req.Context(), idp.ID, "")
 	if err != nil {
-		log.Warningf("failed to find JWK: %s", err)
+		log.Warningf("failed to get claims from idp: %v", err)
 		return nil
 	}
 
-	log.Warningf("the jwk is %v", jwkKey)
-	log.Warningf("the kid is %v", kid)
-	log.Warningf("the sign method is %v", signMethod)
+	// validate the token claims with idp claims
+	for _, claim := range idpClaims {
+		var val string
+		err := parsedToken.Get(claim.ClaimPath, &val)
+		if err != nil {
+			log.Warningf("failed to get claim %s from token: %v", claim.ClaimPath, err)
+			return nil
+		}
 
-	// convert jwk in bytes and return a new key
-	// jwkeySet, err := jwk.Parse([]byte(jwkskeys))
-	// if err != nil {
-	// 	fmt.Printf("failed to parse key: %s\n", err)
-	// 	return nil
-	// }
-	//
-	// jwKey, ok := jwkeySet.LookupKeyID(kid)
-	// if !ok {
-	// 	fmt.Printf("failed to find key with kid: %s\n", kid)
-	// 	return nil
-	// }
-
-	jwkBytes, err := jwk.EncodePEM(jwkKey)
-	if err != nil {
-		log.Warningf("failed to convert JWK to public key bytes: %v", err)
+		if val != claim.Value {
+			log.Warningf("claim %s, with value %s does not match with idp value: %v", claim.ClaimPath, val, val)
+			return nil
+		}
 	}
 
-	// jwkBytes2, err := jwk.EncodePEM(jwKey)
-	// if err != nil {
-	// 	log.Warningf("failed to convert JWK to public key bytes: %v", err)
-	// }
-
-	log.Warningf("the jwk bytes1 are %v", jwkBytes)
-	// log.Warningf("the jwk bytes2 are %v", jwkBytes2)
-
-	// TODO: remove hardcoded to RS256
-	defaultOpt.Issuer = issuer
-	defaultOpt.PrivateKey = nil
-	defaultOpt.PublicKey = jwkBytes
-
-	// token.parse will just check the validity of the token and parse the token, validating the given claims
-	t, err := token.Parse(defaultOpt, tokenStr, cl)
-	if err != nil {
-		log.Warningf("failed to decode bearer token: %v", err)
-		return nil
-	}
-
-	tokenClaims := t.Claims.(jwt.MapClaims)
+	// claims, ok := jwtToken.Claims.(*v2TokenClaims)
+	tokenClaims := jwtToken.Claims.(jwt.MapClaims)
+	log.Warningf("the claims from token is %v", tokenClaims)
 
 	// get list of claims from the token
 	// Now you can access everything, e.g.
 	for k, v := range tokenClaims {
 		fmt.Println("claim:", k, "value:", v)
 	}
+
 	// query the token claims on idp and get robot
 	rid, err := federated_idp.Ctl.GetTopMatchedRobot(req.Context(), idp.ID, tokenClaims)
 	if err != nil {
@@ -219,40 +188,8 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 
 	// kumar delete the debug logs
 	log.Warningf("kumar, given token is valid proceeding with claim validation")
-
-	// TODO: validate the token with the custom claims
-	// TODO: find a robust library to check with all custom claims from DB
-	var v = jwt.NewValidator(jwt.WithLeeway(common.JwtLeeway), jwt.WithAudience("my-registry"))
-	if err := v.Validate(t.Claims); err != nil {
-		log.Warningf("failed to validate bearer token claims: %v", err)
-		return nil
-	}
-	// TODO: replace the v2TokenClaims with a custom struct holding custom claims from DB
-	// probably hold as any/interface{} or map[string]interface{}
-	claims, ok := t.Claims.(*v2TokenClaims)
-	if !ok {
-		log.Warningf("invalid token claims.")
-		return nil
-	}
-	// kumar, improve the below thing
-	// TODO: add checks for the requested resource by analyzing the requesturl
-	if len(claims.Subject) == 0 {
-		log.Warningf("invalid token claims, no access.")
-		return nil
-	}
-	// return v2token.New(req.Context(), claims.Subject, claims.Access)
 	log.Warningf("if you are seeing this kumar, it means you are done with the robot validation")
 
-	// kumar, hardcoded robot name
-	// TODO: based on the request, get the robot most qualified robot name
-	// project robot accounts will take precedence over system robot accounts
-
-	// kumar, the above should be a function that fetches the correct robot name for the given token
-
-	// TODO: more checks need to be done
-	// below are the normal steps for robot account flow
-
-	// The robot name can be used as the unique identifier to locate robot as it contains the project name.
 	robot, err := robot_ctl.Ctl.Get(req.Context(), rid, &robot_ctl.Option{
 		WithPermission: true,
 	})
@@ -283,70 +220,14 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 // TODO: replace this function with a robust one
 // it should be able to take the JWK or PEM from DB and return the public key
 
-func GetAndParseJWK(ctx context.Context, jwksUri string, log *log.Logger) ([]jwk.Key, error) {
+func GetAndParseJWK(ctx context.Context, jwksUri string, log *log.Logger) (jwk.Set, error) {
 	set, err := jwk.Fetch(ctx, jwksUri)
 	if err != nil {
 		log.Warningf("failed to parse JWK: %s", err)
 		return nil, err
 	}
 
-	// Key sets can be serialized back to JSON
-	{
-		jsonbuf, err := json.Marshal(set)
-		if err != nil {
-			log.Warningf("failed to marshal key set into JSON: %s", err)
-			return nil, err
-		}
-		log.Warningf("jsonbuf: %s", jsonbuf)
-	}
-
-	var keys []jwk.Key
-	for i := 0; i < set.Len(); i++ {
-		var rawkey any        // This is where we would like to store the raw key, like *rsa.PrivateKey or *ecdsa.PrivateKey
-		key, ok := set.Key(i) // This retrieves the corresponding jwk.Key
-		if !ok {
-			log.Warningf("failed to get key at index %d", i)
-			return nil, err
-		}
-
-		// jws and jwe operations can be performed using jwk.Key, but you could also
-		// covert it to their "raw" forms, such as *rsa.PrivateKey or *ecdsa.PrivateKey
-		if err := jwk.Export(key, &rawkey); err != nil {
-			log.Warningf("failed to create public key: %s", err)
-			return nil, err
-		}
-		_ = rawkey
-
-		// You can create jwk.Key from a raw key, too
-		fromRawKey, err := jwk.Import(rawkey)
-		if err != nil {
-			log.Warningf("failed to acquire raw key from jwk.Key: %s", err)
-			return nil, err
-		}
-
-		// Keys can be serialized back to JSON
-		jsonbuf, err := json.Marshal(key)
-		if err != nil {
-			log.Warningf("failed to marshal key into JSON: %s", err)
-			return nil, err
-		}
-
-		fromJSONKey, err := jwk.Parse(jsonbuf)
-		if err != nil {
-			log.Warningf("failed to parse json: %s", err)
-			return nil, err
-		}
-		_ = fromJSONKey
-		_ = fromRawKey
-		// log the above items
-		log.Warningf("the key is %v", key)
-		log.Warningf("the raw key is %v", rawkey)
-		log.Warningf("the from raw key is %v", fromRawKey)
-		log.Warningf("the from json key is %v", fromJSONKey)
-
-		keys = append(keys, key)
-	}
-	return keys, nil
+	return set, nil
 }
 
 func getJWKFromJWKS(jwksJSON string, tokenKid string) (*JWK, error) {
