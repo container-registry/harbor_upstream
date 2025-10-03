@@ -58,6 +58,9 @@ type DAO interface {
 	// ListClaims ...
 	ListClaims(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error)
 
+	// ListClaimsIdpOnly ...
+	ListClaimsIdpOnly(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error)
+
 	// CreateClaims ...
 	CreateClaims(ctx context.Context, claims []model.ClaimRule) error
 
@@ -197,6 +200,23 @@ func (d *dao) ListClaims(ctx context.Context, id int64, claimPath string) ([]mod
 	}
 
 	qs := ormer.QueryTable(new(model.ClaimRule)).Filter("identity_provider_id", id)
+
+	if claimPath != "" {
+		qs = qs.Filter("claim_path", claimPath)
+	}
+
+	var rules []model.ClaimRule
+	_, err = qs.All(&rules)
+	return rules, err
+}
+
+func (d *dao) ListClaimsIdpOnly(ctx context.Context, id int64, claimPath string) ([]model.ClaimRule, error) {
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	qs := ormer.QueryTable(new(model.ClaimRule)).Filter("identity_provider_id", id).Filter("robot_id", 0)
 
 	if claimPath != "" {
 		qs = qs.Filter("claim_path", claimPath)
