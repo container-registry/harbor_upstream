@@ -363,7 +363,7 @@ func (d *dao) GetTopMatchedRobots(ctx context.Context, issuerID int64, tokenClai
 	// Build an OR condition for every claim provided in the JWT
 	for key, value := range claimPairs {
 		// Add the condition for claim path AND claim value.
-		conditions = append(conditions, "(rc.claim_path = ? AND rc.claim_value = ?)")
+    conditions = append(conditions, "(cr.claim_path = ? AND cr.claim_value = ?)")
 		// Add the key and value as parameters in the correct order.
 		params = append(params, key, value)
 	}
