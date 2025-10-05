@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/goharbor/harbor/src/lib/errors"
+	"github.com/goharbor/harbor/src/lib/log"
 	"github.com/goharbor/harbor/src/lib/orm"
 	"github.com/goharbor/harbor/src/lib/q"
 	"github.com/goharbor/harbor/src/pkg/federatedidp/model"
@@ -363,7 +364,7 @@ func (d *dao) GetTopMatchedRobots(ctx context.Context, issuerID int64, tokenClai
 	// Build an OR condition for every claim provided in the JWT
 	for key, value := range claimPairs {
 		// Add the condition for claim path AND claim value.
-    conditions = append(conditions, "(cr.claim_path = ? AND cr.value = ?)")
+		conditions = append(conditions, "(cr.claim_path = ? AND cr.value = ?)")
 		// Add the key and value as parameters in the correct order.
 		params = append(params, key, value)
 	}
@@ -389,8 +390,6 @@ func (d *dao) GetTopMatchedRobots(ctx context.Context, issuerID int64, tokenClai
 	`, claimWhereClause)
 
 	// 4. Execute the raw query and map the result.
-	var robotID int64
-
 	// ormer.Raw() executes the query. The .QueryRow() method is used to get a single row result.
 	// The parameters slice contains the issuerID, followed by all key/value pairs for the claims.
 	// .Scan(&robotID) maps the result column to the robotID variable.
@@ -399,16 +398,24 @@ func (d *dao) GetTopMatchedRobots(ctx context.Context, issuerID int64, tokenClai
 	rawSeter := ormer.Raw(sql, params...)
 
 	// QueryRow() on the RawSeter fetches the single row, and Scan() maps the result to robotID.
-	err = rawSeter.QueryRow(&robotID)
-
+	var robotIDs []int64
+	num, err := rawSeter.QueryRows(&robotIDs) // ✅ get all rows
 	if err != nil {
 		// A common error is "no row in result set". We use orm.IsNoRowsError() to check this.
 		if orm.ErrNoRows.Error() == err.Error() {
+			log.Warningf("no robot matched the given claims: %v", rawSeter)
 			return 0, nil // No matching robot found
 		}
 		return 0, fmt.Errorf("failed to query top matched robot: %w", err)
 	}
 
+	if num == 0 {
+		log.Warningf("no robots matched your token for issuerID=%d", issuerID) // ✅ clearer log
+		return 0, nil
+	}
+
+	// Since we used ORDER BY COUNT(...) DESC LIMIT 1, first one is top match
+	robotID := robotIDs[0]
 	return robotID, nil
 }
 

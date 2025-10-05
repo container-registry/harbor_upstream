@@ -187,8 +187,14 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	}
 
 	// kumar delete the debug logs
+	log.Warningf("kumar, the robot id is : %d", rid)
 	log.Warningf("kumar, given token is valid proceeding with claim validation")
 	log.Warningf("if you are seeing this kumar, it means you are done with the robot validation")
+
+	if rid == 0 {
+		log.Warningf("no robot account matched the provided token claims")
+		return nil
+	}
 
 	robot, err := robot_ctl.Ctl.Get(req.Context(), rid, &robot_ctl.Option{
 		WithPermission: true,
