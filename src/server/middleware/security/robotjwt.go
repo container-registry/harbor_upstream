@@ -165,7 +165,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 		}
 
 		if strings.TrimSpace(val) != strings.TrimSpace(claim.Value) {
-			log.Warningf("claim %s, with value %s does not match with idp value: %v", claim.ClaimPath, val, val)
+			log.Warningf("claim %s, with value %s does not match with idp value: %v", claim.ClaimPath, claim.Value, val)
 			return nil
 		}
 	}
