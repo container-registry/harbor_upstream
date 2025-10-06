@@ -48,6 +48,9 @@ type DAO interface {
 	// GetTopMatchedRobot ...
 	GetTopMatchedRobots(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error)
 
+	// FindMatchingRobot ...
+	FindMatchingRobot(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error)
+
 	// Count returns the total count of federatedidps according to the query
 	Count(ctx context.Context, query *q.Query) (total int64, err error)
 
@@ -386,7 +389,6 @@ func (d *dao) GetTopMatchedRobots(ctx context.Context, issuerID int64, tokenClai
 			cr.robot_id
 		ORDER BY
 			COUNT(cr.robot_id) DESC
-		LIMIT 1
 	`, claimWhereClause)
 
 	// 4. Execute the raw query and map the result.
@@ -417,6 +419,57 @@ func (d *dao) GetTopMatchedRobots(ctx context.Context, issuerID int64, tokenClai
 	// Since we used ORDER BY COUNT(...) DESC LIMIT 1, first one is top match
 	robotID := robotIDs[0]
 	return robotID, nil
+}
+
+func (d *dao) FindMatchingRobot(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error) {
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	// Build VALUES list for SQL
+	var valueTuples []string
+	for k, v := range tokenClaims {
+		valueTuples = append(valueTuples, fmt.Sprintf("('%s', '%v')", k, v))
+	}
+
+	if len(valueTuples) == 0 {
+		return 0, fmt.Errorf("token has no claims to match")
+	}
+
+	valuesClause := strings.Join(valueTuples, ", ")
+
+	// Optimized SQL query
+	sql := fmt.Sprintf(`
+		SELECT
+			cr.robot_id
+		FROM
+			claim_rules cr
+		WHERE
+			cr.identity_provider_id = ?
+		GROUP BY
+			cr.robot_id
+		HAVING
+			COUNT(*) = SUM(
+				CASE
+					WHEN (cr.claim_path, cr.value) IN (VALUES %s)
+					THEN 1 ELSE 0
+				END
+			)
+		ORDER BY cr.robot_id;
+	`, valuesClause)
+
+	var robotIDs []int64
+	_, err = ormer.Raw(sql, issuerID).QueryRows(&robotIDs)
+	if err != nil {
+		if orm.ErrNoRows.Error() == err.Error() {
+			log.Warningf("no robots matched your token for issuerID=%d", issuerID)
+			return 0, nil
+		}
+		return 0, fmt.Errorf("failed to query matching robot: %w", err)
+	}
+
+	return robotIDs[0], nil
 }
 
 // Only with orm no raw sql

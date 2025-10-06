@@ -111,7 +111,7 @@ func (m *manager) GetIdpByIssuer(ctx context.Context, issuer string) (*model.Fed
 
 // GetTopMatchedRobot ...
 func (m *manager) GetTopMatchedRobot(ctx context.Context, issuerID int64, tokenClaims jwt.MapClaims) (int64, error) {
-	return m.dao.GetTopMatchedRobots(ctx, issuerID, tokenClaims)
+	return m.dao.FindMatchingRobot(ctx, issuerID, tokenClaims)
 }
 
 // Count ...
