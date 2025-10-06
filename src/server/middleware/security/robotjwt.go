@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/goharbor/harbor/src/common"
@@ -163,7 +164,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 			return nil
 		}
 
-		if val != claim.Value {
+		if strings.TrimSpace(val) != strings.TrimSpace(claim.Value) {
 			log.Warningf("claim %s, with value %s does not match with idp value: %v", claim.ClaimPath, val, val)
 			return nil
 		}
