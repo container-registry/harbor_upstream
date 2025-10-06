@@ -53,7 +53,7 @@ type Controller interface {
 	// ListClaimsIdpOnly returns the claims of the federated idp only specified by ID
 	ListClaimsIdpOnly(ctx context.Context, id int64, claim_path string) (claims []model.ClaimRule, err error)
 	// CreateClaims creates the claims
-	CreateClaims(ctx context.Context, claims []model.ClaimRule) (err error)
+	CreateClaims(ctx context.Context, idpID int64, claims []model.ClaimRule) (err error)
 	// DeleteClaims deletes the claims according to the query
 	DeleteClaims(ctx context.Context, claims []model.ClaimRule) (err error)
 	// CreateRobotIdp creates a new RobotIdentityProvider record
@@ -184,8 +184,8 @@ func (c *controller) ListClaimsIdpOnly(ctx context.Context, id int64, claim_path
 	return c.fidpMgr.ListClaimsIdpOnly(ctx, id, claim_path)
 }
 
-func (c *controller) CreateClaims(ctx context.Context, claims []model.ClaimRule) error {
-	return c.fidpMgr.CreateClaims(ctx, claims)
+func (c *controller) CreateClaims(ctx context.Context, idpID int64, claims []model.ClaimRule) error {
+	return c.fidpMgr.CreateClaims(ctx, idpID, claims)
 }
 
 func (c *controller) DeleteClaims(ctx context.Context, claims []model.ClaimRule) error {

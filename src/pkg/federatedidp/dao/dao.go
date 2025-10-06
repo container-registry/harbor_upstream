@@ -70,7 +70,7 @@ type DAO interface {
 	ListClaimsIdpOnly(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error)
 
 	// CreateClaims ...
-	CreateClaims(ctx context.Context, claims []model.ClaimRule) error
+	CreateClaims(ctx context.Context, idpID int64, claims []model.ClaimRule) error
 
 	// DeleteClaims ...
 	DeleteClaims(ctx context.Context, claims []model.ClaimRule) error
@@ -236,7 +236,7 @@ func (d *dao) ListClaimsIdpOnly(ctx context.Context, id int64, claimPath string)
 }
 
 // CreateClaims inserts multiple ClaimRule records into the DB
-func (d *dao) CreateClaims(ctx context.Context, claims []model.ClaimRule) error {
+func (d *dao) CreateClaims(ctx context.Context, idpID int64, claims []model.ClaimRule) error {
 	ormer, err := orm.FromContext(ctx)
 	if err != nil {
 		return err
@@ -244,6 +244,11 @@ func (d *dao) CreateClaims(ctx context.Context, claims []model.ClaimRule) error 
 
 	if len(claims) == 0 {
 		return nil // nothing to insert
+	}
+
+	// validate if the claims are unique
+	if err := d.validateUniqueClaims(ctx, idpID, claims); err != nil {
+		return err
 	}
 
 	// InsertMulti takes (bulkSize, slice)
@@ -675,4 +680,75 @@ func (d *dao) validateClaimAndGetQuery(ctx context.Context, claim model.ClaimRul
 	}
 
 	return qs, nil
+}
+
+// validateUniqueClaims ensures that claim rules being inserted do not violate
+// uniqueness constraints across identity providers and robots.
+func (d *dao) validateUniqueClaims(ctx context.Context, idpID int64, claims []model.ClaimRule) error {
+	if len(claims) == 0 {
+		return nil
+	}
+
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	// 1️⃣ Check for duplicates in the input batch itself
+	type key struct {
+		IDP     int64
+		RobotID int64
+		Path    string
+		Value   string
+	}
+	seen := make(map[key]struct{})
+	for _, c := range claims {
+		k := key{IDP: c.IdentityProviderID, RobotID: c.RobotID, Path: c.ClaimPath, Value: c.Value}
+		if _, ok := seen[k]; ok {
+			return fmt.Errorf("duplicate claim in input batch for claim_path=%s", c.ClaimPath)
+		}
+		seen[k] = struct{}{}
+	}
+
+	// 2️⃣ Collect all identity_provider IDs and claim paths
+	var claimPaths []string
+	for _, c := range claims {
+		claimPaths = append(claimPaths, c.ClaimPath)
+	}
+
+	// 3️⃣ Query existing claims in DB that might conflict
+	existingClaims := []model.ClaimRule{}
+	_, err = ormer.QueryTable(new(model.ClaimRule)).
+		Filter("identity_provider_id", idpID).
+		Filter("claim_path__in", claimPaths).
+		All(&existingClaims)
+	if err != nil {
+		return fmt.Errorf("failed to query existing claims: %w", err)
+	}
+
+	// 4️⃣ Validate according to rules
+	for _, c := range claims {
+		for _, e := range existingClaims {
+			if c.IdentityProviderID != e.IdentityProviderID || c.ClaimPath != e.ClaimPath {
+				continue
+			}
+
+			// RULE 1: identity provider owns it
+			if e.RobotID == 0 {
+				return fmt.Errorf("claim_path '%s' already owned by identity provider %d; cannot be overridden by robot", c.ClaimPath, e.IdentityProviderID)
+			}
+
+			// RULE 2: prevent exact duplicate claim for different robots
+			if c.Value == e.Value && c.RobotID != e.RobotID {
+				return fmt.Errorf("duplicate claim combination found for claim_path '%s' and value '%s'", c.ClaimPath, c.Value)
+			}
+
+			// RULE 3: prevent same robot from inserting same claim_path again
+			if c.RobotID == e.RobotID {
+				return fmt.Errorf("robot %d already has claim_path '%s'", c.RobotID, c.ClaimPath)
+			}
+		}
+	}
+
+	return nil
 }

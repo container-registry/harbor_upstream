@@ -129,7 +129,7 @@ func (fAPI *fedIDPAPI) CreateClaimRules(ctx context.Context, params operation.Cr
 		rules = append(rules, model.FromSwagger(c))
 	}
 
-	err := fAPI.fedidpCtl.CreateClaims(ctx, rules)
+	err := fAPI.fedidpCtl.CreateClaims(ctx, params.ID, rules)
 	if err != nil {
 		return fAPI.SendError(ctx, err)
 	}

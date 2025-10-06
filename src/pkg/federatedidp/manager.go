@@ -68,7 +68,7 @@ type Manager interface {
 	ListClaimsIdpOnly(ctx context.Context, id int64, claim_path string) ([]model.ClaimRule, error)
 
 	// CreateClaims ...
-	CreateClaims(ctx context.Context, claims []model.ClaimRule) error
+	CreateClaims(ctx context.Context, idpID int64, claims []model.ClaimRule) error
 
 	// DeleteClaims ...
 	DeleteClaims(ctx context.Context, claims []model.ClaimRule) error
@@ -155,8 +155,8 @@ func (m *manager) ListClaimsIdpOnly(ctx context.Context, id int64, claim_path st
 }
 
 // CreateClaims ...
-func (m *manager) CreateClaims(ctx context.Context, claims []model.ClaimRule) error {
-	return m.dao.CreateClaims(ctx, claims)
+func (m *manager) CreateClaims(ctx context.Context, idpID int64, claims []model.ClaimRule) error {
+	return m.dao.CreateClaims(ctx, idpID, claims)
 }
 
 // DeleteClaims ...
