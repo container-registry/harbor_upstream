@@ -456,7 +456,7 @@ func (d *dao) FindMatchingRobot(ctx context.Context, issuerID int64, tokenClaims
 					THEN 1 ELSE 0
 				END
 			)
-		ORDER BY cr.robot_id;
+		ORDER BY cr.robot_id DESC;
 	`, valuesClause)
 
 	var robotIDs []int64
