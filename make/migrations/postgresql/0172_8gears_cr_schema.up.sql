@@ -40,3 +40,6 @@ CREATE TABLE IF NOT EXISTS claim_rules (
     value TEXT,
     creation_time TIMESTAMP DEFAULT NOW()
 );
+
+CREATE INDEX idx_claim_rules_lookup
+ON claim_rules (identity_provider_id, claim_path, value, robot_id);
