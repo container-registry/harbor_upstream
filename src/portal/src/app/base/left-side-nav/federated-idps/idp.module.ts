@@ -14,17 +14,18 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { SharedModule } from '../../../shared/shared.module';
-import { federated-idps } from './idp.component.html';
+import { IdpComponent } from './idp.component';
+// import { I } from './endpoint.component';
 // import { CreateEditEndpointComponent } from './create-edit-endpoint/create-edit-endpoint.component';
 
 const routes: Routes = [
     {
         path: '',
-        component: EndpointComponent,
+        component: IdpComponent,
     },
 ];
 @NgModule({
     imports: [SharedModule, RouterModule.forChild(routes)],
-    declarations: [EndpointComponent],
+    declarations: [IdpComponent],
 })
 export class EndpointModule {}

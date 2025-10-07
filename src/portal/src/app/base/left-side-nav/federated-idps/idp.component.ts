@@ -29,7 +29,8 @@ import {
     ConfirmationButtons,
     PAGE_SIZE_OPTIONS,
 } from '../../../shared/entities/shared.const';
-import { CreateEditEndpointComponent } from './create-edit-endpoint/create-edit-endpoint.component';
+// TODO: search for /endpoint and replace everything with idp and fix the errors
+// import { CreateEditEndpointComponent } from './create-edit-endpoint/create-edit-endpoint.component';
 import {
     CustomComparator,
     getPageSizeFromLocalStorage,
@@ -46,7 +47,9 @@ import { OperationService } from '../../../shared/components/operation/operation
 import { errorHandler } from '../../../shared/units/shared.utils';
 import { ConfirmationMessage } from '../../global-confirmation-dialog/confirmation-message';
 import { ConfirmationAcknowledgement } from '../../global-confirmation-dialog/confirmation-state-message';
+// TODO:use idp service
 import { EndpointService } from '../../../shared/services/endpoint.service';
+// TODO:remove the registry service
 import { RegistryService } from '../../../../../ng-swagger-gen/services/registry.service';
 import { ClrDatagridStateInterface } from '@clr/angular';
 import { Registry } from '../../../../../ng-swagger-gen/models/registry';
@@ -56,10 +59,10 @@ import { Registry } from '../../../../../ng-swagger-gen/models/registry';
     templateUrl: './idp.component.html',
     styleUrls: ['./idp.component.scss'],
 })
-export class EndpointComponent implements OnInit, OnDestroy {
+export class IdpComponent implements OnInit, OnDestroy {
     clrPageSizeOptions: number[] = PAGE_SIZE_OPTIONS;
-    @ViewChild(CreateEditEndpointComponent)
-    createEditEndpointComponent: CreateEditEndpointComponent;
+    // @ViewChild(CreateEditEndpointComponent)
+    // createEditEndpointComponent: CreateEditEndpointComponent;
 
     @ViewChild('confirmationDialog')
     confirmationDialogComponent: ConfirmationDialogComponent;
@@ -78,7 +81,8 @@ export class EndpointComponent implements OnInit, OnDestroy {
     timerHandler: any;
     selectedRow: Registry[] = [];
 
-    get initEndpoint(): Registry {
+  // TODO:remove the registry and create idp
+    get initIdp(): Registry {
         return {
             credential: {
                 access_key: '',
@@ -187,8 +191,8 @@ export class EndpointComponent implements OnInit, OnDestroy {
         this.retrieve();
     }
     openModal() {
-        this.createEditEndpointComponent.openCreateEditTarget(true);
-        this.target = this.initEndpoint;
+        // this.createEditEndpointComponent.openCreateEditTarget(true);
+        this.target = this.initIdp;
     }
 
     editTargets(targets: Registry[]) {
@@ -199,7 +203,7 @@ export class EndpointComponent implements OnInit, OnDestroy {
                 return;
             }
             let id: number | string = target.id;
-            this.createEditEndpointComponent.openCreateEditTarget(editable, id);
+            // this.createEditEndpointComponent.openCreateEditTarget(editable, id);
         }
     }
 
