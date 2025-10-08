@@ -179,6 +179,7 @@
             "USER": "使用者管理",
             "GROUP": "群組管理",
             "REGISTRY": "Registry 管理",
+            "IDP": "Federated IDPs",
             "REPLICATION": "資料複製管理",
             "CONFIG": "設定管理",
             "VULNERABILITY": "弱點管理",

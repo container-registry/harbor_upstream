@@ -181,6 +181,7 @@
             "USER": "사용자",
             "GROUP": "그룹",
             "REGISTRY": "레지스트리",
+            "IDP": "Federated IDPs",
             "REPLICATION": "복제",
             "CONFIG": "설정",
             "VULNERABILITY": "취약점",

@@ -180,6 +180,7 @@
             "USER": "Usuários",
             "GROUP": "Grupos",
             "REGISTRY": "Repositórios Remotos",
+            "IDP": "Federated IDPs",
             "REPLICATION": "Replicações",
             "CONFIG": "Configuração",
             "VULNERABILITY": "Vulnerabilidades",

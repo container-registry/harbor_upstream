@@ -180,6 +180,7 @@
             "USER": "用户管理",
             "GROUP": "组管理",
             "REGISTRY": "仓库管理",
+            "IDP": "Federated IDPs",
             "REPLICATION": "复制管理",
             "CONFIG": "配置管理",
             "VULNERABILITY": "漏洞",

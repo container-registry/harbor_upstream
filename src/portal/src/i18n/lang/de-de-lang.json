@@ -181,6 +181,7 @@
             "USER": "Nutzer",
             "GROUP": "Gruppen",
             "REGISTRY": "Registries",
+            "IDP": "Federated IDPs",
             "REPLICATION": "Replikationen",
             "CONFIG": "Konfiguration",
             "VULNERABILITY": "Schwachstellen",

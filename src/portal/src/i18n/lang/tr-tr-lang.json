@@ -182,6 +182,7 @@
             "USER": "Kullanıcılar",
             "GROUP": "Gruplar",
             "REGISTRY": "Kayıt",
+            "IDP": "Federated IDPs",
             "REPLICATION": "Kopyalama",
             "CONFIG": "Yapılandırma",
             "VULNERABILITY": "Güvenlik Açığı",
