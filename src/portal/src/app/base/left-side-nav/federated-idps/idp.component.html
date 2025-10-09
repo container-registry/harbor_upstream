@@ -7,7 +7,7 @@
                     <hbr-filter
                         [withDivider]="true"
                         filterPlaceholder="{{
-                            'REPLICATION.FILTER_TARGETS_PLACEHOLDER' | translate
+                            'FEDERATED_IDPS.FILTER_PLACEHOLDER' | translate
                         }}"
                         (filterEvt)="doSearchTargets($event)"
                         [currentValue]="targetName"></hbr-filter>
@@ -32,16 +32,16 @@
                             'DESTINATION.NEW_ENDPOINT' | translate
                         }}
                     </button>
-                    <button
-                        id="edit"
-                        type="button"
-                        class="btn btn-secondary"
-                        [disabled]="!(selectedRow.length === 1)"
-                        (click)="editTargets(selectedRow)">
-                        <clr-icon shape="pencil" size="16"></clr-icon>&nbsp;{{
-                            'DESTINATION.EDIT' | translate
-                        }}
-                    </button>
+                    <!-- <button -->
+                    <!--     id="edit" -->
+                    <!--     type="button" -->
+                    <!--     class="btn btn-secondary" -->
+                    <!--     [disabled]="!(selectedRow.length === 1)" -->
+                    <!--     (click)="editTargets(selectedRow)"> -->
+                    <!--     <clr-icon shape="pencil" size="16"></clr-icon>&nbsp;{{ -->
+                    <!--         'DESTINATION.EDIT' | translate -->
+                    <!--     }} -->
+                    <!-- </button> -->
                     <button
                         id="delete"
                         type="button"
@@ -54,22 +54,19 @@
                     </button>
                 </clr-dg-action-bar>
                 <clr-dg-column [clrDgSortBy]="'name'" class="flex-min-width">{{
-                    'DESTINATION.NAME' | translate
-                }}</clr-dg-column>
-                <clr-dg-column class="flex-min-width">{{
-                    'DESTINATION.STATUS' | translate
+                    'FEDERATED_IDPS.NAME' | translate
                 }}</clr-dg-column>
                 <clr-dg-column [clrDgField]="'url'" class="flex-min-width">{{
-                    'DESTINATION.URL' | translate
+                    'FEDERATED_IDPS.ISSUER' | translate
                 }}</clr-dg-column>
                 <clr-dg-column>{{
-                    'DESTINATION.PROVIDER' | translate
+                    'FEDERATED_IDPS.OFFLINE_VALIDATION' | translate
                 }}</clr-dg-column>
-                <clr-dg-column [clrDgSortBy]="'insecure'">{{
-                    'CONFIG.VERIFY_REMOTE_CERT' | translate
+                <clr-dg-column >{{
+                    'FEDERATED_IDPS.SUPPORTED_ALGORITHMS' | translate
                 }}</clr-dg-column>
                 <clr-dg-column>{{
-                    'DESTINATION.AUTHENTICATION' | translate
+                    'FEDERATED_IDPS.SUPPORTED_CLAIMS' | translate
                 }}</clr-dg-column>
                 <clr-dg-column [clrDgSortBy]="'creation_time'">{{
                     'DESTINATION.CREATION_TIME' | translate
@@ -78,24 +75,12 @@
                     'REPLICATION.DESCRIPTION' | translate
                 }}</clr-dg-column>
                 <clr-dg-placeholder>{{
-                    'DESTINATION.PLACEHOLDER' | translate
+                    'FEDERATED_IDPS.PLACEHOLDER' | translate
                 }}</clr-dg-placeholder>
                 <clr-dg-row *ngFor="let t of targets" [clrDgItem]="t">
                     <clr-dg-cell class="flex-min-width">{{
                         t.name
                     }}</clr-dg-cell>
-                    <clr-dg-cell class="flex-min-width">
-                        <span
-                            *ngIf="t.status === 'healthy'; else elseBlock"
-                            class="label label-success"
-                            >{{ 'SCANNER.HEALTHY' | translate }}</span
-                        >
-                        <ng-template #elseBlock>
-                            <span class="label label-danger">{{
-                                'SCANNER.UNHEALTHY' | translate
-                            }}</span>
-                        </ng-template>
-                    </clr-dg-cell>
                     <clr-dg-cell class="flex-min-width">{{
                         t.url
                     }}</clr-dg-cell>
@@ -139,6 +124,5 @@
     <confirmation-dialog
         #confirmationDialog
         (confirmAction)="confirmDeletion($event)"></confirmation-dialog>
-    <hbr-create-edit-idp
-        (reload)="refreshTargets()"></hbr-create-edit-idp>
+    <hbr-create-edit-idp (reload)="refreshTargets()"></hbr-create-edit-idp>
 </div>

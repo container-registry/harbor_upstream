@@ -15,7 +15,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { SharedModule } from '../../../shared/shared.module';
 import { IdpComponent } from './idp.component';
-import { CreateEditEndpointComponent } from './create-edit-idp/create-edit-idp.component';
+import { CreateEditIdpComponent } from './create-edit-idp/create-edit-idp.component';
 // import { I } from './endpoint.component';
 // import { CreateEditEndpointComponent } from './create-edit-endpoint/create-edit-endpoint.component';
 
@@ -27,6 +27,6 @@ const routes: Routes = [
 ];
 @NgModule({
     imports: [SharedModule, RouterModule.forChild(routes)],
-    declarations: [IdpComponent, CreateEditEndpointComponent],
+    declarations: [IdpComponent, CreateEditIdpComponent],
 })
 export class IdpModule {}

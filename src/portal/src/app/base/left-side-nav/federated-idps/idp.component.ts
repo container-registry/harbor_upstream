@@ -53,6 +53,7 @@ import { EndpointService } from '../../../shared/services/endpoint.service';
 import { RegistryService } from '../../../../../ng-swagger-gen/services/registry.service';
 import { ClrDatagridStateInterface } from '@clr/angular';
 import { Registry } from '../../../../../ng-swagger-gen/models/registry';
+import { CreateEditIdpComponent } from './create-edit-idp/create-edit-idp.component';
 
 @Component({
     selector: 'federated-idps',
@@ -61,8 +62,8 @@ import { Registry } from '../../../../../ng-swagger-gen/models/registry';
 })
 export class IdpComponent implements OnInit, OnDestroy {
     clrPageSizeOptions: number[] = PAGE_SIZE_OPTIONS;
-    // @ViewChild(CreateEditEndpointComponent)
-    // createEditEndpointComponent: CreateEditEndpointComponent;
+    @ViewChild(CreateEditIdpComponent)
+    createEditEndpointComponent: CreateEditIdpComponent;
 
     @ViewChild('confirmationDialog')
     confirmationDialogComponent: ConfirmationDialogComponent;
