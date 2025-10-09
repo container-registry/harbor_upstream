@@ -47,7 +47,7 @@ const FIXED_PATTERN_TYPE: string = 'EndpointPatternTypeFix';
     templateUrl: './create-edit-idp.component.html',
     styleUrls: ['./create-edit-idp.component.scss'],
 })
-export class CreateEditEndpointComponent
+export class CreateEditIdpComponent
     implements AfterViewChecked, OnDestroy, OnInit
 {
     modalTitle: string;
