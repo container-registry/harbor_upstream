@@ -561,6 +561,9 @@
         "RESOURCE": "리소스",
         "RESOURCE_TYPE": "리소스 종류"
     },
+    "FEDERATED_IDPS": {
+        "FILTER_PLACEHOLDER": "Filter Federated IDPs"
+    },
     "REPLICATION": {
         "PUSH_BASED_ONLY": "푸시 기반 복제에만 해당됩니다",
         "YES": "예",

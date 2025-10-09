@@ -564,6 +564,9 @@
         "RESOURCE": "Recursos",
         "RESOURCE_TYPE": "Tipo de Recurso"
     },
+    "FEDERATED_IDPS": {
+        "FILTER_PLACEHOLDER": "Filter Federated IDPs"
+    },
     "REPLICATION": {
         "PUSH_BASED_ONLY": "Solo para replicación push-based",
         "YES": "Si",

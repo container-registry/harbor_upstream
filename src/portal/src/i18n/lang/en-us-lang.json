@@ -564,6 +564,17 @@
         "RESOURCE": "Resource",
         "RESOURCE_TYPE": "Resource Type"
     },
+    "FEDERATED_IDPS": {
+        "PLACEHOLDER": "We couldn't find any federated IDPs!",
+        "FILTER_PLACEHOLDER": "Filter Federated IDPs",
+        "NAME": "Name",
+        "DESCRIPTION": "Description",
+        "ISSUER": "Issuer",
+        "ISSUER_TOOLTIP": "The issuer of the IDP. This is the entity that issues ID tokens to users.",
+        "OFFLINE_VALIDATION": "Offline Validation",
+        "SUPPORTED_ALGORITHMS": "Supported Algorithms",
+        "SUPPORTED_CLAIMS": "Supported Claims"
+    },
     "REPLICATION": {
         "PUSH_BASED_ONLY": "Only for the push-based replication",
         "YES": "Yes",
