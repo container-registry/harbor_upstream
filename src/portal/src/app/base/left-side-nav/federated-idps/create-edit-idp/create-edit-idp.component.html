@@ -241,8 +241,8 @@
                         id="destination_insecure"
                         [disabled]="testOngoing || !editable"
                         name="insecure"
-                        [ngModel]="!target.insecure"
-                        (ngModelChange)="setInsecureValue($event)" />
+                        [ngModel]="!target.offline_validation"
+                        (ngModelChange)="setOfflineValidation($event)" />
                 </clr-checkbox-wrapper>
             </clr-checkbox-container>
         </form>
