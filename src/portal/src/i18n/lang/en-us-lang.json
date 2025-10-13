@@ -573,6 +573,7 @@
         "ISSUER_TOOLTIP": "The issuer of the IDP. This is the entity that issues ID tokens to users.",
         "OFFLINE_VALIDATION": "Offline Validation",
         "SUPPORTED_ALGORITHMS": "Supported Algorithms",
+        "NEW_IDP": "New Federated IDP",
         "SUPPORTED_CLAIMS": "Supported Claims"
     },
     "REPLICATION": {

@@ -55,7 +55,7 @@ import { ClrDatagridStateInterface } from '@clr/angular';
 import { Registry } from '../../../../../ng-swagger-gen/models/registry';
 import { FederatedIdp } from 'ng-swagger-gen/models';
 import { FederatedIdpService } from 'ng-swagger-gen/services';
-// import { CreateEditIdpComponent } from './create-edit-idp/create-edit-idp.component';
+import { CreateEditIdpComponent } from './create-edit-idp/create-edit-idp.component';
 
 @Component({
     selector: 'federated-idps',
@@ -66,7 +66,7 @@ export class IdpComponent implements OnInit, OnDestroy {
     clrPageSizeOptions: number[] = PAGE_SIZE_OPTIONS;
     // TODO: add create edit idp component
     // @ViewChild(CreateEditIdpComponent)
-    // createEditEndpointComponent: CreateEditIdpComponent;
+    CreateEditIdpComponent: CreateEditIdpComponent;
 
     @ViewChild('confirmationDialog')
     confirmationDialogComponent: ConfirmationDialogComponent;
@@ -198,7 +198,7 @@ export class IdpComponent implements OnInit, OnDestroy {
         this.retrieve();
     }
     openModal() {
-        // this.createEditEndpointComponent.openCreateEditTarget(true);
+        this.CreateEditIdpComponent.openCreateEditTarget(true);
         this.target = this.initIdp;
     }
 
