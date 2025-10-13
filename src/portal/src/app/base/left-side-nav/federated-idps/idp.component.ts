@@ -113,9 +113,8 @@ export class IdpComponent implements OnInit, OnDestroy {
         private idpService: FederatedIdpService,
         private errorHandlerEntity: ErrorHandler,
         private translateService: TranslateService,
-        private operationService: OperationService
-    ) // private oldEndpointService: EndpointService
-    {}
+        private operationService: OperationService // private oldEndpointService: EndpointService
+    ) {}
 
     ngOnInit(): void {
         this.targetName = '';
@@ -297,5 +296,14 @@ export class IdpComponent implements OnInit, OnDestroy {
     }
     getAdapterText(adapter: string): string {
         return 'ithaandda adapter text';
+    }
+
+    // give supported claims as comma separated string
+    getSupportedClaims(claims: string[]): string {
+        const fullText = claims.join(', ');
+        const maxLength = 18;
+        return fullText.length > maxLength
+            ? fullText.slice(0, maxLength) + '…'
+            : fullText;
     }
 }

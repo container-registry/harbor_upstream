@@ -4,13 +4,13 @@
         <div>
             <div class="row flex-items-xs-between rightPos">
                 <div class="flex-items-xs-middle option-right">
-                    <!-- <hbr-filter -->
-                    <!--     [withDivider]="true" -->
-                    <!--     filterPlaceholder="{{ -->
-                    <!--         'FEDERATED_IDPS.FILTER_PLACEHOLDER' | translate -->
-                    <!--     }}" -->
-                    <!--     (filterEvt)="doSearchTargets($event)" -->
-                    <!--     [currentValue]="targetName"></hbr-filter> -->
+                    <hbr-filter
+                        [withDivider]="true"
+                        filterPlaceholder="{{
+                            'FEDERATED_IDPS.FILTER_PLACEHOLDER' | translate
+                        }}"
+                        (filterEvt)="doSearchTargets($event)"
+                        [currentValue]="targetName"></hbr-filter>
                     <span class="refresh-btn" (click)="refreshTargets()">
                         <clr-icon shape="refresh"></clr-icon>
                     </span>
@@ -65,7 +65,7 @@
                 <clr-dg-column>{{
                     'FEDERATED_IDPS.SUPPORTED_ALGORITHMS' | translate
                 }}</clr-dg-column>
-                <clr-dg-column class="truncated">{{
+                <clr-dg-column class="truncate">{{
                     'FEDERATED_IDPS.SUPPORTED_CLAIMS' | translate
                 }}</clr-dg-column>
                 <clr-dg-column [clrDgSortBy]="'creation_time'">{{
@@ -88,7 +88,7 @@
                         {{ t.offline_validation }}
                     </clr-dg-cell>
                     <clr-dg-cell>{{ t.supported_algorithms }}</clr-dg-cell>
-                    <clr-dg-cell>{{ t.claims_supported }}</clr-dg-cell>
+                    <clr-dg-cell>{{ getSupportedClaims(t.claims_supported) }}</clr-dg-cell>
                     <!-- <clr-dg-cell> -->
                     <!--     <span class="margin-right-2px">{{ -->
                     <!--         getAdapterText(t.type) -->
