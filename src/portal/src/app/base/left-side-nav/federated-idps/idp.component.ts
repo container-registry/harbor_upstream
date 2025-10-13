@@ -11,7 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import {
+    Component,
+    OnInit,
+    OnDestroy,
+    ViewChild,
+    Injectable,
+} from '@angular/core';
 import {
     Subscription,
     Observable,
@@ -31,6 +37,8 @@ import {
 } from '../../../shared/entities/shared.const';
 // TODO: search for /endpoint and replace everything with idp and fix the errors
 // import { CreateEditEndpointComponent } from './create-edit-endpoint/create-edit-endpoint.component';
+//
+// uu
 import {
     CustomComparator,
     getPageSizeFromLocalStorage,
@@ -57,6 +65,9 @@ import { FederatedIdp } from 'ng-swagger-gen/models';
 import { FederatedIdpService } from 'ng-swagger-gen/services';
 import { CreateEditIdpComponent } from './create-edit-idp/create-edit-idp.component';
 
+@Injectable({
+    providedIn: 'root',
+})
 @Component({
     selector: 'federated-idps',
     templateUrl: './idp.component.html',
@@ -118,6 +129,10 @@ export class IdpComponent implements OnInit, OnDestroy {
 
     ngOnInit(): void {
         this.targetName = '';
+    }
+
+    ngAfterViewInit() {
+        console.log('createEditIdpComponent:', this.CreateEditIdpComponent);
     }
 
     ngOnDestroy(): void {

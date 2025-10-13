@@ -28,6 +28,6 @@ const routes: Routes = [
 @NgModule({
     imports: [SharedModule, RouterModule.forChild(routes)],
     declarations: [IdpComponent, CreateEditIdpComponent],
-    providers: [FederatedIdpService],
+    // providers: [FederatedIdpService],
 })
 export class IdpModule {}

@@ -24,6 +24,10 @@ import { RequestQueryParams } from './index';
 import { catchError, map } from 'rxjs/operators';
 import { FederatedIdp } from 'ng-swagger-gen/models';
 
+@Injectable({
+    providedIn: 'root', // recommended way
+})
+
 /**
  * Define the service methods to handle Federated Identity Provider (IdP) related operations.
  *
@@ -124,106 +128,108 @@ export abstract class FederatedIdpService {
  */
 @Injectable()
 export class FederatedIdpDefaultService extends FederatedIdpService {
-  private _idpUrl: string;
+    private _idpUrl: string;
 
-  constructor(private http: HttpClient) {
-    super();
-    this._idpUrl = `${CURRENT_BASE_HREF}/federated-idps`;
-  }
+    constructor(private http: HttpClient) {
+        super();
+        this._idpUrl = `${CURRENT_BASE_HREF}/federated-idps`;
+    }
 
-  public getFederatedIdps(
-    idpName?: string,
-    queryParams?: RequestQueryParams
-  ): Observable<FederatedIdp[]> {
-    if (!queryParams) {
-      queryParams = new RequestQueryParams();
+    public getFederatedIdps(
+        idpName?: string,
+        queryParams?: RequestQueryParams
+    ): Observable<FederatedIdp[]> {
+        if (!queryParams) {
+            queryParams = new RequestQueryParams();
+        }
+        if (idpName) {
+            queryParams = queryParams.set('name', idpName);
+        }
+        const requestUrl = this._idpUrl;
+        return this.http
+            .get(requestUrl, buildHttpRequestOptions(queryParams))
+            .pipe(
+                map(response => response as FederatedIdp[]),
+                catchError(error => observableThrowError(error))
+            );
     }
-    if (idpName) {
-      queryParams = queryParams.set('name', idpName);
-    }
-    const requestUrl = this._idpUrl;
-    return this.http
-      .get(requestUrl, buildHttpRequestOptions(queryParams))
-      .pipe(
-        map(response => response as FederatedIdp[]),
-        catchError(error => observableThrowError(error))
-      );
-  }
 
-  public getFederatedIdp(idpId: number | string): Observable<FederatedIdp> {
-    if (!idpId || +idpId <= 0) {
-      return observableThrowError('Bad request argument.');
+    public getFederatedIdp(idpId: number | string): Observable<FederatedIdp> {
+        if (!idpId || +idpId <= 0) {
+            return observableThrowError('Bad request argument.');
+        }
+        const requestUrl = `${this._idpUrl}/${idpId}`;
+        return this.http.get(requestUrl, HTTP_GET_OPTIONS).pipe(
+            map(response => response as FederatedIdp),
+            catchError(error => observableThrowError(error))
+        );
     }
-    const requestUrl = `${this._idpUrl}/${idpId}`;
-    return this.http.get(requestUrl, HTTP_GET_OPTIONS).pipe(
-      map(response => response as FederatedIdp),
-      catchError(error => observableThrowError(error))
-    );
-  }
 
-  public createFederatedIdp(idp: FederatedIdp): Observable<any> {
-    if (!idp) {
-      return observableThrowError('Invalid Federated IDP.');
+    public createFederatedIdp(idp: FederatedIdp): Observable<any> {
+        if (!idp) {
+            return observableThrowError('Invalid Federated IDP.');
+        }
+        const requestUrl = this._idpUrl;
+        return this.http
+            .post<any>(requestUrl, JSON.stringify(idp), HTTP_JSON_OPTIONS)
+            .pipe(catchError(error => observableThrowError(error)));
     }
-    const requestUrl = this._idpUrl;
-    return this.http
-      .post<any>(requestUrl, JSON.stringify(idp), HTTP_JSON_OPTIONS)
-      .pipe(catchError(error => observableThrowError(error)));
-  }
 
-  public updateFederatedIdp(
-    idpId: number | string,
-    idp: FederatedIdp
-  ): Observable<any> {
-    if (!idpId || +idpId <= 0) {
-      return observableThrowError('Bad request argument.');
+    public updateFederatedIdp(
+        idpId: number | string,
+        idp: FederatedIdp
+    ): Observable<any> {
+        if (!idpId || +idpId <= 0) {
+            return observableThrowError('Bad request argument.');
+        }
+        if (!idp) {
+            return observableThrowError('Invalid Federated IDP.');
+        }
+        const requestUrl = `${this._idpUrl}/${idpId}`;
+        return this.http
+            .put<any>(requestUrl, JSON.stringify(idp), HTTP_JSON_OPTIONS)
+            .pipe(catchError(error => observableThrowError(error)));
     }
-    if (!idp) {
-      return observableThrowError('Invalid Federated IDP.');
-    }
-    const requestUrl = `${this._idpUrl}/${idpId}`;
-    return this.http
-      .put<any>(requestUrl, JSON.stringify(idp), HTTP_JSON_OPTIONS)
-      .pipe(catchError(error => observableThrowError(error)));
-  }
 
-  public deleteFederatedIdp(idpId: number | string): Observable<any> {
-    if (!idpId || +idpId <= 0) {
-      return observableThrowError('Bad request argument.');
+    public deleteFederatedIdp(idpId: number | string): Observable<any> {
+        if (!idpId || +idpId <= 0) {
+            return observableThrowError('Bad request argument.');
+        }
+        const requestUrl = `${this._idpUrl}/${idpId}`;
+        return this.http
+            .delete<any>(requestUrl)
+            .pipe(catchError(error => observableThrowError(error)));
     }
-    const requestUrl = `${this._idpUrl}/${idpId}`;
-    return this.http
-      .delete<any>(requestUrl)
-      .pipe(catchError(error => observableThrowError(error)));
-  }
 
-  public pingFederatedIdp(idp: FederatedIdp): Observable<any> {
-    if (!idp) {
-      return observableThrowError('Invalid Federated IDP.');
+    public pingFederatedIdp(idp: FederatedIdp): Observable<any> {
+        if (!idp) {
+            return observableThrowError('Invalid Federated IDP.');
+        }
+        const requestUrl = `${this._idpUrl}/ping`;
+        return this.http
+            .post<any>(requestUrl, idp, HTTP_JSON_OPTIONS)
+            .pipe(catchError(error => observableThrowError(error)));
     }
-    const requestUrl = `${this._idpUrl}/ping`;
-    return this.http
-      .post<any>(requestUrl, idp, HTTP_JSON_OPTIONS)
-      .pipe(catchError(error => observableThrowError(error)));
-  }
 
-  public getFederatedIdpWithAssociations(idpId: number | string): Observable<any> {
-    if (!idpId || +idpId <= 0) {
-      return observableThrowError('Bad request argument.');
+    public getFederatedIdpWithAssociations(
+        idpId: number | string
+    ): Observable<any> {
+        if (!idpId || +idpId <= 0) {
+            return observableThrowError('Bad request argument.');
+        }
+        const requestUrl = `${this._idpUrl}/${idpId}/associations`;
+        return this.http
+            .get<any>(requestUrl, HTTP_GET_OPTIONS)
+            .pipe(catchError(error => observableThrowError(error)));
     }
-    const requestUrl = `${this._idpUrl}/${idpId}/associations`;
-    return this.http.get<any>(requestUrl, HTTP_GET_OPTIONS).pipe(
-      catchError(error => observableThrowError(error))
-    );
-  }
 
-  public getIdpTypeLabel(type: string): string {
-    const IDP_TYPE_MAP: { [key: string]: string } = {
-      'oidc': 'OpenID Connect',
-      'saml': 'SAML',
-      'harbor': 'Harbor',
-      'ldap': 'LDAP'
-    };
-    return IDP_TYPE_MAP[type] || type;
-  }
+    public getIdpTypeLabel(type: string): string {
+        const IDP_TYPE_MAP: { [key: string]: string } = {
+            oidc: 'OpenID Connect',
+            saml: 'SAML',
+            harbor: 'Harbor',
+            ldap: 'LDAP',
+        };
+        return IDP_TYPE_MAP[type] || type;
+    }
 }
