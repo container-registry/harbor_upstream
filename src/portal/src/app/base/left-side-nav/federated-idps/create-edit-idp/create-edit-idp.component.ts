@@ -25,7 +25,6 @@ import { Subscription, throwError as observableThrowError } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
 import { ErrorHandler } from '../../../../shared/units/error-handler';
 import { InlineAlertComponent } from '../../../../shared/components/inline-alert/inline-alert.component';
-// import { Endpoint, PingEndpoint } from '../../../../shared/services';
 import {
     clone,
     compareValue,
@@ -35,15 +34,14 @@ import {
 import { HttpClient } from '@angular/common/http';
 import { catchError } from 'rxjs/operators';
 import { AppConfigService } from '../../../../services/app-config.service';
-// import { EndpointService } from '../../../../shared/services/endpoint.service';
 import { ClrLoadingState } from '@clr/angular';
 import { FederatedIdp } from 'ng-swagger-gen/models';
 import { FederatedIdpService } from 'src/app/shared/services';
 
-const FAKE_PASSWORD = 'rjGcfuRu';
-const FAKE_JSON_KEY = 'No Change';
-const METADATA_URL = CURRENT_BASE_HREF + '/replication/adapterinfos';
+// const FAKE_JSON_KEY = 'No Change';
+// const METADATA_URL = CURRENT_BASE_HREF + '/replication/adapterinfos';
 const FIXED_PATTERN_TYPE: string = 'EndpointPatternTypeFix';
+
 @Component({
     selector: 'hbr-create-edit-idp',
     templateUrl: './create-edit-idp.component.html',
@@ -53,9 +51,9 @@ export class CreateEditIdpComponent
     implements AfterViewChecked, OnDestroy, OnInit
 {
     modalTitle: string;
-    urlDisabled: boolean = false;
+    // urlDisabled: boolean = false;
     editDisabled: boolean = false;
-    createEditDestinationOpened: boolean;
+    createEditIdpOpened: boolean;
     staticBackdrop: boolean = true;
     closable: boolean = false;
     editable: boolean;
@@ -67,13 +65,12 @@ export class CreateEditIdpComponent
     @ViewChild('targetForm') currentForm: NgForm;
     testOngoing: boolean;
     onGoing: boolean;
-    endpointId: number | string;
+    idpId: number | string;
 
     @ViewChild(InlineAlertComponent) inlineAlert: InlineAlertComponent;
 
     @Output() reload = new EventEmitter<boolean>();
 
-    timerHandler: any;
     valueChangesSub: Subscription;
     formValues: { [key: string]: string } | any;
     adapterInfo: object;
@@ -81,8 +78,9 @@ export class CreateEditIdpComponent
     endpointOnHover: boolean = false;
     testButtonState: ClrLoadingState = ClrLoadingState.DEFAULT;
     okButtonState: ClrLoadingState = ClrLoadingState.DEFAULT;
+
     constructor(
-        private endpointService: FederatedIdpService,
+        private idpService: FederatedIdpService,
         private errorHandler: ErrorHandler,
         private translateService: TranslateService,
         private http: HttpClient,
@@ -90,51 +88,22 @@ export class CreateEditIdpComponent
     ) {}
 
     ngOnInit(): void {
-        this.getAdapters();
-        this.getAdapterInfo();
+        // this.getAdapters();
+        // this.getAdapterInfo();
     }
-    getAdapters() {
-        this.endpointService.getAdapters().subscribe(
-            adapters => {
-                this.adapterList = adapters || [];
-            },
-            error => {
-                this.errorHandler.error(error);
-            }
-        );
-    }
-    getAdapterInfo() {
-        this.http
-            .get(METADATA_URL)
-            .pipe(catchError(error => observableThrowError(error)))
-            .subscribe(
-                response => {
-                    this.adapterInfo = response;
-                },
-                error => {
-                    this.errorHandler.error(error);
-                }
-            );
-    }
-    isNormalCredential(): boolean {
-        return !(
-            this.adapterInfo &&
-            this.target &&
-            this.target.type &&
-            this.adapterInfo[this.target.type] &&
-            this.adapterInfo[this.target.type].credential_pattern
-        );
-    }
+
     selectedEndpoint(endpoint: string) {
         this.targetForm.controls.endpointUrl.reset(endpoint);
         this.showEndpointList = false;
         this.endpointOnHover = false;
     }
+
     blur() {
         if (!this.endpointOnHover) {
             this.showEndpointList = false;
         }
     }
+
     public get isValid(): boolean {
         return (
             !this.testOngoing &&
@@ -150,8 +119,8 @@ export class CreateEditIdpComponent
         return this.onGoing || this.testOngoing;
     }
 
-    setInsecureValue($event: any) {
-        this.target.insecure = !$event;
+    setOfflineValidation($event: any) {
+        this.target.offline_validation = !$event;
     }
 
     ngOnDestroy(): void {
@@ -179,19 +148,17 @@ export class CreateEditIdpComponent
     }
 
     open(): void {
-        this.createEditDestinationOpened = true;
+        this.createEditIdpOpened = true;
     }
 
     close(): void {
-        this.createEditDestinationOpened = false;
+        this.createEditIdpOpened = false;
     }
 
     reset(): void {
-        // Reset status variables
         this.testOngoing = false;
         this.onGoing = false;
 
-        // Reset data
         if (
             this.targetForm &&
             this.targetForm.controls &&
@@ -199,157 +166,68 @@ export class CreateEditIdpComponent
         ) {
             this.targetForm.controls.targetName.reset();
         }
-        this.target = this.initEndpoint();
-        this.initVal = this.initEndpoint();
+
+        this.target = this.initIdp();
+        this.initVal = this.initIdp();
         this.formValues = null;
-        this.endpointId = '';
+        this.idpId = '';
         this.inlineAlert.close();
     }
+
     openCreateEditTarget(editable: boolean, targetId?: number | string) {
         this.editable = editable;
-        // reset
         this.reset();
+
         if (targetId) {
-            this.endpointId = targetId;
+            this.idpId = targetId;
             this.translateService
-                .get('DESTINATION.TITLE_EDIT')
+                .get('IDP.TITLE_EDIT')
                 .subscribe(res => (this.modalTitle = res));
-            this.endpointService.getEndpoint(targetId).subscribe(
+            this.idpService.getFederatedIdp(targetId).subscribe(
                 target => {
                     this.target = target;
-                    this.urlDisabled =
-                        this.adapterInfo &&
-                        this.adapterInfo[this.target.type] &&
-                        this.adapterInfo[this.target.type].endpoint_pattern &&
-                        this.adapterInfo[this.target.type].endpoint_pattern
-                            .endpoint_type === FIXED_PATTERN_TYPE;
-                    // Keep data cache
-                    this.initVal = clone(target);
-                    this.initVal.credential.access_secret =
-                        this.target.type === 'google-gcr'
-                            ? FAKE_JSON_KEY
-                            : FAKE_PASSWORD;
-                    this.target.credential.access_secret =
-                        this.target.type === 'google-gcr'
-                            ? FAKE_JSON_KEY
-                            : FAKE_PASSWORD;
+                    // this.urlDisabled =
+                    //     this.adapterInfo &&
+                    //     this.adapterInfo[this.target.type] &&
+                    //     this.adapterInfo[this.target.type].endpoint_pattern &&
+                    //     this.adapterInfo[this.target.type].endpoint_pattern
+                    //         .endpoint_type === FIXED_PATTERN_TYPE;
 
-                    // Open the modal now
+                    this.initVal = clone(target);
                     this.open();
-                    this.editDisabled = true;
+                    // this.editDisabled = true;
                 },
                 error => this.errorHandler.error(error)
             );
         } else {
-            this.urlDisabled = false;
-            this.endpointId = '';
+            // this.urlDisabled = false;
+            this.idpId = '';
             this.translateService
-                .get('DESTINATION.TITLE_ADD')
+                .get('IDP.TITLE_ADD')
                 .subscribe(res => (this.modalTitle = res));
-            // Directly open the modal
             this.open();
             this.editDisabled = false;
         }
     }
 
-    adapterChange($event): void {
-        this.targetForm.controls.endpointUrl.reset('');
-        let selectValue = this.targetForm.controls.adapter.value;
-        this.urlDisabled = false;
-        if (this.isNormalCredential()) {
-            this.targetForm.controls.access_key.setValue('');
-        } else {
-            this.targetForm.controls.access_key.setValue(
-                this.adapterInfo[this.target.type].credential_pattern
-                    .access_key_data
-            );
-        }
-        if (
-            this.adapterInfo &&
-            this.adapterInfo[selectValue] &&
-            this.adapterInfo[selectValue].endpoint_pattern &&
-            this.adapterInfo[selectValue].endpoint_pattern.endpoints
-        ) {
-            this.endpointList =
-                this.adapterInfo[selectValue].endpoint_pattern.endpoints;
-            if (this.endpointList.length === 1) {
-                this.target.url = this.endpointList[0].value;
-            }
-            if (
-                this.adapterInfo[selectValue].endpoint_pattern.endpoint_type ===
-                FIXED_PATTERN_TYPE
-            ) {
-                this.urlDisabled = true;
-            }
-        } else {
-            this.endpointList = [];
-        }
-    }
-
-    testConnection() {
-        let payload: PingEndpoint = this.initPingEndpoint();
-        if (!this.endpointId) {
-            payload.name = this.target.name;
-            payload.description = this.target.description;
-            payload.type = this.target.type;
-            payload.url = this.target.url;
-            payload.access_key = this.target.credential.access_key;
-            payload.access_secret = this.target.credential.access_secret;
-            payload.insecure = this.target.insecure;
-        } else {
-            let changes: { [key: string]: any } = this.getChanges();
-            for (let prop of Object.keys(payload)) {
-                delete payload[prop];
-            }
-            payload.id = this.target.id;
-            if (!isEmptyObject(changes)) {
-                let changekeys: { [key: string]: any } = Object.keys(
-                    this.getChanges()
-                );
-                changekeys.forEach((key: string) => {
-                    payload[key] = changes[key];
-                });
-            }
-        }
-
-        this.testOngoing = true;
-        this.testButtonState = ClrLoadingState.LOADING;
-        this.endpointService.pingEndpoint(payload).subscribe(
-            response => {
-                this.inlineAlert.showInlineSuccess({
-                    message: 'DESTINATION.TEST_CONNECTION_SUCCESS',
-                });
-                this.testOngoing = false;
-                this.testButtonState = ClrLoadingState.SUCCESS;
-            },
-            error => {
-                this.inlineAlert.showInlineError(
-                    'DESTINATION.TEST_CONNECTION_FAILURE'
-                );
-                this.testOngoing = false;
-                this.testButtonState = ClrLoadingState.ERROR;
-            }
-        );
-    }
-
     onSubmit() {
-        if (this.endpointId) {
-            this.updateEndpoint();
+        if (this.idpId) {
+            this.updateIdp();
         } else {
-            this.addEndpoint();
+            this.addIdp();
         }
     }
 
-    addEndpoint() {
-        if (this.onGoing) {
-            return; // Avoid duplicated submitting
-        }
+    addIdp() {
+        if (this.onGoing) return;
+
         this.onGoing = true;
         this.okButtonState = ClrLoadingState.LOADING;
-        this.endpointService.createEndpoint(this.target).subscribe(
-            response => {
+
+        this.idpService.createFederatedIdp(this.target).subscribe(
+            () => {
                 this.translateService
-                    .get('DESTINATION.CREATED_SUCCESS')
+                    .get('IDP.CREATED_SUCCESS')
                     .subscribe(res => this.errorHandler.info(res));
                 this.reload.emit(true);
                 this.onGoing = false;
@@ -364,36 +242,19 @@ export class CreateEditIdpComponent
         );
     }
 
-    updateEndpoint() {
-        if (this.onGoing) {
-            return; // Avoid duplicated submitting
-        }
+    updateIdp() {
+        if (this.onGoing || !this.target.id) return;
 
-        let payload: Endpoint = this.initEndpoint();
-        for (let prop of Object.keys(payload)) {
-            delete payload[prop];
-        }
-        let changes: { [key: string]: any } = this.getChanges();
-        if (isEmptyObject(changes)) {
-            return;
-        }
-
-        let changekeys: { [key: string]: any } = Object.keys(changes);
-
-        changekeys.forEach((key: string) => {
-            payload[key] = changes[key];
-        });
-
-        if (!this.target.id) {
-            return;
-        }
+        const changes = this.getChanges();
+        if (isEmptyObject(changes)) return;
 
         this.onGoing = true;
         this.okButtonState = ClrLoadingState.LOADING;
-        this.endpointService.updateEndpoint(this.target.id, payload).subscribe(
-            response => {
+
+        this.idpService.updateFederatedIdp(this.target.id, changes).subscribe(
+            () => {
                 this.translateService
-                    .get('DESTINATION.UPDATED_SUCCESS')
+                    .get('FEDERATED_IDPS.UPDATED_SUCCESS')
                     .subscribe(res => this.errorHandler.info(res));
                 this.reload.emit(true);
                 this.close();
@@ -409,7 +270,7 @@ export class CreateEditIdpComponent
     }
 
     onCancel() {
-        let changes: { [key: string]: any } = this.getChanges();
+        const changes = this.getChanges();
         if (!isEmptyObject(changes)) {
             this.inlineAlert.showInlineConfirmation({
                 message: 'ALERT.FORM_CHANGE_CONFIRMATION',
@@ -432,74 +293,48 @@ export class CreateEditIdpComponent
             this.targetForm = this.currentForm;
             if (this.targetForm) {
                 this.valueChangesSub = this.targetForm.valueChanges.subscribe(
-                    (data: { [key: string]: string } | any) => {
-                        if (data) {
-                            // To avoid invalid change publish events
-                            let keyNumber: number = 0;
-                            for (let key in data) {
-                                // Empty string "" is accepted
-                                if (data[key] !== null) {
-                                    keyNumber++;
-                                }
-                            }
-                            if (keyNumber !== 5) {
-                                return;
-                            }
-
-                            if (!compareValue(this.formValues, data)) {
-                                this.formValues = data;
-                            }
+                    (data: any) => {
+                        if (!compareValue(this.formValues, data)) {
+                            this.formValues = data;
                         }
                     }
                 );
             }
         }
     }
-    getChanges(): { [key: string]: any | any[] } {
-        let changes: { [key: string]: any | any[] } = {};
-        if (!this.target || !this.initVal) {
-            return changes;
-        }
-        for (let prop of Object.keys(
-            Object.assign({}, this.target, this.initVal)
-        )) {
-            let field: any = this.initVal[prop];
-            if (typeof field !== 'object') {
-                if (!compareValue(field, this.target[prop])) {
-                    changes[prop] = this.target[prop];
-                    // Number
-                    if (typeof field === 'number') {
-                        changes[prop] = +changes[prop];
-                    }
 
-                    // Trim string value
-                    if (typeof field === 'string') {
-                        changes[prop] = ('' + changes[prop]).trim();
-                    }
+    getChanges(): { [key: string]: any | any[] } {
+        const changes: { [key: string]: any | any[] } = {};
+        if (!this.target || !this.initVal) return changes;
+
+        for (const prop of Object.keys({ ...this.target, ...this.initVal })) {
+            const original = this.initVal[prop];
+            const current = this.target[prop];
+
+            if (typeof original !== 'object') {
+                if (!compareValue(original, current)) {
+                    changes[prop] =
+                        typeof original === 'string'
+                            ? ('' + current).trim()
+                            : current;
                 }
             } else {
-                for (let pro of Object.keys(
-                    Object.assign({}, field, this.target[prop])
-                )) {
-                    if (!compareValue(field[pro], this.target[prop][pro])) {
-                        changes[pro] = this.target[prop][pro];
-                        // Number
-                        if (typeof field[pro] === 'number') {
-                            changes[pro] = +changes[pro];
-                        }
-
-                        // Trim string value
-                        if (typeof field[pro] === 'string') {
-                            changes[pro] = ('' + changes[pro]).trim();
-                        }
+                for (const subProp of Object.keys({
+                    ...original,
+                    ...current,
+                })) {
+                    if (
+                        !compareValue(original?.[subProp], current?.[subProp])
+                    ) {
+                        changes[subProp] =
+                            typeof original[subProp] === 'string'
+                                ? ('' + current[subProp]).trim()
+                                : current[subProp];
                     }
                 }
             }
         }
+
         return changes;
     }
-
-    // getAdapterText(adapter: string): string {
-    //     return this.endpointService.getAdapterText(adapter);
-    // }
 }
