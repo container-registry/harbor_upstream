@@ -181,7 +181,7 @@ export class CreateEditIdpComponent
         if (targetId) {
             this.idpId = targetId;
             this.translateService
-                .get('IDP.TITLE_EDIT')
+                .get('FEDERATED_IDPS.TITLE_EDIT')
                 .subscribe(res => (this.modalTitle = res));
             this.idpService.getFederatedIdp(targetId).subscribe(
                 target => {
@@ -192,7 +192,6 @@ export class CreateEditIdpComponent
                     //     this.adapterInfo[this.target.type].endpoint_pattern &&
                     //     this.adapterInfo[this.target.type].endpoint_pattern
                     //         .endpoint_type === FIXED_PATTERN_TYPE;
-
                     this.initVal = clone(target);
                     this.open();
                     // this.editDisabled = true;
@@ -203,10 +202,10 @@ export class CreateEditIdpComponent
             // this.urlDisabled = false;
             this.idpId = '';
             this.translateService
-                .get('IDP.TITLE_ADD')
+                .get('FEDERATED_IDPS.TITLE_ADD')
                 .subscribe(res => (this.modalTitle = res));
             this.open();
-            this.editDisabled = false;
+            // this.editDisabled = false;
         }
     }
 
@@ -227,7 +226,7 @@ export class CreateEditIdpComponent
         this.idpService.createFederatedIdp(this.target).subscribe(
             () => {
                 this.translateService
-                    .get('IDP.CREATED_SUCCESS')
+                    .get('FEDERATED_IDPS.CREATED_SUCCESS')
                     .subscribe(res => this.errorHandler.info(res));
                 this.reload.emit(true);
                 this.onGoing = false;

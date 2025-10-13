@@ -65,7 +65,7 @@ import { CreateEditIdpComponent } from './create-edit-idp/create-edit-idp.compon
 export class IdpComponent implements OnInit, OnDestroy {
     clrPageSizeOptions: number[] = PAGE_SIZE_OPTIONS;
     // TODO: add create edit idp component
-    // @ViewChild(CreateEditIdpComponent)
+    @ViewChild(CreateEditIdpComponent)
     CreateEditIdpComponent: CreateEditIdpComponent;
 
     @ViewChild('confirmationDialog')

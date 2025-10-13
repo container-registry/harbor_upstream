@@ -1,5 +1,5 @@
 <clr-modal
-    [(clrModalOpen)]="createEditDestinationOpened"
+    [(clrModalOpen)]="createEditIdpOpened"
     [clrModalStaticBackdrop]="staticBackdrop"
     [clrModalClosable]="closable">
     <h3 class="modal-title">{{ modalTitle }}</h3>
@@ -16,33 +16,33 @@
         </div>
         <form #targetForm="ngForm" class="clr-form clr-form-horizontal">
             <!-- provider -->
-            <clr-select-container>
-                <label class="required">{{
-                    'DESTINATION.PROVIDER' | translate
-                }}</label>
-                <select
-                    clrSelect
-                    name="adapter"
-                    id="adapter"
-                    (change)="adapterChange($event)"
-                    [(ngModel)]="target.type"
-                    [disabled]="testOngoing || editDisabled">
-                    <ng-container *ngIf="!editDisabled">
-                        <option
-                            *ngFor="let adapter of adapterList"
-                            value="{{ adapter }}">
-                            {{ getAdapterText(adapter) }}
-                        </option>
-                    </ng-container>
-                    <ng-container *ngIf="editDisabled">
-                        <option
-                            *ngFor="let adapter of [target.type]"
-                            value="{{ adapter }}">
-                            {{ getAdapterText(adapter) }}
-                        </option>
-                    </ng-container>
-                </select>
-            </clr-select-container>
+            <!-- <clr-select-container> -->
+            <!--     <label class="required">{{ -->
+            <!--         'DESTINATION.PROVIDER' | translate -->
+            <!--     }}</label> -->
+            <!--     <select -->
+            <!--         clrSelect -->
+            <!--         name="adapter" -->
+            <!--         id="adapter" -->
+            <!--         (change)="adapterChange($event)" -->
+            <!--         [(ngModel)]="target.type" -->
+            <!--         [disabled]="testOngoing || editDisabled"> -->
+            <!--         <ng-container *ngIf="!editDisabled"> -->
+            <!--             <option -->
+            <!--                 *ngFor="let adapter of adapterList" -->
+            <!--                 value="{{ adapter }}"> -->
+            <!--                 {{ getAdapterText(adapter) }} -->
+            <!--             </option> -->
+            <!--         </ng-container> -->
+            <!--         <ng-container *ngIf="editDisabled"> -->
+            <!--             <option -->
+            <!--                 *ngFor="let adapter of [target.type]" -->
+            <!--                 value="{{ adapter }}"> -->
+            <!--                 {{ getAdapterText(adapter) }} -->
+            <!--             </option> -->
+            <!--         </ng-container> -->
+            <!--     </select> -->
+            <!-- </clr-select-container> -->
             <!-- Endpoint name -->
             <clr-input-container>
                 <label class="required">{{
@@ -116,9 +116,8 @@
                             class="clr-input endpoint-input"
                             type="text"
                             id="destination_url"
-                            [disabled]="testOngoing || urlDisabled"
                             [readonly]="!editable"
-                            [(ngModel)]="target.url"
+                            [(ngModel)]="target.issuer"
                             size="28"
                             name="endpointUrl"
                             #targetEndpoint="ngModel"
@@ -168,11 +167,9 @@
                     placeholder="Access ID"
                     id="destination_access_key"
                     [disabled]="testOngoing"
-                    [readonly]="target.type === 'google-gcr' || !editable"
-                    [(ngModel)]="target.credential.access_key"
                     size="30"
                     name="access_key"
-                    #access_key="ngModel" />
+                     />
             </clr-input-container>
             <!-- access_secret -->
             <div class="clr-form-control">
@@ -184,16 +181,14 @@
                         <input
                             autocomplete="off"
                             class="clr-input"
-                            *ngIf="isNormalCredential(); else gcr_secret"
                             type="password"
                             placeholder="Access Secret"
                             id="destination_password"
                             [disabled]="testOngoing"
                             [readonly]="!editable"
-                            [(ngModel)]="target.credential.access_secret"
                             size="30"
                             name="access_secret"
-                            #access_secret="ngModel" />
+                            />
                         <ng-template #gcr_secret>
                             <textarea
                                 autocomplete="off"
@@ -248,14 +243,6 @@
         </form>
     </div>
     <div class="modal-footer">
-        <button
-            [clrLoading]="testButtonState"
-            type="button"
-            class="btn btn-outline"
-            (click)="testConnection()"
-            [disabled]="inProgress || targetEndpoint?.errors">
-            {{ 'DESTINATION.TEST_CONNECTION' | translate }}
-        </button>
         <button
             type="button"
             class="btn btn-outline"
