@@ -53,7 +53,9 @@ import { EndpointService } from '../../../shared/services/endpoint.service';
 import { RegistryService } from '../../../../../ng-swagger-gen/services/registry.service';
 import { ClrDatagridStateInterface } from '@clr/angular';
 import { Registry } from '../../../../../ng-swagger-gen/models/registry';
-import { CreateEditIdpComponent } from './create-edit-idp/create-edit-idp.component';
+import { FederatedIdp } from 'ng-swagger-gen/models';
+import { FederatedIdpService } from 'ng-swagger-gen/services';
+// import { CreateEditIdpComponent } from './create-edit-idp/create-edit-idp.component';
 
 @Component({
     selector: 'federated-idps',
@@ -62,39 +64,43 @@ import { CreateEditIdpComponent } from './create-edit-idp/create-edit-idp.compon
 })
 export class IdpComponent implements OnInit, OnDestroy {
     clrPageSizeOptions: number[] = PAGE_SIZE_OPTIONS;
-    @ViewChild(CreateEditIdpComponent)
-    createEditEndpointComponent: CreateEditIdpComponent;
+    // TODO: add create edit idp component
+    // @ViewChild(CreateEditIdpComponent)
+    // createEditEndpointComponent: CreateEditIdpComponent;
 
     @ViewChild('confirmationDialog')
     confirmationDialogComponent: ConfirmationDialogComponent;
 
-    targets: Registry[];
-    target: Registry;
+    targets: FederatedIdp[];
+    target: FederatedIdp;
 
     targetName: string;
     subscription: Subscription;
 
     loading: boolean = true;
 
-    creationTimeComparator: Comparator<Registry> =
-        new CustomComparator<Registry>('creation_time', 'date');
+    creationTimeComparator: Comparator<FederatedIdp> =
+        new CustomComparator<FederatedIdp>('creation_time', 'date');
 
     timerHandler: any;
-    selectedRow: Registry[] = [];
+    selectedRow: FederatedIdp[] = [];
 
-  // TODO:remove the registry and create idp
-    get initIdp(): Registry {
+    // TODO:remove the registry and create idp
+    get initIdp(): FederatedIdp {
         return {
-            credential: {
-                access_key: '',
-                access_secret: '',
-                type: '',
-            },
-            description: '',
-            insecure: false,
+            id: undefined,
             name: '',
-            type: '',
-            url: '',
+            description: '',
+            issuer: '',
+            supported_algorithms: [],
+            claims_supported: [],
+            offline_validation: false,
+            openid_config_url: '',
+            jwks_uri: '',
+            jwks_keys: {},
+            project_id: undefined,
+            creation_time: '',
+            update_time: '',
         };
     }
 
@@ -104,12 +110,12 @@ export class IdpComponent implements OnInit, OnDestroy {
     page: number = 1;
     total: number = 0;
     constructor(
-        private endpointService: RegistryService,
+        private idpService: FederatedIdpService,
         private errorHandlerEntity: ErrorHandler,
         private translateService: TranslateService,
-        private operationService: OperationService,
-        private oldEndpointService: EndpointService
-    ) {}
+        private operationService: OperationService
+    ) // private oldEndpointService: EndpointService
+    {}
 
     ngOnInit(): void {
         this.targetName = '';
@@ -146,8 +152,8 @@ export class IdpComponent implements OnInit, OnDestroy {
             sort = `-creation_time`;
         }
         this.loading = true;
-        this.endpointService
-            .listRegistriesResponse({
+        this.idpService
+            .ListFederatedIdps({
                 q: q,
                 pageSize: this.pageSize,
                 page: this.page,
@@ -160,15 +166,16 @@ export class IdpComponent implements OnInit, OnDestroy {
             )
             .subscribe(
                 response => {
+                    console.log('response: ', response);
                     // Get total count
-                    if (response.headers) {
-                        let xHeader: string =
-                            response.headers.get('X-Total-Count');
-                        if (xHeader) {
-                            this.total = parseInt(xHeader, 0);
-                        }
-                    }
-                    this.targets = response.body || [];
+                    // if (response) {
+                    //     let xHeader: string =
+                    //         response.headers.get('X-Total-Count');
+                    //     if (xHeader) {
+                    //         this.total = parseInt(xHeader, 0);
+                    //     }
+                    // }
+                    this.targets = response || [];
                 },
                 error => {
                     this.errorHandlerEntity.error(error);
@@ -199,11 +206,11 @@ export class IdpComponent implements OnInit, OnDestroy {
     editTargets(targets: Registry[]) {
         if (targets && targets.length === 1) {
             let target = targets[0];
-            let editable = true;
+            // let editable = true;
             if (!target.id) {
                 return;
             }
-            let id: number | string = target.id;
+            // let id: number | string = target.id;
             // this.createEditEndpointComponent.openCreateEditTarget(editable, id);
         }
     }
@@ -261,8 +268,8 @@ export class IdpComponent implements OnInit, OnDestroy {
         operMessage.state = OperationState.progressing;
         operMessage.data.name = target.name;
         this.operationService.publishInfo(operMessage);
-        return this.endpointService
-            .deleteRegistry({
+        return this.idpService
+            .DeleteFederatedIdp({
                 id: target.id,
             })
             .pipe(
@@ -289,6 +296,6 @@ export class IdpComponent implements OnInit, OnDestroy {
             );
     }
     getAdapterText(adapter: string): string {
-        return this.oldEndpointService.getAdapterText(adapter);
+        return 'ithaandda adapter text';
     }
 }

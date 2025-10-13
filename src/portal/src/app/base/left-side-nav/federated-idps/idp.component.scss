@@ -1,0 +1,27 @@
+.flex-min-width {
+  min-width: 180px;
+}
+
+.truncated {
+  width: 200px;
+  line-height: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.truncate {
+  width: 100px;           /* 👈 set your desired fixed width */
+  white-space: nowrap;    /* 👈 keep text on a single line */
+  overflow: hidden;       /* 👈 hide overflow */
+  text-overflow: ellipsis;/* 👈 show '...' for overflow */
+}
+.width-p-100 {
+  width: 100%;
+
+  .lg {
+    width: 550px;
+  }
+}

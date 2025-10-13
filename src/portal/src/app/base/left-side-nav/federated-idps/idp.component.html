@@ -4,13 +4,13 @@
         <div>
             <div class="row flex-items-xs-between rightPos">
                 <div class="flex-items-xs-middle option-right">
-                    <hbr-filter
-                        [withDivider]="true"
-                        filterPlaceholder="{{
-                            'FEDERATED_IDPS.FILTER_PLACEHOLDER' | translate
-                        }}"
-                        (filterEvt)="doSearchTargets($event)"
-                        [currentValue]="targetName"></hbr-filter>
+                    <!-- <hbr-filter -->
+                    <!--     [withDivider]="true" -->
+                    <!--     filterPlaceholder="{{ -->
+                    <!--         'FEDERATED_IDPS.FILTER_PLACEHOLDER' | translate -->
+                    <!--     }}" -->
+                    <!--     (filterEvt)="doSearchTargets($event)" -->
+                    <!--     [currentValue]="targetName"></hbr-filter> -->
                     <span class="refresh-btn" (click)="refreshTargets()">
                         <clr-icon shape="refresh"></clr-icon>
                     </span>
@@ -62,10 +62,10 @@
                 <clr-dg-column>{{
                     'FEDERATED_IDPS.OFFLINE_VALIDATION' | translate
                 }}</clr-dg-column>
-                <clr-dg-column >{{
+                <clr-dg-column>{{
                     'FEDERATED_IDPS.SUPPORTED_ALGORITHMS' | translate
                 }}</clr-dg-column>
-                <clr-dg-column>{{
+                <clr-dg-column class="truncated">{{
                     'FEDERATED_IDPS.SUPPORTED_CLAIMS' | translate
                 }}</clr-dg-column>
                 <clr-dg-column [clrDgSortBy]="'creation_time'">{{
@@ -82,17 +82,22 @@
                         t.name
                     }}</clr-dg-cell>
                     <clr-dg-cell class="flex-min-width">{{
-                        t.url
+                        t.issuer
                     }}</clr-dg-cell>
                     <clr-dg-cell>
-                        <span class="margin-right-2px">{{
-                            getAdapterText(t.type)
-                        }}</span>
+                        {{ t.offline_validation }}
                     </clr-dg-cell>
-                    <clr-dg-cell>
-                        {{ !t.insecure }}
-                    </clr-dg-cell>
-                    <clr-dg-cell>{{ t.credential.type }}</clr-dg-cell>
+                    <clr-dg-cell>{{ t.supported_algorithms }}</clr-dg-cell>
+                    <clr-dg-cell>{{ t.claims_supported }}</clr-dg-cell>
+                    <!-- <clr-dg-cell> -->
+                    <!--     <span class="margin-right-2px">{{ -->
+                    <!--         getAdapterText(t.type) -->
+                    <!--     }}</span> -->
+                    <!-- </clr-dg-cell> -->
+                    <!-- <clr-dg-cell> -->
+                    <!--     {{ !t.insecure }} -->
+                    <!-- </clr-dg-cell> -->
+                    <!-- <clr-dg-cell>{{ t.credential.type }}</clr-dg-cell> -->
                     <clr-dg-cell>{{
                         t.creation_time | harborDatetime : 'short'
                     }}</clr-dg-cell>
@@ -124,5 +129,5 @@
     <confirmation-dialog
         #confirmationDialog
         (confirmAction)="confirmDeletion($event)"></confirmation-dialog>
-    <hbr-create-edit-idp (reload)="refreshTargets()"></hbr-create-edit-idp>
+    <!-- <hbr-create-edit-idp (reload)="refreshTargets()"></hbr-create-edit-idp> -->
 </div>

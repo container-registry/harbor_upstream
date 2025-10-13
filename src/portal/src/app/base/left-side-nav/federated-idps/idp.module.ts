@@ -15,7 +15,8 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { SharedModule } from '../../../shared/shared.module';
 import { IdpComponent } from './idp.component';
-import { CreateEditIdpComponent } from './create-edit-idp/create-edit-idp.component';
+// import { CreateEditIdpComponent } from './create-edit-idp/create-edit-idp.component';
+import { FederatedIdpService } from 'ng-swagger-gen/services';
 // import { I } from './endpoint.component';
 // import { CreateEditEndpointComponent } from './create-edit-endpoint/create-edit-endpoint.component';
 
@@ -27,6 +28,7 @@ const routes: Routes = [
 ];
 @NgModule({
     imports: [SharedModule, RouterModule.forChild(routes)],
-    declarations: [IdpComponent, CreateEditIdpComponent],
+    declarations: [IdpComponent],
+    providers: [FederatedIdpService],
 })
 export class IdpModule {}
