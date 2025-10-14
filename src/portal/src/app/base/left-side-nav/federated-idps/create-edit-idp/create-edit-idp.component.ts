@@ -60,6 +60,7 @@ export class CreateEditIdpComponent
     adapterList: string[];
     endpointList: any[] = [];
     target: FederatedIdp = this.initIdp();
+    openIDConfigJSON: string;
     initVal: FederatedIdp;
     targetForm: NgForm;
     @ViewChild('targetForm') currentForm: NgForm;

@@ -7,43 +7,8 @@
         <inline-alert
             class="modal-title"
             (confirmEvt)="confirmCancel($event)"></inline-alert>
-        <div class="alert alert-warning" *ngIf="!editable">
-            <div class="alert-item static">
-                <span class="alert-text">
-                    {{ 'DESTINATION.CANNOT_EDIT' | translate }}
-                </span>
-            </div>
-        </div>
         <form #targetForm="ngForm" class="clr-form clr-form-horizontal">
-            <!-- provider -->
-            <!-- <clr-select-container> -->
-            <!--     <label class="required">{{ -->
-            <!--         'DESTINATION.PROVIDER' | translate -->
-            <!--     }}</label> -->
-            <!--     <select -->
-            <!--         clrSelect -->
-            <!--         name="adapter" -->
-            <!--         id="adapter" -->
-            <!--         (change)="adapterChange($event)" -->
-            <!--         [(ngModel)]="target.type" -->
-            <!--         [disabled]="testOngoing || editDisabled"> -->
-            <!--         <ng-container *ngIf="!editDisabled"> -->
-            <!--             <option -->
-            <!--                 *ngFor="let adapter of adapterList" -->
-            <!--                 value="{{ adapter }}"> -->
-            <!--                 {{ getAdapterText(adapter) }} -->
-            <!--             </option> -->
-            <!--         </ng-container> -->
-            <!--         <ng-container *ngIf="editDisabled"> -->
-            <!--             <option -->
-            <!--                 *ngFor="let adapter of [target.type]" -->
-            <!--                 value="{{ adapter }}"> -->
-            <!--                 {{ getAdapterText(adapter) }} -->
-            <!--             </option> -->
-            <!--         </ng-container> -->
-            <!--     </select> -->
-            <!-- </clr-select-container> -->
-            <!-- Endpoint name -->
+            <!-- Federated IDP name -->
             <clr-input-container>
                 <label class="required">{{
                     'DESTINATION.NAME' | translate
@@ -52,7 +17,7 @@
                     autocomplete="off"
                     clrInput
                     type="text"
-                    id="destination_name"
+                    id="idp_name"
                     [disabled]="testOngoing"
                     [readonly]="!editable"
                     [(ngModel)]="target.name"
@@ -80,12 +45,44 @@
                     name="description"
                     [(ngModel)]="target.description"></textarea>
             </clr-textarea-container>
-            <!-- Endpoint Url -->
+            <!-- Offline Validation -->
+                  <div class="clr-checkbox-wrapper mt-16">
+                        <input
+                            type="checkbox"
+                            class="clr-checkbox"
+                            [checked]="false"
+                            id="offlineValidation"
+                            formControlName="offline_validation" />
+                        <label
+                            class="clr-control-label event-label"
+                            for="offlineValidation"
+                            >{{
+                                'FEDERATED_IDPS.OFFLINE_VALIDATION' | translate
+                            }}
+                            <clr-tooltip>
+                                <clr-icon
+                                    clrTooltipTrigger
+                                    shape="info-circle"
+                                    size="24"></clr-icon>
+                                <clr-tooltip-content
+                                    clrSize="lg"
+                                    *clrIfOpen>
+                                    <span>
+                                        {{
+                                            'FEDERATED_IDPS.OFFLINE_VALIDATION_TOOLTIP'
+                                                | translate
+                                        }}
+                                    </span>
+                                </clr-tooltip-content>
+                            </clr-tooltip>
+                        </label>
+                    </div>
+            <!-- OpenIDConfig URL -->
             <div class="clr-form-control">
                 <label
-                    for="destination_url"
+                    for="idp_url"
                     class="required clr-control-label"
-                    >{{ 'DESTINATION.URL' | translate }}</label
+                    >{{ 'FEDERATED_IDPS.OPENIDCONFIG_URL' | translate }}</label
                 >
                 <div
                     class="clr-control-container"
@@ -123,19 +120,19 @@
                             #targetEndpoint="ngModel"
                             required
                             placeholder="http(s)://192.168.1.1" />
-                        <div
-                            class="selectBox"
-                            (mouseleave)="endpointOnHover = false"
-                            (mouseover)="endpointOnHover = true"
-                            *ngIf="endpointList?.length && showEndpointList">
-                            <ul>
-                                <li
-                                    *ngFor="let endpoint of endpointList"
-                                    (click)="selectedEndpoint(endpoint.value)">
-                                    {{ endpoint.key }}
-                                </li>
-                            </ul>
-                        </div>
+                        <!-- <div -->
+                        <!--     class="selectBox" -->
+                        <!--     (mouseleave)="endpointOnHover = false" -->
+                        <!--     (mouseover)="endpointOnHover = true" -->
+                        <!--     *ngIf="endpointList?.length && showEndpointList"> -->
+                        <!--     <ul> -->
+                        <!--         <li -->
+                        <!--             *ngFor="let endpoint of endpointList" -->
+                        <!--             (click)="selectedEndpoint(endpoint.value)"> -->
+                        <!--             {{ endpoint.key }} -->
+                        <!--         </li> -->
+                        <!--     </ul> -->
+                        <!-- </div> -->
                         <clr-icon
                             *ngIf="
                                 !showEndpointList &&
@@ -157,6 +154,18 @@
                     </clr-control-error>
                 </div>
             </div>
+            <!-- Mannual OpenIDConfig -->
+            <clr-textarea-container>
+                <label>{{ 'FEDERATED_IDPS.MANNUAL_OPENIDCONFIG' | translate }}</label>
+                <textarea
+                    clrTextarea
+                    type="text"
+                    class="inputWidth"
+                    row="3"
+                    name="openidconfig"
+                    [(ngModel)]="openIDConfigJSON"></textarea>
+            </clr-textarea-container>
+
             <!-- access_key -->
             <clr-input-container>
                 <label>{{ 'DESTINATION.ACCESS_ID' | translate }}</label>
