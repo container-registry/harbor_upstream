@@ -574,6 +574,16 @@
         "OFFLINE_VALIDATION": "Offline Validation",
         "SUPPORTED_ALGORITHMS": "Supported Algorithms",
         "NEW_IDP": "New Federated IDP",
+        "UPDATED_SUCCESS": "Updated federated IDP successfully",
+        "CREATED_SUCCESS": "Created federated IDP successfully",
+        "UPDATED_SUCCESS": "Updated federated IDP successfully.",
+        "DELETED_SUCCESS": "Deleted federated IDP successfully.",
+        "DELETED_FAILED": "Deleted federated IDP failed.",
+        "TITLE_EDIT": "Edit Federated IDP",
+        "TITLE_ADD": "New Federated IDP",
+        "OPENIDCONFIG_URL": "OpenIDConfig URL",
+        "MANNUAL_OPENIDCONFIG": "OpenIDConfig JSON",
+        "OFFLINE_VALIDATION_TOOLTIP": "Skip remote validation of idp and use provided jwks instead",
         "SUPPORTED_CLAIMS": "Supported Claims"
     },
     "REPLICATION": {
