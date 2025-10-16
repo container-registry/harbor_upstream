@@ -61,6 +61,7 @@ export class CreateEditIdpComponent
     endpointList: any[] = [];
     target: FederatedIdp = this.initIdp();
     openIDConfigJSON: string;
+    jwksKeys: string;
     initVal: FederatedIdp;
     targetForm: NgForm;
     @ViewChild('targetForm') currentForm: NgForm;

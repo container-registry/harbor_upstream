@@ -210,22 +210,22 @@
             </clr-textarea-container>
             <!-- Mannual JWKS Keys -->
             <clr-textarea-container>
-                <label>{{
-                    'FEDERATED_IDPS.MANNUAL_OPENIDCONFIG' | translate
-                }}</label>
+                <label>{{ 'FEDERATED_IDPS.JWKS_KEYS' | translate }}</label>
                 <textarea
                     clrTextarea
                     type="text"
                     class="inputWidth"
                     row="3"
-                    name="openidconfig"
-                    [(ngModel)]="openIDConfigJSON"></textarea>
+                    name="jwks_keys"
+                    [(ngModel)]="jwksKeys"></textarea>
             </clr-textarea-container>
 
-            <button type="button" class="btn btn-outline" (click)="addClaim()">
-                {{ 'BUTTON.ADD_MORE' | translate }}
-            </button>
-
+            <!-- add heading saying Add Claims -->
+            <div class="form-group-label-override">
+                <label class="required clr-control-label mt-16"
+                    >Add Claims</label
+                >
+            </div>
             <clr-input-container *ngFor="let claim of claims; let i = index">
                 <input
                     class="mr-10"
@@ -245,73 +245,19 @@
                     size="30"
                     name="claim_value_{{ i }}" />
             </clr-input-container>
+
             <button
                 type="button"
-                class="btn btn-outline"
-                (click)="removeClaim()">
-                Remove
+                class="btn btn-primary mt-16"
+                (click)="addClaim()">
+                {{ 'BUTTON.ADD_MORE' | translate }}
             </button>
-
-            <clr-textarea-container>
-                <label>{{
-                    'FEDERATED_IDPS.MANNUAL_OPENIDCONFIG' | translate
-                }}</label>
-                <textarea
-                    clrTextarea
-                    type="text"
-                    class="inputWidth"
-                    row="3"
-                    name="openidconfig"
-                    [(ngModel)]="openIDConfigJSON"></textarea>
-            </clr-textarea-container>
-
-            <!-- access_key -->
-            <clr-input-container>
-                <label>{{ 'DESTINATION.ACCESS_ID' | translate }}</label>
-                <input
-                    autocomplete="off"
-                    clrInput
-                    type="text"
-                    placeholder="Access ID"
-                    id="destination_access_key"
-                    [disabled]="testOngoing"
-                    size="30"
-                    name="access_key" />
-            </clr-input-container>
-            <!-- access_secret -->
-            <div class="clr-form-control">
-                <label for="destination_password" class="clr-control-label">{{
-                    'DESTINATION.ACCESS_SECRET' | translate
-                }}</label>
-                <div class="clr-control-container">
-                    <div class="clr-textarea-wrapper mt-0">
-                        <input
-                            autocomplete="off"
-                            class="clr-input"
-                            type="password"
-                            placeholder="Access Secret"
-                            id="destination_password"
-                            [disabled]="testOngoing"
-                            [readonly]="!editable"
-                            size="30"
-                            name="access_secret" />
-                        <ng-template #gcr_secret>
-                            <textarea
-                                autocomplete="off"
-                                type="text"
-                                row="3"
-                                placeholder="Json Secret"
-                                class="clr-textarea"
-                                id="destination_password"
-                                [disabled]="testOngoing"
-                                [readonly]="!editable"
-                                [(ngModel)]="target.credential.access_secret"
-                                name="access_secret"
-                                #access_secret="ngModel"></textarea>
-                        </ng-template>
-                    </div>
-                </div>
-            </div>
+            <button
+                type="button"
+                class="btn btn-danger mt-16"
+                (click)="removeClaim()">
+                Remove Claim
+            </button>
         </form>
     </div>
     <div class="modal-footer">
