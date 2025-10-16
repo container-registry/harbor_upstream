@@ -88,7 +88,9 @@
                         {{ t.offline_validation }}
                     </clr-dg-cell>
                     <clr-dg-cell>{{ t.supported_algorithms }}</clr-dg-cell>
-                    <clr-dg-cell>{{ getSupportedClaims(t.claims_supported) }}</clr-dg-cell>
+                    <clr-dg-cell>{{
+                        getSupportedClaims(t.claims_supported)
+                    }}</clr-dg-cell>
                     <!-- <clr-dg-cell> -->
                     <!--     <span class="margin-right-2px">{{ -->
                     <!--         getAdapterText(t.type) -->

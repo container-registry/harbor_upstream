@@ -16,7 +16,7 @@ import {
     OnInit,
     OnDestroy,
     ViewChild,
-    Injectable,
+    AfterViewInit,
 } from '@angular/core';
 import {
     Subscription,
@@ -65,15 +65,15 @@ import { FederatedIdp } from 'ng-swagger-gen/models';
 import { FederatedIdpService } from 'ng-swagger-gen/services';
 import { CreateEditIdpComponent } from './create-edit-idp/create-edit-idp.component';
 
-@Injectable({
-    providedIn: 'root',
-})
+// @Injectable({
+//     providedIn: 'root',
+// })
 @Component({
     selector: 'federated-idps',
     templateUrl: './idp.component.html',
     styleUrls: ['./idp.component.scss'],
 })
-export class IdpComponent implements OnInit, OnDestroy {
+export class IdpComponent implements OnInit, OnDestroy, AfterViewInit {
     clrPageSizeOptions: number[] = PAGE_SIZE_OPTIONS;
     // TODO: add create edit idp component
     @ViewChild(CreateEditIdpComponent)
@@ -132,7 +132,8 @@ export class IdpComponent implements OnInit, OnDestroy {
     }
 
     ngAfterViewInit() {
-        console.log('createEditIdpComponent:', this.CreateEditIdpComponent);
+        return;
+        // console.log('createEditIdpComponent:', this.CreateEditIdpComponent);
     }
 
     ngOnDestroy(): void {
@@ -180,7 +181,7 @@ export class IdpComponent implements OnInit, OnDestroy {
             )
             .subscribe(
                 response => {
-                    console.log('response: ', response);
+                    // console.log('response: ', response);
                     // Get total count
                     // if (response) {
                     //     let xHeader: string =
