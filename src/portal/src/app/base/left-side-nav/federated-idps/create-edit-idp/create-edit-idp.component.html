@@ -46,44 +46,47 @@
                     [(ngModel)]="target.description"></textarea>
             </clr-textarea-container>
             <!-- Offline Validation -->
-                  <div class="clr-checkbox-wrapper mt-16">
-                        <input
-                            type="checkbox"
-                            class="clr-checkbox"
-                            [checked]="false"
-                            id="offlineValidation"
-                            formControlName="offline_validation" />
-                        <label
-                            class="clr-control-label event-label"
-                            for="offlineValidation"
-                            >{{
-                                'FEDERATED_IDPS.OFFLINE_VALIDATION' | translate
+            <clr-checkbox-container>
+                <label
+                    class="destination-insecure-label"
+                    id="offline_validation_checkbox"
+                    for="offline_validation"
+                    ><span>{{
+                        'FEDERATED_IDPS.OFFLINE_VALIDATION' | translate
+                    }}</span>
+                    <clr-tooltip>
+                        <clr-icon
+                            clrTooltipTrigger
+                            shape="info-circle"
+                            size="24"></clr-icon>
+                        <clr-tooltip-content
+                            clrPosition="top-right"
+                            clrSize="md"
+                            *clrIfOpen>
+                            {{
+                                'FEDERATED_IDPS.OFFLINE_VALIDATION_TOOLTIP'
+                                    | translate
                             }}
-                            <clr-tooltip>
-                                <clr-icon
-                                    clrTooltipTrigger
-                                    shape="info-circle"
-                                    size="24"></clr-icon>
-                                <clr-tooltip-content
-                                    clrSize="lg"
-                                    *clrIfOpen>
-                                    <span>
-                                        {{
-                                            'FEDERATED_IDPS.OFFLINE_VALIDATION_TOOLTIP'
-                                                | translate
-                                        }}
-                                    </span>
-                                </clr-tooltip-content>
-                            </clr-tooltip>
-                        </label>
-                    </div>
+                        </clr-tooltip-content>
+                    </clr-tooltip>
+                </label>
+                <clr-checkbox-wrapper>
+                    <input
+                        type="checkbox"
+                        clrCheckbox
+                        #offline_validation
+                        id="offline_validation"
+                        [disabled]="testOngoing || !editable"
+                        name="offline_validation"
+                        [ngModel]="!target.offline_validation"
+                        (ngModelChange)="setOfflineValidation($event)" />
+                </clr-checkbox-wrapper>
+            </clr-checkbox-container>
             <!-- OpenIDConfig URL -->
             <div class="clr-form-control">
-                <label
-                    for="idp_url"
-                    class="required clr-control-label"
-                    >{{ 'FEDERATED_IDPS.OPENIDCONFIG_URL' | translate }}</label
-                >
+                <label for="idp_url" class="required clr-control-label">{{
+                    'FEDERATED_IDPS.OPENIDCONFIG_URL' | translate
+                }}</label>
                 <div
                     class="clr-control-container"
                     [class.clr-error]="
@@ -119,7 +122,7 @@
                             name="endpointUrl"
                             #targetEndpoint="ngModel"
                             required
-                            placeholder="http(s)://192.168.1.1" />
+                            placeholder="https://kubernetes.cluster.com" />
                         <!-- <div -->
                         <!--     class="selectBox" -->
                         <!--     (mouseleave)="endpointOnHover = false" -->
@@ -154,9 +157,105 @@
                     </clr-control-error>
                 </div>
             </div>
+            <!-- JWKS URI -->
+            <div class="clr-form-control">
+                <label for="jwks_uri" class="required clr-control-label">{{
+                    'FEDERATED_IDPS.JWKS_URI' | translate
+                }}</label>
+                <div
+                    class="clr-control-container"
+                    [class.clr-error]="
+                        targetEndpoint?.errors &&
+                        targetEndpoint.errors.required &&
+                        (targetEndpoint.dirty || targetEndpoint.touched)
+                    ">
+                    <div class="clr-input-wrapper position-relative">
+                        <input
+                            autocomplete="off"
+                            (blur)="blur()"
+                            class="clr-input endpoint-input"
+                            type="text"
+                            id="jwks_uri"
+                            [readonly]="!editable"
+                            [(ngModel)]="target.issuer"
+                            size="28"
+                            name="jwks_uri"
+                            #targetEndpoint="ngModel"
+                            required
+                            placeholder="https://kubernetes.cluster.com/.well-known/jwks" />
+                    </div>
+                    <clr-control-error
+                        *ngIf="
+                            !showEndpointList &&
+                            targetEndpoint?.errors &&
+                            targetEndpoint.errors.required &&
+                            (targetEndpoint.dirty || targetEndpoint.touched)
+                        ">
+                        {{ 'FEDERATED_IDPS.JWKS_URI_REQUIRED' | translate }}
+                    </clr-control-error>
+                </div>
+            </div>
             <!-- Mannual OpenIDConfig -->
             <clr-textarea-container>
-                <label>{{ 'FEDERATED_IDPS.MANNUAL_OPENIDCONFIG' | translate }}</label>
+                <label>{{
+                    'FEDERATED_IDPS.MANNUAL_OPENIDCONFIG' | translate
+                }}</label>
+                <textarea
+                    clrTextarea
+                    type="text"
+                    class="inputWidth"
+                    row="3"
+                    name="openidconfig"
+                    [(ngModel)]="openIDConfigJSON"></textarea>
+            </clr-textarea-container>
+            <!-- Mannual JWKS Keys -->
+            <clr-textarea-container>
+                <label>{{
+                    'FEDERATED_IDPS.MANNUAL_OPENIDCONFIG' | translate
+                }}</label>
+                <textarea
+                    clrTextarea
+                    type="text"
+                    class="inputWidth"
+                    row="3"
+                    name="openidconfig"
+                    [(ngModel)]="openIDConfigJSON"></textarea>
+            </clr-textarea-container>
+
+            <button type="button" class="btn btn-outline" (click)="addClaim()">
+                {{ 'BUTTON.ADD_MORE' | translate }}
+            </button>
+
+            <clr-input-container *ngFor="let claim of claims; let i = index">
+                <input
+                    class="mr-10"
+                    autocomplete="off"
+                    clrInput
+                    type="text"
+                    placeholder="Claim Path"
+                    [(ngModel)]="claim.path"
+                    size="10"
+                    name="claim_path_{{ i }}" />
+                <input
+                    autocomplete="off"
+                    clrInput
+                    type="text"
+                    placeholder="Claim Value"
+                    [(ngModel)]="claim.value"
+                    size="30"
+                    name="claim_value_{{ i }}" />
+            </clr-input-container>
+            <button
+                type="button"
+                class="btn btn-outline"
+                (click)="removeClaim()">
+                Remove
+            </button>
+
+            <clr-textarea-container>
+                <label>{{
+                    'FEDERATED_IDPS.MANNUAL_OPENIDCONFIG' | translate
+                }}</label>
                 <textarea
                     clrTextarea
                     type="text"
@@ -177,8 +276,7 @@
                     id="destination_access_key"
                     [disabled]="testOngoing"
                     size="30"
-                    name="access_key"
-                     />
+                    name="access_key" />
             </clr-input-container>
             <!-- access_secret -->
             <div class="clr-form-control">
@@ -196,8 +294,7 @@
                             [disabled]="testOngoing"
                             [readonly]="!editable"
                             size="30"
-                            name="access_secret"
-                            />
+                            name="access_secret" />
                         <ng-template #gcr_secret>
                             <textarea
                                 autocomplete="off"
@@ -215,40 +312,6 @@
                     </div>
                 </div>
             </div>
-            <!-- Verify Remote Cert -->
-            <clr-checkbox-container>
-                <label
-                    class="destination-insecure-label"
-                    id="destination_insecure_checkbox"
-                    for="destination_insecure"
-                    ><span>{{ 'CONFIG.VERIFY_REMOTE_CERT' | translate }}</span>
-                    <clr-tooltip>
-                        <clr-icon
-                            clrTooltipTrigger
-                            shape="info-circle"
-                            size="24"></clr-icon>
-                        <clr-tooltip-content
-                            clrPosition="top-right"
-                            clrSize="md"
-                            *clrIfOpen>
-                            {{
-                                'CONFIG.TOOLTIP.VERIFY_REMOTE_CERT' | translate
-                            }}
-                        </clr-tooltip-content>
-                    </clr-tooltip>
-                </label>
-                <clr-checkbox-wrapper>
-                    <input
-                        type="checkbox"
-                        clrCheckbox
-                        #insecure
-                        id="destination_insecure"
-                        [disabled]="testOngoing || !editable"
-                        name="insecure"
-                        [ngModel]="!target.offline_validation"
-                        (ngModelChange)="setOfflineValidation($event)" />
-                </clr-checkbox-wrapper>
-            </clr-checkbox-container>
         </form>
     </div>
     <div class="modal-footer">

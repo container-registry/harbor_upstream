@@ -68,6 +68,9 @@ export class CreateEditIdpComponent
     onGoing: boolean;
     idpId: number | string;
 
+    // Array to store claim data
+    claims: { path: string; value: string }[] = [{ path: '', value: '' }];
+
     @ViewChild(InlineAlertComponent) inlineAlert: InlineAlertComponent;
 
     @Output() reload = new EventEmitter<boolean>();
@@ -89,6 +92,7 @@ export class CreateEditIdpComponent
     ) {}
 
     ngOnInit(): void {
+        return;
         // this.getAdapters();
         // this.getAdapterInfo();
     }
@@ -122,6 +126,23 @@ export class CreateEditIdpComponent
 
     setOfflineValidation($event: any) {
         this.target.offline_validation = !$event;
+    }
+
+    // Function to add a new claim pair
+    addClaim(): void {
+        this.claims.push({ path: '', value: '' });
+    }
+
+    removeClaim(): void {
+        // Remove the last claim from the claims Array
+        if (this.claims.length === 1) {
+            return;
+        }
+        // this.claims.pop();
+        // get the length of the claims Array
+        const length = this.claims.length;
+        // remove the claim at the specified index
+        this.claims.splice(length - 1, 1);
     }
 
     ngOnDestroy(): void {
