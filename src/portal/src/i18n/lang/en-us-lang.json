@@ -22,6 +22,7 @@
         "TITLE": "Sign Up"
     },
     "BUTTON": {
+        "ADD_MORE": "+ ADD MORE",
         "STOP": "STOP",
         "CANCEL": "CANCEL",
         "OK": "OK",
@@ -572,6 +573,7 @@
         "ISSUER": "Issuer",
         "ISSUER_TOOLTIP": "The issuer of the IDP. This is the entity that issues ID tokens to users.",
         "OFFLINE_VALIDATION": "Offline Validation",
+        "OFFLINE_VALIDATION_TOOLTIP": "Skip remote validation of idp and use provided jwks instead",
         "SUPPORTED_ALGORITHMS": "Supported Algorithms",
         "NEW_IDP": "New Federated IDP",
         "UPDATED_SUCCESS": "Updated federated IDP successfully",
@@ -583,7 +585,10 @@
         "TITLE_ADD": "New Federated IDP",
         "OPENIDCONFIG_URL": "OpenIDConfig URL",
         "MANNUAL_OPENIDCONFIG": "OpenIDConfig JSON",
-        "OFFLINE_VALIDATION_TOOLTIP": "Skip remote validation of idp and use provided jwks instead",
+        "JWKS_URI": "JWKS URI",
+        "JWKS_URI_REQUIRED": "JWKS URI is required",
+        "JWKS_KEYS": "JWKS Keys",
+        "JWKS_KEYS_REQUIRED": "JWKS Keys is required for offline validation",
         "SUPPORTED_CLAIMS": "Supported Claims"
     },
     "REPLICATION": {
