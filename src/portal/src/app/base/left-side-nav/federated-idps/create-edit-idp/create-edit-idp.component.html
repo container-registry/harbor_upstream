@@ -83,90 +83,109 @@
             </clr-checkbox-container>
             <!-- OpenIDConfig URL -->
             <div class="clr-form-control">
-                <label for="idp_url" class="required clr-control-label">{{
-                    'FEDERATED_IDPS.OPENIDCONFIG_URL' | translate
-                }}</label>
+                <label for="openidconfig_url" class="required clr-control-label">
+                    {{ 'FEDERATED_IDPS.OPENIDCONFIG_URL' | translate }}
+                </label>
                 <div
                     class="clr-control-container"
                     [class.clr-error]="
-                        targetEndpoint?.errors &&
-                        targetEndpoint.errors.required &&
-                        (targetEndpoint.dirty || targetEndpoint.touched)
+                        openidConfigUrl?.errors &&
+                        openidConfigUrl.errors.required &&
+                        (openidConfigUrl.dirty || openidConfigUrl.touched)
                     ">
                     <div class="clr-input-wrapper position-relative">
-                        <clr-icon
-                            *ngIf="
-                                !(
-                                    !showEndpointList &&
-                                    targetEndpoint?.errors &&
-                                    targetEndpoint.errors.required &&
-                                    (targetEndpoint.dirty ||
-                                        targetEndpoint.touched)
-                                ) && endpointList?.length
-                            "
-                            class="down"
-                            shape="caret"
-                            dir="down"
-                            (click)="showEndpointList = true"></clr-icon>
                         <input
                             autocomplete="off"
                             (blur)="blur()"
                             (focus)="showEndpointList = true"
                             class="clr-input endpoint-input"
                             type="text"
-                            id="destination_url"
+                            id="openidconfig_url"
                             [readonly]="!editable"
-                            [(ngModel)]="target.issuer"
+                            [(ngModel)]="target.openid_config_url"
                             size="28"
-                            name="endpointUrl"
-                            #targetEndpoint="ngModel"
+                            name="openidconfig_url"
+                            #openidConfigUrl="ngModel"
                             required
-                            placeholder="https://kubernetes.cluster.com" />
-                        <!-- <div -->
-                        <!--     class="selectBox" -->
-                        <!--     (mouseleave)="endpointOnHover = false" -->
-                        <!--     (mouseover)="endpointOnHover = true" -->
-                        <!--     *ngIf="endpointList?.length && showEndpointList"> -->
-                        <!--     <ul> -->
-                        <!--         <li -->
-                        <!--             *ngFor="let endpoint of endpointList" -->
-                        <!--             (click)="selectedEndpoint(endpoint.value)"> -->
-                        <!--             {{ endpoint.key }} -->
-                        <!--         </li> -->
-                        <!--     </ul> -->
-                        <!-- </div> -->
+                            placeholder="https://kubernetes.cluster.com/.well-known/openid-configuration" />
                         <clr-icon
                             *ngIf="
-                                !showEndpointList &&
-                                targetEndpoint?.errors &&
-                                targetEndpoint.errors.required &&
-                                (targetEndpoint.dirty || targetEndpoint.touched)
+                                openidConfigUrl?.errors &&
+                                openidConfigUrl.errors.required &&
+                                (openidConfigUrl.dirty || openidConfigUrl.touched)
                             "
                             class="clr-validate-icon"
-                            shape="exclamation-circle"></clr-icon>
+                            shape="exclamation-circle">
+                        </clr-icon>
                     </div>
                     <clr-control-error
                         *ngIf="
-                            !showEndpointList &&
-                            targetEndpoint?.errors &&
-                            targetEndpoint.errors.required &&
-                            (targetEndpoint.dirty || targetEndpoint.touched)
+                            openidConfigUrl?.errors &&
+                            openidConfigUrl.errors.required &&
+                            (openidConfigUrl.dirty || openidConfigUrl.touched)
                         ">
-                        {{ 'DESTINATION.URL_IS_REQUIRED' | translate }}
+                        {{ 'FEDERATED_IDPS.OPENIDCONFIG_URL_REQUIRED' | translate }}
+                    </clr-control-error>
+                </div>
+            </div>
+            <!-- Issuer -->
+            <div class="clr-form-control">
+                <label for="issuer" class="required clr-control-label">
+                    {{ 'FEDERATED_IDPS.ISSUER' | translate }}
+                </label>
+                <div
+                    class="clr-control-container"
+                    [class.clr-error]="
+                         issuer?.errors &&
+                         issuer.errors.required &&
+                         (issuer.dirty || issuer.touched)
+                    ">
+                    <div class="clr-input-wrapper position-relative">
+                        <input
+                            autocomplete="off"
+                            (blur)="blur()"
+                            (focus)="showEndpointList = true"
+                            class="clr-input endpoint-input"
+                            type="text"
+                            id="issuer"
+                            [readonly]="!editable"
+                            [(ngModel)]="target.issuer"
+                            size="28"
+                            name="issuer"
+                            #issuer="ngModel"
+                            required
+                            placeholder="https://kubernetes.cluster.com" />
+                        <clr-icon
+                            *ngIf="
+                                issuer?.errors &&
+                                issuer.errors.required &&
+                                (issuer.dirty || issuer.touched)
+                            "
+                            class="clr-validate-icon"
+                            shape="exclamation-circle">
+                        </clr-icon>
+                    </div>
+                    <clr-control-error
+                        *ngIf="
+                            issuer?.errors &&
+                            issuer.errors.required &&
+                            (issuer.dirty || issuer.touched)
+                        ">
+                        {{ 'FEDERATED_IDPS.ISSUER_REQUIRED' | translate }}
                     </clr-control-error>
                 </div>
             </div>
             <!-- JWKS URI -->
             <div class="clr-form-control">
-                <label for="jwks_uri" class="required clr-control-label">{{
-                    'FEDERATED_IDPS.JWKS_URI' | translate
-                }}</label>
+                <label for="jwks_uri" class="required clr-control-label">
+                    {{ 'FEDERATED_IDPS.JWKS_URI' | translate }}
+                </label>
                 <div
                     class="clr-control-container"
                     [class.clr-error]="
-                        targetEndpoint?.errors &&
-                        targetEndpoint.errors.required &&
-                        (targetEndpoint.dirty || targetEndpoint.touched)
+                        jwksUri?.errors &&
+                        jwksUri.errors.required &&
+                        (jwksUri.dirty || jwksUri.touched)
                     ">
                     <div class="clr-input-wrapper position-relative">
                         <input
@@ -176,19 +195,27 @@
                             type="text"
                             id="jwks_uri"
                             [readonly]="!editable"
-                            [(ngModel)]="target.issuer"
+                            [(ngModel)]="target.jwks_uri"
                             size="28"
                             name="jwks_uri"
-                            #targetEndpoint="ngModel"
+                            #jwksUri="ngModel"
                             required
                             placeholder="https://kubernetes.cluster.com/.well-known/jwks" />
+                        <clr-icon
+                            *ngIf="
+                                jwksUri?.errors &&
+                                jwksUri.errors.required &&
+                                (jwksUri.dirty || jwksUri.touched)
+                            "
+                            class="clr-validate-icon"
+                            shape="exclamation-circle">
+                        </clr-icon>
                     </div>
                     <clr-control-error
                         *ngIf="
-                            !showEndpointList &&
-                            targetEndpoint?.errors &&
-                            targetEndpoint.errors.required &&
-                            (targetEndpoint.dirty || targetEndpoint.touched)
+                            jwksUri?.errors &&
+                            jwksUri.errors.required &&
+                            (jwksUri.dirty || jwksUri.touched)
                         ">
                         {{ 'FEDERATED_IDPS.JWKS_URI_REQUIRED' | translate }}
                     </clr-control-error>
