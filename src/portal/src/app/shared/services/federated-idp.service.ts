@@ -117,6 +117,20 @@ export abstract class FederatedIdpService {
      * @returns {string}
      */
     abstract getIdpTypeLabel(type: string): string;
+
+    /**
+     * Fetch OIDC configuration directly (replaces missing generated client)
+     *
+     * @abstract
+     * @param {string} openidConfigUrl The OpenID Connect discovery document URL
+     * @returns {Observable<any>}
+     */
+    abstract PingFederatedIdpOpenIDConfig(openidConfigUrl: string): Observable<any>;
+
+    /**
+     * Fetch JWKS (JSON Web Key Set) from JWKS URI
+     */
+    abstract PingFederatedIdpJWKS(jwksUri: string): Observable<{ [key: string]: any }>;
 }
 
 /**
@@ -231,5 +245,47 @@ export class FederatedIdpDefaultService extends FederatedIdpService {
             ldap: 'LDAP',
         };
         return IDP_TYPE_MAP[type] || type;
+    }
+
+    public PingFederatedIdpOpenIDConfig(openidConfigUrl: string): Observable<any> {
+        if (!openidConfigUrl) {
+            return observableThrowError('Invalid OpenID Configuration URL.');
+        }
+
+        const requestUrl = `${this._idpUrl}/openid-config`; // 👈 backend endpoint
+        // const requestUrl = this._idpUrl;
+        return this.http
+            .post(
+                requestUrl,
+                { openid_config_url: openidConfigUrl },
+                HTTP_JSON_OPTIONS
+            )
+            .pipe(
+                map(response => response as FederatedIdp[]),
+                catchError(error => observableThrowError(error))
+            );
+
+        // return this.http
+        //     .post<{ [key: string]: any }>(
+        //         requestUrl,
+        //         { openid_config_url: openidConfigUrl }, // 👈 body format expected by backend
+        //         HTTP_JSON_OPTIONS
+        //     )
+        //     .pipe(catchError(error => observableThrowError(error)));
+    }
+
+    public PingFederatedIdpJWKS(jwksUri: string): Observable<{ [key: string]: any }> {
+        if (!jwksUri) {
+            return observableThrowError('Invalid JWKS URI.');
+        }
+
+        const requestUrl = `${this._idpUrl}/jwks`; // 👈 backend endpoint
+        return this.http
+            .post<{ [key: string]: any }>(
+                requestUrl,
+                { jwks: jwksUri }, // 👈 body format expected by backend
+                HTTP_JSON_OPTIONS
+            )
+            .pipe(catchError(error => observableThrowError(error)));
     }
 }
