@@ -60,6 +60,7 @@ export class CreateEditIdpComponent
     adapterList: string[];
     endpointList: any[] = [];
     target: FederatedIdp = this.initIdp();
+    offlineValidation: boolean = false;
     openIDConfigJSON: string;
     jwksKeys: string;
     initVal: FederatedIdp;
@@ -126,7 +127,7 @@ export class CreateEditIdpComponent
     }
 
     setOfflineValidation($event: any) {
-        this.target.offline_validation = !$event;
+        this.target.offline_validation = $event;
     }
 
     // Function to add a new claim pair

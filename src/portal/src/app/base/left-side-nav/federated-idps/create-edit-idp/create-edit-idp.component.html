@@ -76,9 +76,8 @@
                         clrCheckbox
                         #offline_validation
                         id="offline_validation"
-                        [disabled]="testOngoing || !editable"
                         name="offline_validation"
-                        [ngModel]="!target.offline_validation"
+                        [ngModel]="target.offline_validation"
                         (ngModelChange)="setOfflineValidation($event)" />
                 </clr-checkbox-wrapper>
             </clr-checkbox-container>
@@ -206,6 +205,7 @@
                     class="inputWidth"
                     row="3"
                     name="openidconfig"
+                    [disabled]="!target.offline_validation"
                     [(ngModel)]="openIDConfigJSON"></textarea>
             </clr-textarea-container>
             <!-- Mannual JWKS Keys -->
@@ -217,10 +217,11 @@
                     class="inputWidth"
                     row="3"
                     name="jwks_keys"
+                    [disabled]="!target.offline_validation"
                     [(ngModel)]="jwksKeys"></textarea>
             </clr-textarea-container>
 
-            <!-- add heading saying Add Claims -->
+            <!-- Add Claims -->
             <div class="form-group-label-override">
                 <label class="required clr-control-label mt-16"
                     >Add Claims</label
