@@ -21,6 +21,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -145,12 +146,30 @@ func (fAPI *fedIDPAPI) CreateFederatedIdp(ctx context.Context, params operation.
 		return fAPI.SendError(ctx, err)
 	}
 
-	if err := validateJWKSKeys(params.Idp.JwksKeys); err != nil {
-		return fAPI.SendError(ctx, err)
+	var (
+		jwksKeys            string
+		supportedAlgorithms string
+		claimsSupported     string
+	)
+
+	if params.Idp.OfflineValidation && params.Idp.JwksKeys != nil {
+		if err := validateJWKSKeys(params.Idp.JwksKeys); err != nil {
+			return fAPI.SendError(ctx, err)
+		}
+		jwksKeys = string(toRawMessage(params.Idp.JwksKeys))
+	}
+	if len(params.Idp.SupportedAlgorithms) > 0 {
+		supportedAlgorithms = strings.Join(params.Idp.SupportedAlgorithms, ",")
+	}
+	if len(params.Idp.ClaimsSupported) > 0 {
+		claimsSupported = strings.Join(params.Idp.ClaimsSupported, ",")
 	}
 
-	if err := validateJWKSURI(params.Idp.JwksURI); err != nil {
-		return fAPI.SendError(ctx, err)
+	// Validate JWKS URI only if OfflineValidation is false (online validation)
+	if !params.Idp.OfflineValidation {
+		if err := validateJWKSURI(params.Idp.JwksURI); err != nil {
+			return fAPI.SendError(ctx, err)
+		}
 	}
 
 	if err := fAPI.validate(params.Idp); err != nil {
@@ -163,10 +182,10 @@ func (fAPI *fedIDPAPI) CreateFederatedIdp(ctx context.Context, params operation.
 		Issuer:              params.Idp.Issuer,
 		OpenIDConfigURL:     params.Idp.OpenidConfigURL,
 		JWKSURI:             params.Idp.JwksURI,
-		JWKSKeys:            string(toRawMessage(params.Idp.JwksKeys)),
+		JWKSKeys:            jwksKeys,
 		OfflineValidation:   params.Idp.OfflineValidation,
-		SupportedAlgorithms: strings.Join(params.Idp.SupportedAlgorithms, ","),
-		ClaimsSupported:     strings.Join(params.Idp.ClaimsSupported, ","),
+		SupportedAlgorithms: supportedAlgorithms,
+		ClaimsSupported:     claimsSupported,
 		ProjectID:           params.Idp.ProjectID,
 		CreationTime:        time.Now(),
 		UpdateTime:          time.Now(),
@@ -403,24 +422,83 @@ func (fAPI *fedIDPAPI) requireAccess(ctx context.Context, f *pkg.FederatedIdp, a
 
 // more validation
 func (fAPI *fedIDPAPI) validate(fedIdp *models.FederatedIdp) error {
+	// Validate issuer URL
 	if !isValidIssuer(fedIdp.Issuer) {
-		return errors.New(nil).WithMessagef("invalid issuer URL: %q (must be a non-empty, valid HTTPS URL)", fedIdp.Issuer).WithCode(errors.BadRequestCode)
+		return errors.New(nil).WithMessagef(
+			"invalid issuer URL: %q (must be a non-empty, valid HTTPS URL)", fedIdp.Issuer,
+		).WithCode(errors.BadRequestCode)
 	}
 
 	if fedIdp.OfflineValidation {
-		// is valid jwks-key
-	} else {
-		// is valid openid config url
-		if !isValidOpenIDConfigURL(fedIdp.OpenidConfigURL) {
-			return errors.New(nil).WithMessagef("invalid openid config URL: %q (must be a non-empty, valid HTTPS URL)", fedIdp.OpenidConfigURL).WithCode(errors.BadRequestCode)
+		if fedIdp.JwksKeys == "" {
+			return errors.New(nil).WithMessage("offline validation requires JWKS keys").WithCode(errors.BadRequestCode)
 		}
-		// fetch discovery document and validate
+	} else {
+		// Validate OpenID Config URL
+		if !isValidOpenIDConfigURL(fedIdp.OpenidConfigURL) {
+			return errors.New(nil).WithMessagef(
+				"invalid OpenID config URL: %q (must be a non-empty, valid HTTPS URL)", fedIdp.OpenidConfigURL,
+			).WithCode(errors.BadRequestCode)
+		}
 
-		// is valid jwks-uri
-		// is supported algo && claims supported
+		// Fetch the discovery document
+		discovery, err := fetchOpenIDDiscovery(fedIdp.OpenidConfigURL)
+		if err != nil {
+			return errors.New(err).WithMessage("failed to fetch OpenID discovery document").WithCode(errors.BadRequestCode)
+		}
+
+		// Validate JWKS URI from discovery matches provided JWKS URI (optional)
+		if fedIdp.JwksURI != "" && fedIdp.JwksURI != discovery.JWKSURI {
+			return errors.New(nil).WithMessagef(
+				"JWKS URI mismatch: provided=%q, discovery=%q", fedIdp.JwksURI, discovery.JWKSURI,
+			).WithCode(errors.BadRequestCode)
+		}
+
+		// Optionally validate supported algorithms
+		if len(fedIdp.SupportedAlgorithms) > 0 {
+			for _, alg := range fedIdp.SupportedAlgorithms {
+				if !slices.Contains(discovery.IDTokenSigningAlgValuesSupported, alg) {
+					return errors.New(nil).WithMessagef(
+						"unsupported signing algorithm: %q", alg,
+					).WithCode(errors.BadRequestCode)
+				}
+			}
+		}
+
+		// Optionally validate claims
+		if len(fedIdp.ClaimsSupported) > 0 {
+			for _, claim := range fedIdp.ClaimsSupported {
+				if !slices.Contains(discovery.ClaimsSupported, claim) {
+					return errors.New(nil).WithMessagef(
+						"unsupported claim: %q", claim,
+					).WithCode(errors.BadRequestCode)
+				}
+			}
+		}
 	}
 
 	return nil
+}
+
+type OpenIDDiscovery struct {
+	Issuer                           string   `json:"issuer"`
+	JWKSURI                          string   `json:"jwks_uri"`
+	IDTokenSigningAlgValuesSupported []string `json:"id_token_signing_alg_values_supported"`
+	ClaimsSupported                  []string `json:"claims_supported"`
+}
+
+func fetchOpenIDDiscovery(url string) (*OpenIDDiscovery, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var discovery OpenIDDiscovery
+	if err := json.NewDecoder(resp.Body).Decode(&discovery); err != nil {
+		return nil, err
+	}
+	return &discovery, nil
 }
 
 func (fAPI *fedIDPAPI) updateFedIdp(ctx context.Context, params operation.UpdateFederatedIdpParams, f *pkg.FederatedIdp) error {
