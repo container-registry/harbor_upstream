@@ -482,6 +482,12 @@ func (m *Harbor) BuildBinary(ctx context.Context, platform Platform, pkg Package
 	return build.Container.File(build.BinaryPath)
 }
 
+// generates APIs for dev - use export --path=./src/server/v2.0
+func (m *Harbor) GenAPIs(ctx context.Context) *dagger.Directory {
+	m.lintAPIs(ctx).Sync(ctx)
+	return m.genAPIs(ctx)
+}
+
 func (m *Harbor) buildBinary(ctx context.Context, platform Platform, pkg Package, debugbin bool) *BuildMetadata {
 	var (
 		srcWithSwagger *dagger.Directory
