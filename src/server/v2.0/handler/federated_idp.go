@@ -17,6 +17,9 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
@@ -60,7 +63,7 @@ func (fAPI *fedIDPAPI) ListClaimRules(ctx context.Context, params operation.List
 	}
 
 	var claimpath string
-  if params.ClaimPath != nil && *params.ClaimPath != "" {
+	if params.ClaimPath != nil && *params.ClaimPath != "" {
 		claimpath = *params.ClaimPath
 	}
 
@@ -266,6 +269,90 @@ func (fAPI *fedIDPAPI) ListFederatedIdps(ctx context.Context, params operation.L
 		WithXTotalCount(total).
 		WithLink(fAPI.Links(ctx, params.HTTPRequest.URL, total, query.PageNumber, query.PageSize).String()).
 		WithPayload(results)
+}
+
+func (fAPI *fedIDPAPI) PingFederatedIdpJWKS(ctx context.Context, params operation.PingFederatedIdpJWKSParams) middleware.Responder {
+	if err := fAPI.RequireAuthenticated(ctx); err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+
+	if err := fAPI.RequireSystemAccess(ctx, rbac.ActionRead, rbac.ResourceFederatedIdp); err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+
+	url, err := lib.ValidateURL(params.Jwks.JwksURI)
+	if err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+
+	// fetch jwks from url and return the jwks json
+	resp, err := http.Get(url)
+	if err != nil {
+		return fAPI.SendError(ctx, fmt.Errorf("failed to fetch JWKS: %v", err))
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fAPI.SendError(ctx, fmt.Errorf("JWKS endpoint returned %d", resp.StatusCode))
+	}
+
+	// Read body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fAPI.SendError(ctx, fmt.Errorf("failed to read JWKS response: %v", err))
+	}
+
+	// Return raw JSON directly
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return fAPI.SendError(ctx, fmt.Errorf("invalid JSON from JWKS endpoint: %v", err))
+	}
+
+	return operation.NewPingFederatedIdpJWKSOK().WithPayload(payload)
+}
+
+func (fAPI *fedIDPAPI) PingFederatedIdpOpenIDConfig(ctx context.Context, params operation.PingFederatedIdpOpenIDConfigParams) middleware.Responder {
+	if err := fAPI.RequireAuthenticated(ctx); err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+
+	if err := fAPI.RequireSystemAccess(ctx, rbac.ActionRead, rbac.ResourceFederatedIdp); err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+
+	url, err := lib.ValidateURL(params.OpenidConfigURL.OpenidConfigURL)
+	if err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+
+	// Ensure the URL points to a proper OpenID configuration endpoint
+	if !strings.HasSuffix(url, "/.well-known/openid-configuration") {
+		return fAPI.SendError(ctx, fmt.Errorf("URL must end with '/.well-known/openid-configuration'"))
+	}
+
+	// Fetch OpenID Config JSON
+	resp, err := http.Get(url)
+	if err != nil {
+		return fAPI.SendError(ctx, fmt.Errorf("failed to fetch OpenID configuration: %v", err))
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fAPI.SendError(ctx, fmt.Errorf("OpenID configuration endpoint returned %d", resp.StatusCode))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fAPI.SendError(ctx, fmt.Errorf("failed to read OpenID configuration response: %v", err))
+	}
+
+	// Return raw JSON directly
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return fAPI.SendError(ctx, fmt.Errorf("invalid JSON from OpenID configuration endpoint: %v", err))
+	}
+
+	return operation.NewPingFederatedIdpOpenIDConfigOK().WithPayload(payload)
 }
 
 func (fAPI *fedIDPAPI) GetFederatedIdp(ctx context.Context, params operation.GetFederatedIdpParams) middleware.Responder {
