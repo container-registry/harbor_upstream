@@ -38,6 +38,7 @@ import { ClrLoadingState } from '@clr/angular';
 import { FederatedIdp } from 'ng-swagger-gen/models';
 import { FederatedIdpService } from 'ng-swagger-gen/services';
 import { SystemInfo } from 'src/app/shared/services';
+import { log } from 'console';
 
 // const FAKE_JSON_KEY = 'No Change';
 // const METADATA_URL = CURRENT_BASE_HREF + '/replication/adapterinfos';
@@ -391,7 +392,7 @@ export class CreateEditIdpComponent
 
         this.onGoing = true;
         this.okButtonState = ClrLoadingState.LOADING;
-        console.log("this.target:", this.target);
+        console.log('this.target:', this.target);
 
         this.idpService.CreateFederatedIdp({ idp: this.target }).subscribe(
             () => {
@@ -422,6 +423,10 @@ export class CreateEditIdpComponent
             ...this.target,
             ...changes,
         };
+
+        console.log('this.target:', this.target);
+        console.log('this.changes:', changes);
+        console.log('updatedIdp:', updatedIdp);
 
         this.onGoing = true;
         this.okButtonState = ClrLoadingState.LOADING;
