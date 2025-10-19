@@ -132,9 +132,6 @@ func (c *controller) validate(ctx context.Context, fed *model.FederatedIdp) erro
 			return errors.New(nil).WithCode(errors.BadRequestCode).
 				WithMessage("invalid jwks_keys")
 		}
-	} else {
-		return errors.New(nil).WithCode(errors.BadRequestCode).
-			WithMessage("Invalid federated idp configuration")
 	}
 	// Validate Project ID
 	if fed.ProjectID < 0 {

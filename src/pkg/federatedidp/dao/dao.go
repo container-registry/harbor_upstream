@@ -104,7 +104,9 @@ func (d *dao) Create(ctx context.Context, f *model.FederatedIdp) (int64, error) 
 	id, err := ormer.Insert(f)
 	if err != nil {
 		// Check for unique constraint violation (issuer already exists)
-		return 0, orm.WrapConflictError(err, "federated idp %d:%s already exists", f.ProjectID, f.Name)
+		// log.L.Debug()
+		log.Debugf("error in adding federated idp: %v", err)
+		return 0, orm.WrapConflictError(err, "federated idp %d:%s already exists, error: %v", f.ProjectID, f.Name, err)
 	}
 	return id, err
 }
