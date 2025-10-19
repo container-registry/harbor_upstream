@@ -36,7 +36,8 @@ import { catchError } from 'rxjs/operators';
 import { AppConfigService } from '../../../../services/app-config.service';
 import { ClrLoadingState } from '@clr/angular';
 import { FederatedIdp } from 'ng-swagger-gen/models';
-import { FederatedIdpService } from 'src/app/shared/services';
+import { FederatedIdpService } from 'ng-swagger-gen/services';
+import { SystemInfo } from 'src/app/shared/services';
 
 // const FAKE_JSON_KEY = 'No Change';
 // const METADATA_URL = CURRENT_BASE_HREF + '/replication/adapterinfos';
@@ -69,14 +70,13 @@ export class CreateEditIdpComponent
     testOngoing: boolean;
     onGoing: boolean;
     idpId: number | string;
-
-    // Array to store claim data
-    claims: { path: string; value: string }[] = [{ path: '', value: '' }];
+    systemInfo: SystemInfo;
 
     @ViewChild(InlineAlertComponent) inlineAlert: InlineAlertComponent;
 
     @Output() reload = new EventEmitter<boolean>();
-
+    // Array to store claim data
+    claims: { path: string; value: string }[];
     valueChangesSub: Subscription;
     formValues: { [key: string]: string } | any;
     adapterInfo: object;
@@ -87,6 +87,7 @@ export class CreateEditIdpComponent
 
     constructor(
         private idpService: FederatedIdpService,
+        // private idpDefaultService: FederatedIdpDefaultService,
         private errorHandler: ErrorHandler,
         private translateService: TranslateService,
         private http: HttpClient,
@@ -94,6 +95,12 @@ export class CreateEditIdpComponent
     ) {}
 
     ngOnInit(): void {
+        this.claims = [
+            {
+                path: 'aud',
+                value: this.registryUrl || window.location.hostname,
+            },
+        ];
         return;
         // this.getAdapters();
         // this.getAdapterInfo();
@@ -105,36 +112,143 @@ export class CreateEditIdpComponent
         this.endpointOnHover = false;
     }
 
+    public get registryUrl(): string {
+        return this.systemInfo ? this.systemInfo.registry_url : '';
+    }
+
     /**
      * Fetches the OpenID Configuration JSON from the provided URL
      * and stores it as a formatted string in openIDConfigJSON.
      */
-    fetchOpenIDConfig(url: string): void {
-        // ✅ Prevent execution if URL is empty or invalid
+    fetchOpenIDConfig() {
+        const url = (this.target?.openid_config_url || '').trim();
+
+        // Validate URL strictly before sending request
         if (!url || !url.startsWith('http')) {
-            console.warn('Invalid OpenID Configuration URL');
+            console.warn('⚠️ Invalid OpenID Configuration URL');
+            this.inlineAlert.showInlineError(
+                'Please provide a valid OpenID Configuration URL.'
+            );
             return;
         }
 
-        // Optional: ensure it ends with '/.well-known/openid-configuration'
         if (!url.includes('.well-known/openid-configuration')) {
-            if (!url.endsWith('/')) url += '/';
-            url += '.well-known/openid-configuration';
+            console.warn(
+                '⚠️ Provided URL does not look like an OpenID configuration endpoint.'
+            );
+            this.inlineAlert.showInlineError(
+                'URL must point to a valid ".well-known/openid-configuration" endpoint.'
+            );
+            return;
         }
 
-        // ✅ Fetch the JSON using Angular HttpClient
-        this.http.get(url).subscribe({
-            next: response => {
-                // Store pretty-printed JSON string for UI display
-                this.openIDConfigJSON = JSON.stringify(response, null, 2);
+        // Update UI loading state
+        this.testOngoing = true;
+        this.testButtonState = ClrLoadingState.LOADING;
+        this.openIDConfigJSON = ''; // clear previous data
 
-                console.log('Fetched OpenID Configuration:', response);
-            },
-            error: error => {
-                console.error('Failed to fetch OpenID Configuration:', error);
-                this.openIDConfigJSON = 'Error fetching OpenID Configuration';
-            },
-        });
+        // Call backend via service
+        this.idpService
+            .PingFederatedIdpOpenIDConfig({
+                openidConfigUrl: { openid_config_url: url },
+            })
+            .subscribe(
+                openIDConfigJSON => {
+                    // Success callback
+                    this.openIDConfigJSON = JSON.stringify(
+                        openIDConfigJSON,
+                        null,
+                        2
+                    );
+
+                    console.log(
+                        '✅ OpenID Configuration fetched successfully:',
+                        openIDConfigJSON
+                    );
+
+                    // Extract the 'issuer' key and assign to target
+                    if (openIDConfigJSON && openIDConfigJSON.issuer) {
+                        this.target.issuer = openIDConfigJSON.issuer;
+                        this.claims.push({
+                            path: 'iss',
+                            value: this.target.issuer,
+                        });
+                    }
+
+                    // Extract the 'jwks_uri' key and assign to target
+                    if (openIDConfigJSON && openIDConfigJSON.issuer) {
+                        this.target.jwks_uri = openIDConfigJSON.jwks_uri;
+                    }
+
+                    // get the jwks keys
+                    // Call backend via service
+                    this.idpService
+                        .PingFederatedIdpJWKS({
+                            jwks: { jwks_uri: this.target.jwks_uri },
+                        })
+                        .subscribe(
+                            jwksKeys => {
+                                // Success callback
+                                this.jwksKeys = JSON.stringify(
+                                    jwksKeys,
+                                    null,
+                                    2
+                                );
+
+                                console.log(
+                                    '✅ JWKS Keys fetched successfully:',
+                                    jwksKeys
+                                );
+                            },
+                            error => {
+                                // Error callback
+                                console.error(
+                                    '❌ Failed to fetch JWKS Keys:',
+                                    error
+                                );
+
+                                const message =
+                                    error?.status === 404
+                                        ? 'JWKS Keys not found at the provided URL.'
+                                        : 'Failed to fetch JWKS Keys. Please verify the URL and network access.';
+
+                                this.inlineAlert.showInlineError(message);
+                                this.jwksKeys = 'Error fetching JWKS Keys';
+                            },
+                            () => {
+                                // Complete callback (optional)
+                                this.testOngoing = false;
+                                this.testButtonState = ClrLoadingState.DEFAULT;
+                            }
+                        );
+
+                    // Optional UI alerts
+                    // this.inlineAlert.showInlineSuccess({
+                    //     message: 'FEDERATED_IDPS.OPENIDCONFIG_FETCH_SUCCESS',
+                    // });
+                },
+                error => {
+                    // Error callback
+                    console.error(
+                        '❌ Failed to fetch OpenID Configuration:',
+                        error
+                    );
+
+                    const message =
+                        error?.status === 404
+                            ? 'OpenID Configuration not found at the provided URL.'
+                            : 'Failed to fetch OpenID Configuration. Please verify the URL and network access.';
+
+                    this.inlineAlert.showInlineError(message);
+                    this.openIDConfigJSON =
+                        'Error fetching OpenID Configuration';
+                },
+                () => {
+                    // Complete callback (optional)
+                    this.testOngoing = false;
+                    this.testButtonState = ClrLoadingState.DEFAULT;
+                }
+            );
     }
 
     blur() {
@@ -198,8 +312,6 @@ export class CreateEditIdpComponent
             jwks_uri: '',
             jwks_keys: {},
             project_id: undefined,
-            creation_time: '',
-            update_time: '',
         };
     }
 
@@ -239,7 +351,7 @@ export class CreateEditIdpComponent
             this.translateService
                 .get('FEDERATED_IDPS.TITLE_EDIT')
                 .subscribe(res => (this.modalTitle = res));
-            this.idpService.getFederatedIdp(targetId).subscribe(
+            this.idpService.GetFederatedIdp({ id: Number(targetId) }).subscribe(
                 target => {
                     this.target = target;
                     // this.urlDisabled =
@@ -269,6 +381,7 @@ export class CreateEditIdpComponent
         if (this.idpId) {
             this.updateIdp();
         } else {
+            console.log('🚀 Create IDP');
             this.addIdp();
         }
     }
@@ -278,8 +391,9 @@ export class CreateEditIdpComponent
 
         this.onGoing = true;
         this.okButtonState = ClrLoadingState.LOADING;
+        console.log("this.target:", this.target);
 
-        this.idpService.createFederatedIdp(this.target).subscribe(
+        this.idpService.CreateFederatedIdp({ idp: this.target }).subscribe(
             () => {
                 this.translateService
                     .get('FEDERATED_IDPS.CREATED_SUCCESS')
@@ -302,26 +416,34 @@ export class CreateEditIdpComponent
 
         const changes = this.getChanges();
         if (isEmptyObject(changes)) return;
+        // get the changes and update the idp
+        // Prepare the updated IDP object
+        const updatedIdp = {
+            ...this.target,
+            ...changes,
+        };
 
         this.onGoing = true;
         this.okButtonState = ClrLoadingState.LOADING;
 
-        this.idpService.updateFederatedIdp(this.target.id, changes).subscribe(
-            () => {
-                this.translateService
-                    .get('FEDERATED_IDPS.UPDATED_SUCCESS')
-                    .subscribe(res => this.errorHandler.info(res));
-                this.reload.emit(true);
-                this.close();
-                this.onGoing = false;
-                this.okButtonState = ClrLoadingState.SUCCESS;
-            },
-            error => {
-                this.inlineAlert.showInlineError(error);
-                this.onGoing = false;
-                this.okButtonState = ClrLoadingState.ERROR;
-            }
-        );
+        this.idpService
+            .UpdateFederatedIdp({ idp: updatedIdp, id: this.target.id })
+            .subscribe(
+                () => {
+                    this.translateService
+                        .get('FEDERATED_IDPS.UPDATED_SUCCESS')
+                        .subscribe(res => this.errorHandler.info(res));
+                    this.reload.emit(true);
+                    this.close();
+                    this.onGoing = false;
+                    this.okButtonState = ClrLoadingState.SUCCESS;
+                },
+                error => {
+                    this.inlineAlert.showInlineError(error);
+                    this.onGoing = false;
+                    this.okButtonState = ClrLoadingState.ERROR;
+                }
+            );
     }
 
     onCancel() {
