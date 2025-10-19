@@ -16,7 +16,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { SharedModule } from '../../../shared/shared.module';
 import { IdpComponent } from './idp.component';
 // import { CreateEditIdpComponent } from './create-edit-idp/create-edit-idp.component';
-import { FederatedIdpService } from 'ng-swagger-gen/services';
+// import { FederatedIdpService } from 'ng-swagger-gen/services';
 import { CreateEditIdpComponent } from './create-edit-idp/create-edit-idp.component';
 
 const routes: Routes = [
