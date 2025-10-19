@@ -32,16 +32,16 @@
                             'FEDERATED_IDPS.NEW_IDP' | translate
                         }}
                     </button>
-                    <!-- <button -->
-                    <!--     id="edit" -->
-                    <!--     type="button" -->
-                    <!--     class="btn btn-secondary" -->
-                    <!--     [disabled]="!(selectedRow.length === 1)" -->
-                    <!--     (click)="editTargets(selectedRow)"> -->
-                    <!--     <clr-icon shape="pencil" size="16"></clr-icon>&nbsp;{{ -->
-                    <!--         'DESTINATION.EDIT' | translate -->
-                    <!--     }} -->
-                    <!-- </button> -->
+                    <button
+                        id="edit"
+                        type="button"
+                        class="btn btn-secondary"
+                        [disabled]="!(selectedRow.length === 1)"
+                        (click)="editTargets(selectedRow)">
+                        <clr-icon shape="pencil" size="16"></clr-icon>&nbsp;{{
+                            'DESTINATION.EDIT' | translate
+                        }}
+                    </button>
                     <button
                         id="delete"
                         type="button"
