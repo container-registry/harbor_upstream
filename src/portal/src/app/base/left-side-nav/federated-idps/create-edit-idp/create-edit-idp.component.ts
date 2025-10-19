@@ -105,6 +105,38 @@ export class CreateEditIdpComponent
         this.endpointOnHover = false;
     }
 
+    /**
+     * Fetches the OpenID Configuration JSON from the provided URL
+     * and stores it as a formatted string in openIDConfigJSON.
+     */
+    fetchOpenIDConfig(url: string): void {
+        // ✅ Prevent execution if URL is empty or invalid
+        if (!url || !url.startsWith('http')) {
+            console.warn('Invalid OpenID Configuration URL');
+            return;
+        }
+
+        // Optional: ensure it ends with '/.well-known/openid-configuration'
+        if (!url.includes('.well-known/openid-configuration')) {
+            if (!url.endsWith('/')) url += '/';
+            url += '.well-known/openid-configuration';
+        }
+
+        // ✅ Fetch the JSON using Angular HttpClient
+        this.http.get(url).subscribe({
+            next: response => {
+                // Store pretty-printed JSON string for UI display
+                this.openIDConfigJSON = JSON.stringify(response, null, 2);
+
+                console.log('Fetched OpenID Configuration:', response);
+            },
+            error: error => {
+                console.error('Failed to fetch OpenID Configuration:', error);
+                this.openIDConfigJSON = 'Error fetching OpenID Configuration';
+            },
+        });
+    }
+
     blur() {
         if (!this.endpointOnHover) {
             this.showEndpointList = false;

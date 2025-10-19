@@ -96,7 +96,7 @@
                     <div class="clr-input-wrapper position-relative">
                         <input
                             autocomplete="off"
-                            (blur)="blur()"
+                            (blur)="fetchOpenIDConfig(target.openid_config_url)"
                             (focus)="showEndpointList = true"
                             class="clr-input endpoint-input"
                             type="text"
