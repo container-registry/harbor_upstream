@@ -33,6 +33,7 @@ import (
 	federated_idp "github.com/goharbor/harbor/src/controller/federatedidp"
 	"github.com/goharbor/harbor/src/lib"
 	"github.com/goharbor/harbor/src/lib/errors"
+	"github.com/goharbor/harbor/src/lib/log"
 	pkg "github.com/goharbor/harbor/src/pkg/federatedidp/model"
 	"github.com/goharbor/harbor/src/server/v2.0/handler/model"
 	"github.com/goharbor/harbor/src/server/v2.0/models"
@@ -454,27 +455,30 @@ func (fAPI *fedIDPAPI) validate(fedIdp *models.FederatedIdp) error {
 			).WithCode(errors.BadRequestCode)
 		}
 
+		log.Debugf("fedIdp.SupportedAlgorithms from request: %v", fedIdp.SupportedAlgorithms)
 		// Optionally validate supported algorithms
-		if len(fedIdp.SupportedAlgorithms) > 0 {
-			for _, alg := range fedIdp.SupportedAlgorithms {
-				if !slices.Contains(discovery.IDTokenSigningAlgValuesSupported, alg) {
-					return errors.New(nil).WithMessagef(
-						"unsupported signing algorithm: %q", alg,
-					).WithCode(errors.BadRequestCode)
-				}
-			}
-		}
+		// if len(fedIdp.SupportedAlgorithms) > 0 {
+		// 	log.Debugf("fedIdp.SupportedAlgorithms: %v", fedIdp.SupportedAlgorithms)
+		// 	for _, alg := range fedIdp.SupportedAlgorithms {
+		// 		if !slices.Contains(discovery.IDTokenSigningAlgValuesSupported, alg) {
+		// 			return errors.New(nil).WithMessagef(
+		// 				"unsupported signing algorithm: %q", alg,
+		// 			).WithCode(errors.BadRequestCode)
+		// 		}
+		// 	}
+		// }
 
+		log.Debugf("fedIdp.claimsSupported from request: %v", fedIdp.ClaimsSupported)
 		// Optionally validate claims
-		if len(fedIdp.ClaimsSupported) > 0 {
-			for _, claim := range fedIdp.ClaimsSupported {
-				if !slices.Contains(discovery.ClaimsSupported, claim) {
-					return errors.New(nil).WithMessagef(
-						"unsupported claim: %q", claim,
-					).WithCode(errors.BadRequestCode)
-				}
-			}
-		}
+		// if len(fedIdp.ClaimsSupported) > 0 {
+		// 	for _, claim := range fedIdp.ClaimsSupported {
+		// 		if !slices.Contains(discovery.ClaimsSupported, claim) {
+		// 			return errors.New(nil).WithMessagef(
+		// 				"unsupported claim: %q", claim,
+		// 			).WithCode(errors.BadRequestCode)
+		// 		}
+		// 	}
+		// }
 	}
 
 	return nil
