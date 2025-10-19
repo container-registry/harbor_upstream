@@ -2,7 +2,7 @@
 package main
 
 const (
-	GO_VERSION           = "1.24.6"
+	GO_VERSION           = "1.25"
 	SWAGGER_VERSION      = "v0.31.0"
 	NPM_REGISTRY         = "https://registry.npmjs.org"
 	DEV_PLATFORM         = "linux/amd64"

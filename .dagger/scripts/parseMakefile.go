@@ -87,7 +87,7 @@ func main() {
 		DEV_VERSION          = "dev"
 		DEBUG_PORT           = "4001"
 		GOLANGCILINT_VERSION = "latest"
-		DELVE_VERSION        = "v1.24.1"
+		DELVE_VERSION        = "v1.25.1"
 		BUN_VERSION          = "1.2.13"
 	)
 
