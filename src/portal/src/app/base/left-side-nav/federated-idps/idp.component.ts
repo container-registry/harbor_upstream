@@ -221,12 +221,12 @@ export class IdpComponent implements OnInit, OnDestroy, AfterViewInit {
     editTargets(targets: Registry[]) {
         if (targets && targets.length === 1) {
             let target = targets[0];
-            // let editable = true;
+            let editable = true;
             if (!target.id) {
                 return;
             }
-            // let id: number | string = target.id;
-            // this.createEditEndpointComponent.openCreateEditTarget(editable, id);
+            let id: number | string = target.id;
+            this.CreateEditIdpComponent.openCreateEditTarget(editable, id);
         }
     }
 
