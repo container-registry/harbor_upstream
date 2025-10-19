@@ -3855,6 +3855,75 @@ paths:
           $ref: '#/responses/403'
         '500':
           $ref: '#/responses/500'
+  /federated-idps/openid-config:
+    post:
+      summary: Fetch OpenID Connect configuration
+      description: >
+        Fetch the `.well-known/openid-configuration` document from the specified OIDC issuer URL.
+        This endpoint allows Harbor to verify connectivity and retrieve configuration metadata
+        from a federated identity provider before registration.
+      tags:
+        - federated-idp
+      operationId: PingFederatedIdpOpenIDConfig
+      parameters:
+        - $ref: '#/parameters/requestId'
+        - name: openid_config_url
+          in: body
+          description: The OIDC URL used to fetch configuration
+          required: true
+          schema:
+            $ref: '#/definitions/FederatedIdpOpenIDConfigPing'
+      responses:
+        '200':
+          description: Successfully fetched OIDC configuration
+          schema:
+            type: object
+            additionalProperties: true
+        '400':
+          $ref: '#/responses/400'
+        '401':
+          $ref: '#/responses/401'
+        '403':
+          $ref: '#/responses/403'
+        '404':
+          $ref: '#/responses/404'
+        '500':
+          $ref: '#/responses/500'
+
+  /federated-idps/jwks:
+    post:
+      summary: Fetch JWKS (JSON Web Key Set)
+      description: >
+        Fetch the JWKS (public signing keys) from the specified JWKS URI.
+        This endpoint allows Harbor to verify the keys used by the identity
+        provider to sign tokens before registration or validation.
+      tags:
+        - federated-idp
+      operationId: PingFederatedIdpJWKS
+      parameters:
+        - $ref: '#/parameters/requestId'
+        - name: jwks
+          in: body
+          description: The JWKS URI of the identity provider
+          required: true
+          schema:
+            $ref: '#/definitions/FederatedIdpJWKSPing'
+      responses:
+        '200':
+          description: Successfully fetched JWKS
+          schema:
+            type: object
+            additionalProperties: true
+        '400':
+          $ref: '#/responses/400'
+        '401':
+          $ref: '#/responses/401'
+        '403':
+          $ref: '#/responses/403'
+        '404':
+          $ref: '#/responses/404'
+        '500':
+          $ref: '#/responses/500'
   /federated-idps/{id}:
     get:
       summary: Get the specific federated identity provider
@@ -7769,6 +7838,20 @@ definitions:
       access_secret:
         type: string
         description: Access secret, e.g. password when credential type is 'basic'.
+  FederatedIdpOpenIDConfigPing:
+    type: object
+    properties:
+      openid_config_url:
+        type: string
+        description: The full URL to the OIDC configuration document (e.g., `.well-known/openid-configuration`)
+        example: https://kubernetes.cluster.com/.well-known/openid-configuration
+  FederatedIdpJWKSPing:
+    type: object
+    properties:
+      jwks_uri:
+        type: string
+        description: The JWKS URI endpoint from which to fetch public signing keys
+        example: https://kubernetes.cluster.com/.well-known/jwks
   FederatedIdp:
     type: object
     properties:
