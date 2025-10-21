@@ -131,5 +131,5 @@
     <confirmation-dialog
         #confirmationDialog
         (confirmAction)="confirmDeletion($event)"></confirmation-dialog>
-    <hbr-create-edit-idp></hbr-create-edit-idp>
+    <hbr-create-edit-idp (reload)="refreshTargets()"></hbr-create-edit-idp>
 </div>
