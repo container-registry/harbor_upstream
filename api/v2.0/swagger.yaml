@@ -3812,7 +3812,10 @@ paths:
             $ref: '#/definitions/FederatedIdp'
       responses:
         '201':
-          $ref: '#/responses/201'
+          description: Success
+          schema:
+            type: object
+            $ref: '#/definitions/FederatedIdp'
         '400':
           $ref: '#/responses/400'
         '401':
