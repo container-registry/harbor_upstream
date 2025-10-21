@@ -13,7 +13,7 @@ before_script:
   # set project-name
   # check if BRANCH_NAME contains the word 'commercial'   <-- added condition
   - if [[ "$VERSIONTAG" == *commercial* ]]; then export PROJECT_NAME="8gcr-dev"; else export PROJECT_NAME="8gcr"; fi
-# set kubeconfig
+  # set kubeconfig
   - export KUBECONFIG=$DAGGER_KUBE_CONFIG
   # Export runner host
   - export DAGGER_ENGINE_POD_NAME="$(kubectl get pod
