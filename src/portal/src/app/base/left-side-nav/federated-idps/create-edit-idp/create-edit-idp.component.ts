@@ -395,7 +395,9 @@ export class CreateEditIdpComponent
         console.log('this.target:', this.target);
 
         this.idpService.CreateFederatedIdp({ idp: this.target }).subscribe(
-            () => {
+            (response) => {
+                console.log('create fed idp response:', response);
+                // this.idpService.CreateClaimRules({ id: response.id }).subscribe(
                 this.translateService
                     .get('FEDERATED_IDPS.CREATED_SUCCESS')
                     .subscribe(res => this.errorHandler.info(res));
