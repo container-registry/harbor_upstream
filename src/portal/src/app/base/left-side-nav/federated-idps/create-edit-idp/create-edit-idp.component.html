@@ -83,7 +83,9 @@
             </clr-checkbox-container>
             <!-- OpenIDConfig URL -->
             <div class="clr-form-control">
-                <label for="openidconfig_url" class="required clr-control-label">
+                <label
+                    for="openidconfig_url"
+                    class="required clr-control-label">
                     {{ 'FEDERATED_IDPS.OPENIDCONFIG_URL' | translate }}
                 </label>
                 <div
@@ -111,7 +113,8 @@
                             *ngIf="
                                 openidConfigUrl?.errors &&
                                 openidConfigUrl.errors.required &&
-                                (openidConfigUrl.dirty || openidConfigUrl.touched)
+                                (openidConfigUrl.dirty ||
+                                    openidConfigUrl.touched)
                             "
                             class="clr-validate-icon"
                             shape="exclamation-circle">
@@ -123,7 +126,10 @@
                             openidConfigUrl.errors.required &&
                             (openidConfigUrl.dirty || openidConfigUrl.touched)
                         ">
-                        {{ 'FEDERATED_IDPS.OPENIDCONFIG_URL_REQUIRED' | translate }}
+                        {{
+                            'FEDERATED_IDPS.OPENIDCONFIG_URL_REQUIRED'
+                                | translate
+                        }}
                     </clr-control-error>
                 </div>
             </div>
@@ -135,9 +141,9 @@
                 <div
                     class="clr-control-container"
                     [class.clr-error]="
-                         issuer?.errors &&
-                         issuer.errors.required &&
-                         (issuer.dirty || issuer.touched)
+                        issuer?.errors &&
+                        issuer.errors.required &&
+                        (issuer.dirty || issuer.touched)
                     ">
                     <div class="clr-input-wrapper position-relative">
                         <input

@@ -125,12 +125,16 @@ export abstract class FederatedIdpService {
      * @param {string} openidConfigUrl The OpenID Connect discovery document URL
      * @returns {Observable<any>}
      */
-    abstract PingFederatedIdpOpenIDConfig(openidConfigUrl: string): Observable<any>;
+    abstract PingFederatedIdpOpenIDConfig(
+        openidConfigUrl: string
+    ): Observable<any>;
 
     /**
      * Fetch JWKS (JSON Web Key Set) from JWKS URI
      */
-    abstract PingFederatedIdpJWKS(jwksUri: string): Observable<{ [key: string]: any }>;
+    abstract PingFederatedIdpJWKS(
+        jwksUri: string
+    ): Observable<{ [key: string]: any }>;
 }
 
 /**
@@ -247,7 +251,9 @@ export class FederatedIdpDefaultService extends FederatedIdpService {
         return IDP_TYPE_MAP[type] || type;
     }
 
-    public PingFederatedIdpOpenIDConfig(openidConfigUrl: string): Observable<any> {
+    public PingFederatedIdpOpenIDConfig(
+        openidConfigUrl: string
+    ): Observable<any> {
         if (!openidConfigUrl) {
             return observableThrowError('Invalid OpenID Configuration URL.');
         }
@@ -274,7 +280,9 @@ export class FederatedIdpDefaultService extends FederatedIdpService {
         //     .pipe(catchError(error => observableThrowError(error)));
     }
 
-    public PingFederatedIdpJWKS(jwksUri: string): Observable<{ [key: string]: any }> {
+    public PingFederatedIdpJWKS(
+        jwksUri: string
+    ): Observable<{ [key: string]: any }> {
         if (!jwksUri) {
             return observableThrowError('Invalid JWKS URI.');
         }

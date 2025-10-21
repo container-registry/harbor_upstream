@@ -262,12 +262,12 @@ export class CreateEditIdpComponent
 
     public get isValid(): boolean {
         return (
-            !this.testOngoing &&
-            !this.onGoing &&
-            this.targetForm &&
-            this.targetForm.valid &&
-            this.editable &&
-            !compareValue(this.target, this.initVal) ||
+            (!this.testOngoing &&
+                !this.onGoing &&
+                this.targetForm &&
+                this.targetForm.valid &&
+                this.editable &&
+                !compareValue(this.target, this.initVal)) ||
             !compareValue(this.claims, this.initClaims)
         );
     }
