@@ -39,6 +39,7 @@ import { FederatedIdp } from 'ng-swagger-gen/models';
 import { FederatedIdpService } from 'ng-swagger-gen/services';
 import { SystemInfo } from 'src/app/shared/services';
 import { log } from 'console';
+import { id } from '@cds/core/internal';
 
 // const FAKE_JSON_KEY = 'No Change';
 // const METADATA_URL = CURRENT_BASE_HREF + '/replication/adapterinfos';
@@ -78,6 +79,7 @@ export class CreateEditIdpComponent
     @Output() reload = new EventEmitter<boolean>();
     // Array to store claim data
     claims: { path: string; value: string }[];
+    initClaims: { path: string; value: string }[];
     valueChangesSub: Subscription;
     formValues: { [key: string]: string } | any;
     adapterInfo: object;
@@ -265,7 +267,8 @@ export class CreateEditIdpComponent
             this.targetForm &&
             this.targetForm.valid &&
             this.editable &&
-            !compareValue(this.target, this.initVal)
+            !compareValue(this.target, this.initVal) ||
+            !compareValue(this.claims, this.initClaims)
         );
     }
 
@@ -355,13 +358,20 @@ export class CreateEditIdpComponent
             this.idpService.GetFederatedIdp({ id: Number(targetId) }).subscribe(
                 target => {
                     this.target = target;
-                    // this.urlDisabled =
-                    //     this.adapterInfo &&
-                    //     this.adapterInfo[this.target.type] &&
-                    //     this.adapterInfo[this.target.type].endpoint_pattern &&
-                    //     this.adapterInfo[this.target.type].endpoint_pattern
-                    //         .endpoint_type === FIXED_PATTERN_TYPE;
                     this.initVal = clone(target);
+                    this.idpService.ListClaimRules({ id: target.id }).subscribe(
+                        claimRules => {
+                            const claims = claimRules.map(claimRule => {
+                                return {
+                                    path: claimRule.claim_path,
+                                    value: claimRule.value,
+                                };
+                            });
+                            this.claims = claims;
+                            this.initClaims = clone(claims);
+                        },
+                        error => this.errorHandler.error(error)
+                    );
                     this.open();
                     // this.editDisabled = true;
                 },
@@ -395,12 +405,45 @@ export class CreateEditIdpComponent
         console.log('this.target:', this.target);
 
         this.idpService.CreateFederatedIdp({ idp: this.target }).subscribe(
-            (response) => {
+            response => {
                 console.log('create fed idp response:', response);
                 // this.idpService.CreateClaimRules({ id: response.id }).subscribe(
                 this.translateService
                     .get('FEDERATED_IDPS.CREATED_SUCCESS')
                     .subscribe(res => this.errorHandler.info(res));
+                console.log('this.claims:', this.claims);
+                // assemble claim rules
+                const assembledClaimRules = this.assembleClaimRules(
+                    this.claims,
+                    response.id
+                );
+                console.log('assembleClaimRules:', assembledClaimRules);
+
+                if (this.claims.length > 0) {
+                    this.idpService
+                        .CreateClaimRules({
+                            id: response.id,
+                            claims: { rules: assembledClaimRules },
+                        })
+                        .subscribe(
+                            response => {
+                                console.log(
+                                    'create claim rules response:',
+                                    response
+                                );
+                                this.reload.emit(true);
+                                this.onGoing = false;
+                                this.okButtonState = ClrLoadingState.SUCCESS;
+                                this.close();
+                            },
+                            error => {
+                                console.log('create claim rules error:', error);
+                                this.onGoing = false;
+                                this.okButtonState = ClrLoadingState.ERROR;
+                                this.inlineAlert.showInlineError(error);
+                            }
+                        );
+                }
                 this.reload.emit(true);
                 this.onGoing = false;
                 this.okButtonState = ClrLoadingState.SUCCESS;
@@ -440,6 +483,30 @@ export class CreateEditIdpComponent
                     this.translateService
                         .get('FEDERATED_IDPS.UPDATED_SUCCESS')
                         .subscribe(res => this.errorHandler.info(res));
+                    const assembledClaimRules = this.assembleClaimRules(
+                        this.claims,
+                        this.target.id
+                    );
+                    console.log('assembleClaimRules:', assembledClaimRules);
+                    this.idpService
+                        .CreateClaimRules({
+                            id: this.target.id,
+                            claims: { rules: assembledClaimRules },
+                        })
+                        .subscribe(
+                            response => {
+                                console.log(
+                                    'create claim rules response:',
+                                    response
+                                );
+                            },
+                            error => {
+                                console.log('create claim rules error:', error);
+                                this.onGoing = false;
+                                this.okButtonState = ClrLoadingState.ERROR;
+                                this.inlineAlert.showInlineError(error);
+                            }
+                        );
                     this.reload.emit(true);
                     this.close();
                     this.onGoing = false;
@@ -465,6 +532,25 @@ export class CreateEditIdpComponent
                 this.targetForm.reset();
             }
         }
+    }
+
+    assembleClaimRules(claims: { path: string; value: string }[], id: number) {
+        if (!claims || !Array.isArray(claims)) {
+            console.error("Input 'claims' is not a valid array.");
+            return [];
+        }
+        if (id === 0 || id === undefined) {
+            console.error("Input is missing an 'id' property.");
+            return [];
+        }
+
+        return claims.map(claim => {
+            return {
+                claim_path: claim.path,
+                value: claim.value,
+                identity_provider_id: id,
+            };
+        });
     }
 
     confirmCancel(confirmed: boolean) {
