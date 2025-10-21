@@ -195,14 +195,19 @@ func (fAPI *fedIDPAPI) CreateFederatedIdp(ctx context.Context, params operation.
 		return fAPI.SendError(ctx, err)
 	}
 
-	_, err := fAPI.fedidpCtl.Create(ctx, fIdp)
+	fedIdpId, err := fAPI.fedidpCtl.Create(ctx, fIdp)
+	if err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+
+	created, err := fAPI.fedidpCtl.Get(ctx, fedIdpId)
 	if err != nil {
 		return fAPI.SendError(ctx, err)
 	}
 
 	// TODO: check if we need the location
 	// location := fmt.Sprintf("%s/%d", strings.TrimSuffix(params.HTTPRequest.URL.Path, "/"), created.ID)
-	return operation.NewCreateFederatedIdpCreated()
+	return operation.NewCreateFederatedIdpCreated().WithPayload(model.NewFederatedIdp(created).ToSwagger())
 }
 
 func (fAPI *fedIDPAPI) DeleteFederatedIdp(ctx context.Context, params operation.DeleteFederatedIdpParams) middleware.Responder {
