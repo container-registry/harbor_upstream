@@ -404,6 +404,9 @@ export class CreateEditIdpComponent
         this.okButtonState = ClrLoadingState.LOADING;
         console.log('this.target:', this.target);
 
+        if (!this.validateRequiredClaims(this.claims)) {
+            return;
+        }
 
         this.idpService.CreateFederatedIdp({ idp: this.target }).subscribe(
             response => {
@@ -460,6 +463,9 @@ export class CreateEditIdpComponent
 
     updateIdp() {
         if (this.onGoing || !this.target.id) return;
+        if (!this.validateRequiredClaims(this.claims)) {
+            return;
+        }
 
         const changes = this.getChanges();
         const claimsChanges = this.getClaimsChanges();
