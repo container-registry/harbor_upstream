@@ -404,6 +404,7 @@ export class CreateEditIdpComponent
         this.okButtonState = ClrLoadingState.LOADING;
         console.log('this.target:', this.target);
 
+
         this.idpService.CreateFederatedIdp({ idp: this.target }).subscribe(
             response => {
                 console.log('create fed idp response:', response);
@@ -461,13 +462,23 @@ export class CreateEditIdpComponent
         if (this.onGoing || !this.target.id) return;
 
         const changes = this.getChanges();
-        if (isEmptyObject(changes)) return;
+        const claimsChanges = this.getClaimsChanges();
+        if (isEmptyObject(changes) && isEmptyObject(claimsChanges)) return;
         // get the changes and update the idp
         // Prepare the updated IDP object
         const updatedIdp = {
             ...this.target,
             ...changes,
         };
+
+        const claimAddPayload = this.assembleClaimsToAddRules(
+            claimsChanges.claimsToAdd,
+            this.target.id
+        );
+        const claimDeletePayload = this.assembleClaimsToDeleteRules(
+            claimsChanges.claimsToDelete,
+            this.target.id
+        );
 
         console.log('this.target:', this.target);
         console.log('this.changes:', changes);
@@ -488,29 +499,56 @@ export class CreateEditIdpComponent
                         this.target.id
                     );
                     console.log('assembleClaimRules:', assembledClaimRules);
-                    this.idpService
-                        .CreateClaimRules({
-                            id: this.target.id,
-                            claims: { rules: assembledClaimRules },
-                        })
-                        .subscribe(
-                            response => {
-                                console.log(
-                                    'create claim rules response:',
-                                    response
-                                );
-                            },
-                            error => {
-                                console.log('create claim rules error:', error);
-                                this.onGoing = false;
-                                this.okButtonState = ClrLoadingState.ERROR;
-                                this.inlineAlert.showInlineError(error);
-                            }
-                        );
-                    this.reload.emit(true);
-                    this.close();
-                    this.onGoing = false;
-                    this.okButtonState = ClrLoadingState.SUCCESS;
+
+                    if (claimDeletePayload.length > 0) {
+                        this.idpService
+                            .DeleteClaimRules({
+                                id: this.target.id,
+                                claims: { rules: claimDeletePayload },
+                            })
+                            .subscribe(
+                                response => {
+                                    console.log(
+                                        'create claim rules response:',
+                                        response
+                                    );
+                                },
+                                error => {
+                                    console.log(
+                                        'create claim rules error:',
+                                        error
+                                    );
+                                    this.onGoing = false;
+                                    this.okButtonState = ClrLoadingState.ERROR;
+                                    this.inlineAlert.showInlineError(error);
+                                }
+                            );
+                    }
+
+                    if (claimAddPayload.length > 0) {
+                        this.idpService
+                            .CreateClaimRules({
+                                id: this.target.id,
+                                claims: { rules: claimAddPayload },
+                            })
+                            .subscribe(
+                                response => {
+                                    console.log(
+                                        'create claim rules response:',
+                                        response
+                                    );
+                                },
+                                error => {
+                                    console.log(
+                                        'create claim rules error:',
+                                        error
+                                    );
+                                    this.onGoing = false;
+                                    this.okButtonState = ClrLoadingState.ERROR;
+                                    this.inlineAlert.showInlineError(error);
+                                }
+                            );
+                    }
                 },
                 error => {
                     this.inlineAlert.showInlineError(error);
@@ -518,11 +556,16 @@ export class CreateEditIdpComponent
                     this.okButtonState = ClrLoadingState.ERROR;
                 }
             );
+        this.reload.emit(true);
+        this.close();
+        this.onGoing = false;
+        this.okButtonState = ClrLoadingState.SUCCESS;
     }
 
     onCancel() {
         const changes = this.getChanges();
-        if (!isEmptyObject(changes)) {
+        const claimsChanges = this.getClaimsChanges();
+        if (!isEmptyObject(changes) || !isEmptyObject(claimsChanges)) {
             this.inlineAlert.showInlineConfirmation({
                 message: 'ALERT.FORM_CHANGE_CONFIRMATION',
             });
@@ -532,6 +575,82 @@ export class CreateEditIdpComponent
                 this.targetForm.reset();
             }
         }
+    }
+
+    validateRequiredClaims(claims: { path: string; value: string }[]): boolean {
+        // 🛑 Check if claims is valid array
+        if (!claims || !Array.isArray(claims)) {
+            console.error('Invalid claims array provided.');
+            return false;
+        }
+
+        // 🔍 Extract all claim paths
+        const paths = claims.map(c => c.path.toLowerCase());
+
+        // ✅ Required claim keys
+        const requiredKeys = ['aud', 'iss'];
+
+        // 🔎 Find missing ones
+        const missing = requiredKeys.filter(key => !paths.includes(key));
+
+        if (missing.length > 0) {
+            console.error(
+                `Missing required claim path(s): ${missing.join(', ')}`
+            );
+            this.inlineAlert.showInlineError(
+                `Missing required claim path(s): ${missing.join(', ')}`
+            );
+            // 🔁 You can also show an inline UI error here if you prefer
+            // this.inlineAlert.showInlineError(`Missing required claim(s): ${missing.join(", ")}`);
+            return false;
+        }
+
+        // ✅ Everything present
+        return true;
+    }
+
+    assembleClaimsToAddRules(
+        claimsToAdd: { path: string; value: string }[],
+        id: number
+    ) {
+        if (!claimsToAdd || !Array.isArray(claimsToAdd)) {
+            console.error("Input 'claimsToAdd' is not a valid array.");
+            return [];
+        }
+        if (id === 0 || id === undefined) {
+            console.error("Input is missing an 'id' property.");
+            return [];
+        }
+
+        // 🆕 Builds rules for new claims to insert
+        return claimsToAdd.map(claim => ({
+            claim_path: claim.path,
+            value: claim.value,
+            identity_provider_id: id,
+            action: 'add', // 👈 Added field to explicitly identify the operation
+        }));
+    }
+
+    assembleClaimsToDeleteRules(
+        claimsToDelete: { path: string; value: string }[],
+        id: number
+    ) {
+        if (!claimsToDelete || !Array.isArray(claimsToDelete)) {
+            console.error("Input 'claimsToDelete' is not a valid array.");
+            return [];
+        }
+        if (id === 0 || id === undefined) {
+            console.error("Input is missing an 'id' property.");
+            return [];
+        }
+
+        // 🗑 Builds rules for claims to remove
+        return claimsToDelete.map(claim => ({
+            claim_path: claim.path,
+            value: claim.value,
+            identity_provider_id: id,
+            action: 'delete', // 👈 Added for clarity in downstream processing
+        }));
     }
 
     assembleClaimRules(claims: { path: string; value: string }[], id: number) {
@@ -571,6 +690,46 @@ export class CreateEditIdpComponent
                 );
             }
         }
+    }
+
+    getClaimsChanges(): {
+        claimsToAdd: { path: string; value: string }[];
+        claimsToDelete: { path: string; value: string }[];
+    } {
+        const claimsToAdd: { path: string; value: string }[] = [];
+        const claimsToDelete: { path: string; value: string }[] = [];
+        // ✅ Return early if either array is empty
+        if (!this.claims?.length || !this.initClaims?.length) {
+            return { claimsToAdd, claimsToDelete }; // both empty
+        }
+
+        // ✅ Convert both arrays into Map for O(1) lookup by `path`
+        const currentMap = new Map(this.claims.map(c => [c.path, c.value]));
+        const initMap = new Map(this.initClaims.map(c => [c.path, c.value]));
+
+        // ✅ Iterate over initial claims to detect deletions or modifications
+        for (const [path, oldValue] of initMap.entries()) {
+            const newValue = currentMap.get(path);
+
+            if (newValue === undefined) {
+                // 🗑 Claim removed → delete
+                claimsToDelete.push({ path, value: oldValue });
+            } else if (!compareValue(oldValue, newValue)) {
+                // ✏️ Modified → delete old + add new
+                claimsToDelete.push({ path, value: oldValue });
+                claimsToAdd.push({ path, value: newValue });
+            }
+        }
+
+        // ✅ Detect newly added claims
+        for (const [path, newValue] of currentMap.entries()) {
+            if (!initMap.has(path)) {
+                // ➕ New claim added
+                claimsToAdd.push({ path, value: newValue });
+            }
+        }
+
+        return { claimsToAdd, claimsToDelete };
     }
 
     getChanges(): { [key: string]: any | any[] } {
