@@ -76,6 +76,7 @@ export class NewRobotComponent implements OnInit, OnDestroy {
     addSuccess: EventEmitter<Robot> = new EventEmitter<Robot>();
     addRobotOpened: boolean = false;
     systemRobot: Robot = clone(NEW_EMPTY_ROBOT);
+    useFederatedRobot: boolean = false;
     expirationType: string = ExpirationType.DAYS;
     systemExpirationDays: number;
     coverAll: boolean = false;

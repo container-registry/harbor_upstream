@@ -242,6 +242,42 @@
                         </clr-control-helper>
                     </div>
                 </div>
+        <div class="clr-form-control mt-2">
+  <clr-checkbox-wrapper>
+    <label>
+      {{ 'SYSTEM_ROBOT.USE_FEDERATED_ROBOT_ACCOUNT' | translate }}
+      <clr-tooltip>
+        <clr-icon clrTooltipTrigger shape="info-circle" size="24"></clr-icon>
+        <clr-tooltip-content clrPosition="top-right" clrSize="lg" *clrIfOpen>
+          <span>
+            {{ 'SYSTEM_ROBOT.USE_FEDERATED_ROBOT_ACCOUNT_TIP' | translate }}
+          </span>
+        </clr-tooltip-content>
+      </clr-tooltip>
+    </label>
+    <input
+      type="checkbox"
+      clrCheckbox
+      [(ngModel)]="useFederatedRobot"
+      name="useFederatedRobotAccount"
+      [disabled]="loading || isEditMode"
+    />
+  </clr-checkbox-wrapper>
+</div>
+            </section>
+        </form>
+    </clr-wizard-page>
+    <clr-wizard-page class="pb-0">
+        <ng-template clrPageTitle>{{
+            'ROBOT_ACCOUNT.ADD_CLAIMS' | translate
+        }}</ng-template>
+        <form class="clr-form clr-form-horizontal">
+            <section class="form-block">
+                <robot-permissions-panel
+                    [mode]="PermissionSelectPanelModes.NORMAL"
+                    [(permissionsModel)]="permissionForSystem.access"
+                    [candidatePermissions]="robotMetadata?.system">
+                </robot-permissions-panel>
             </section>
         </form>
     </clr-wizard-page>
