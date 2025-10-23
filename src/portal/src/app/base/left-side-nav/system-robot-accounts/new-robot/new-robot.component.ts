@@ -61,6 +61,7 @@ import { errorHandler } from '../../../../shared/units/shared.utils';
 import { RobotPermission } from '../../../../../../ng-swagger-gen/models/robot-permission';
 import { PermissionSelectPanelModes } from '../../../../shared/components/robot-permissions-panel/robot-permissions-panel.component';
 import { Permissions } from '../../../../../../ng-swagger-gen/models/permissions';
+import { FederatedIdpService } from 'ng-swagger-gen/services';
 
 const MINI_SECONDS_ONE_DAY: number = 60 * 24 * 60 * 1000;
 
@@ -77,6 +78,9 @@ export class NewRobotComponent implements OnInit, OnDestroy {
     addRobotOpened: boolean = false;
     systemRobot: Robot = clone(NEW_EMPTY_ROBOT);
     useFederatedRobot: boolean = false;
+    // Array to store claim data
+    claims: { path: string; value: string }[];
+    initClaims: { path: string; value: string }[];
     expirationType: string = ExpirationType.DAYS;
     systemExpirationDays: number;
     coverAll: boolean = false;
@@ -94,6 +98,13 @@ export class NewRobotComponent implements OnInit, OnDestroy {
     saveBtnState: ClrLoadingState = ClrLoadingState.DEFAULT;
     private _nameSubject: Subject<string> = new Subject<string>();
     private _nameSubscription: Subscription;
+    idpSelection: string;
+    idpOptions: any[] = [];
+    filteredIdps: any[] = [];
+    checkIdpOnGoing = false;
+    _idpSubscription: Subscription;
+
+    private _idpSubject: Subject<string> = new Subject<string>();
 
     @Input()
     robotMetadata: Permissions;
@@ -117,17 +128,98 @@ export class NewRobotComponent implements OnInit, OnDestroy {
     @ViewChild('wizard') wizard: ClrWizard;
     constructor(
         private configService: ConfigurationService,
+        private idpService: FederatedIdpService,
         private robotService: RobotService,
         private msgHandler: MessageHandlerService,
         private operationService: OperationService
     ) {}
     ngOnInit(): void {
         this.subscribeName();
+        this.subscribeIdp();
     }
     ngOnDestroy() {
         if (this._nameSubscription) {
             this._nameSubscription.unsubscribe();
             this._nameSubscription = null;
+        }
+    }
+    // Trigger this when user types or changes selection
+    onIdpInputChange(value: string) {
+        console.log(`[onIdpInputChange] User typed or selected: "${value}"`);
+        this._idpSubject.next(value);
+    }
+    subscribeIdp() {
+        if (!this._idpSubscription) {
+            console.log('[subscribeIdp] Initializing IDP subscription...');
+
+            this._idpSubscription = this._idpSubject
+                .pipe(
+                    distinctUntilChanged(),
+                    filter(idpName => {
+                        const valid = !!idpName && idpName.length > 0;
+                        console.log(
+                            `[subscribeIdp] Filter stage - Input: "${idpName}", Valid: ${valid}`
+                        );
+                        return valid;
+                    }),
+                    map(idpName => {
+                        console.log(
+                            `[subscribeIdp] Map stage - Preparing to search for IDP: "${idpName}"`
+                        );
+                        this.checkIdpOnGoing = true;
+                        return idpName;
+                    }),
+                    debounceTime(400),
+                    switchMap(idpName => {
+                        console.log(
+                            `[subscribeIdp] Debounced value received: "${idpName}"`
+                        );
+                        this.checkIdpOnGoing = true;
+
+                        const query = encodeURIComponent(`name~=${idpName}`);
+                        console.log(
+                            `[subscribeIdp] Sending API request to ListFederatedIdps with query: ${query}`
+                        );
+
+                        return this.idpService
+                            .ListFederatedIdps({ q: query })
+                            .pipe(
+                                finalize(() => {
+                                    this.checkIdpOnGoing = false;
+                                    console.log(
+                                        '[subscribeIdp] API request finalized, loading stopped.'
+                                    );
+                                })
+                            );
+                    })
+                )
+                .subscribe({
+                    next: res => {
+                        console.log(
+                            '[subscribeIdp] API response received:',
+                            res
+                        );
+                        this.filteredIdps = res || [];
+                        console.log(
+                            `[subscribeIdp] Filtered IDPs updated: ${this.filteredIdps.length} items`
+                        );
+                    },
+                    error: err => {
+                        console.error(
+                            '[subscribeIdp] Error during IDP subscription:',
+                            err
+                        );
+                        this.filteredIdps = [];
+                        this.checkIdpOnGoing = false;
+                    },
+                    complete: () => {
+                        console.log('[subscribeIdp] Subscription completed.');
+                    },
+                });
+        } else {
+            console.warn(
+                '[subscribeIdp] Subscription already exists — skipping initialization.'
+            );
         }
     }
     subscribeName() {
@@ -511,6 +603,23 @@ export class NewRobotComponent implements OnInit, OnDestroy {
     clrWizardPageOnLoad() {
         this.inlineAlertComponent.close();
         this.showPage3 = true;
+    }
+
+    // Function to add a new claim pair
+    addClaim(): void {
+        this.claims.push({ path: '', value: '' });
+    }
+
+    removeClaim(): void {
+        // Remove the last claim from the claims Array
+        if (this.claims.length === 1) {
+            return;
+        }
+        // this.claims.pop();
+        // get the length of the claims Array
+        const length = this.claims.length;
+        // remove the claim at the specified index
+        this.claims.splice(length - 1, 1);
     }
 
     protected readonly PermissionSelectPanelModes = PermissionSelectPanelModes;
