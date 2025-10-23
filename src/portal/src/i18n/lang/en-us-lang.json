@@ -1763,6 +1763,7 @@
         "PAGE_SIZE": "Page size"
     },
     "SYSTEM_ROBOT": {
+        "SELECT_FEDERATED_IDP": "Select Federated IDP",
         "USE_FEDERATED_ROBOT_ACCOUNT": "Use federated robot account",
         "USE_FEDERATED_ROBOT_ACCOUNT_TIP": "Select this option only if you want to use a federated robot account. This type of robot account is different from a standard robot account - it requires a configured federated identity provider (IdP) and uses JWT tokens signed by that IdP instead of a username and password.",
         "READ": "Read",
