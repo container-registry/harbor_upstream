@@ -364,6 +364,7 @@
         "NAME": "Name",
         "PERMISSIONS": "Permissions",
         "TOKEN": "Secret",
+        "ADD_CLAIMS": "Add Claims",
         "NEW_ROBOT_ACCOUNT": "NEW ROBOT ACCOUNT",
         "ENABLED_STATE": "Enabled state",
         "NUMBER_REQUIRED": "Field is required and should be an integer other than 0.",
