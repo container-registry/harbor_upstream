@@ -278,7 +278,10 @@
             </section>
         </form>
     </clr-wizard-page>
-    <clr-wizard-page class="pb-0" *ngIf="useFederatedRobot">
+    <clr-wizard-page
+        class="pb-0"
+        *ngIf="useFederatedRobot"
+        [clrWizardPageNextDisabled]="!isValidIdp(idpSelection)">
         <ng-template clrPageTitle>
             {{ 'ROBOT_ACCOUNT.SELECT_IDP' | translate }}
         </ng-template>
@@ -287,23 +290,46 @@
             <section class="form-block">
                 <!-- Select IdP -->
                 <clr-combobox-container>
-                    <label>Federated IDP</label>
+                    <label for="fedidp">Federated IDP</label>
+
                     <clr-combobox
-                        [(ngModel)]="selection"
                         name="fedidp"
-                        required>
+                        required
+                        [(ngModel)]="idpSelection"
+                        #fedidpControl="ngModel"
+                        [class.clr-error]="
+                            (fedidpControl.dirty || fedidpControl.touched) &&
+                            (fedidpControl.dirty || !isValidIdp(idpSelection))
+                        ">
                         <clr-options>
                             <clr-option
-                                *clrOptionItems="
-                                    let idp of idpNames;
-                                "
+                                *clrOptionItems="let idp of idpNames"
                                 [clrValue]="idp">
                                 {{ idp }}
                             </clr-option>
                         </clr-options>
                     </clr-combobox>
-                    <clr-control-helper>Helper text</clr-control-helper>
-                    <clr-control-error>There was an error</clr-control-error>
+
+                    <!-- <clr-control-helper> -->
+                    <!--   Select a valid federated identity provider. -->
+                    <!-- </clr-control-helper> -->
+
+                    <clr-control-error
+                        *ngIf="
+                            (fedidpControl.dirty || fedidpControl.touched) &&
+                            fedidpControl.hasError('required')
+                        ">
+                        Federated IDP selection is required.
+                    </clr-control-error>
+
+                    <clr-control-error
+                        *ngIf="
+                            (fedidpControl.dirty || fedidpControl.touched) &&
+                            !fedidpControl.hasError('required') &&
+                            !isValidIdp(selection)
+                        ">
+                        Please select a valid federated IDP from the list.
+                    </clr-control-error>
                 </clr-combobox-container>
                 <!-- Add Claims Section -->
                 <div class="form-group-label-override">

@@ -140,6 +140,12 @@ export class NewRobotComponent implements OnInit, OnDestroy {
         this.subscribeName();
         // this.subscribeIdp();
         this.fetchIdps();
+        this.claims = [
+            {
+                path: '',
+                value: '',
+            },
+        ];
     }
     ngOnDestroy() {
         if (this._nameSubscription) {
