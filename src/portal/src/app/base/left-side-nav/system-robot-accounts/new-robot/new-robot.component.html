@@ -283,14 +283,16 @@
         *ngIf="useFederatedRobot"
         [clrWizardPageNextDisabled]="!isValidIdp(idpSelection)">
         <ng-template clrPageTitle>
-            {{ 'ROBOT_ACCOUNT.SELECT_IDP' | translate }}
+            {{ 'SYSTEM_ROBOT.SELECT_FEDERATED_IDP' | translate }}
         </ng-template>
 
         <form class="clr-form clr-form-horizontal">
             <section class="form-block">
                 <!-- Select IdP -->
                 <clr-combobox-container>
-                    <label for="fedidp">Federated IDP</label>
+                    <label class="required clr-control-label" for="fedidp">
+                        {{ 'SYSTEM_ROBOT.SELECT_FEDERATED_IDP' | translate }}
+                    </label>
 
                     <clr-combobox
                         name="fedidp"
@@ -309,11 +311,6 @@
                             </clr-option>
                         </clr-options>
                     </clr-combobox>
-
-                    <!-- <clr-control-helper> -->
-                    <!--   Select a valid federated identity provider. -->
-                    <!-- </clr-control-helper> -->
-
                     <clr-control-error
                         *ngIf="
                             (fedidpControl.dirty || fedidpControl.touched) &&
@@ -321,7 +318,6 @@
                         ">
                         Federated IDP selection is required.
                     </clr-control-error>
-
                     <clr-control-error
                         *ngIf="
                             (fedidpControl.dirty || fedidpControl.touched) &&
@@ -358,20 +354,14 @@
                         size="30"
                         name="claim_value_{{ i }}" />
                 </clr-input-container>
-
-                <button
-                    type="button"
-                    class="btn btn-primary mt-16"
-                    (click)="addClaim()">
-                    {{ 'BUTTON.ADD_MORE' | translate }}
-                </button>
-
-                <button
-                    type="button"
-                    class="btn btn-danger mt-16"
-                    (click)="removeClaim()">
-                    Remove Claim
-                </button>
+                <div class="btn-group btn-icon btn-sm mt-16">
+                    <button class="btn btn-success" (click)="addClaim()">
+                        <clr-icon shape="plus" size="16"></clr-icon>
+                    </button>
+                    <button class="btn btn-danger" (click)="removeClaim()">
+                        <clr-icon shape="minus" size="16"></clr-icon>
+                    </button>
+                </div>
             </section>
         </form>
     </clr-wizard-page>
