@@ -62,6 +62,7 @@ import { RobotPermission } from '../../../../../../ng-swagger-gen/models/robot-p
 import { PermissionSelectPanelModes } from '../../../../shared/components/robot-permissions-panel/robot-permissions-panel.component';
 import { Permissions } from '../../../../../../ng-swagger-gen/models/permissions';
 import { FederatedIdpService } from 'ng-swagger-gen/services';
+import { FederatedIdp } from 'ng-swagger-gen/models';
 
 const MINI_SECONDS_ONE_DAY: number = 60 * 24 * 60 * 1000;
 
@@ -103,6 +104,8 @@ export class NewRobotComponent implements OnInit, OnDestroy {
     filteredIdps: any[] = [];
     checkIdpOnGoing = false;
     _idpSubscription: Subscription;
+    idpNames: string[] = [];
+    loadingIdps: boolean = false;
 
     private _idpSubject: Subject<string> = new Subject<string>();
 
@@ -135,7 +138,8 @@ export class NewRobotComponent implements OnInit, OnDestroy {
     ) {}
     ngOnInit(): void {
         this.subscribeName();
-        this.subscribeIdp();
+        // this.subscribeIdp();
+        this.fetchIdps();
     }
     ngOnDestroy() {
         if (this._nameSubscription) {
@@ -143,85 +147,108 @@ export class NewRobotComponent implements OnInit, OnDestroy {
             this._nameSubscription = null;
         }
     }
+
+    // Custom validator function to check if selection is in idpNames
+    isValidIdp(value: string): boolean {
+        return this.idpNames.includes(value);
+    }
+
+    fetchIdps() {
+        console.log('[fetchIdps] Fetching federated IdPs...');
+        this.idpNames = [];
+        this.loadingIdps = true;
+        this.idpService.ListFederatedIdps({}).subscribe(
+            res => {
+                console.log('[fetchIdps] Fetched Idps: ', res);
+                this.idpNames = res.map(idp => idp.name);
+                this.loadingIdps = false;
+            },
+            error => {
+                console.error('[fetchIdps] Error fetching IdPs:', error);
+                this.idpNames = [];
+            }
+        );
+    }
+
     // Trigger this when user types or changes selection
     onIdpInputChange(value: string) {
         console.log(`[onIdpInputChange] User typed or selected: "${value}"`);
         this._idpSubject.next(value);
     }
-    subscribeIdp() {
-        if (!this._idpSubscription) {
-            console.log('[subscribeIdp] Initializing IDP subscription...');
-
-            this._idpSubscription = this._idpSubject
-                .pipe(
-                    distinctUntilChanged(),
-                    filter(idpName => {
-                        const valid = !!idpName && idpName.length > 0;
-                        console.log(
-                            `[subscribeIdp] Filter stage - Input: "${idpName}", Valid: ${valid}`
-                        );
-                        return valid;
-                    }),
-                    map(idpName => {
-                        console.log(
-                            `[subscribeIdp] Map stage - Preparing to search for IDP: "${idpName}"`
-                        );
-                        this.checkIdpOnGoing = true;
-                        return idpName;
-                    }),
-                    debounceTime(400),
-                    switchMap(idpName => {
-                        console.log(
-                            `[subscribeIdp] Debounced value received: "${idpName}"`
-                        );
-                        this.checkIdpOnGoing = true;
-
-                        const query = encodeURIComponent(`name~=${idpName}`);
-                        console.log(
-                            `[subscribeIdp] Sending API request to ListFederatedIdps with query: ${query}`
-                        );
-
-                        return this.idpService
-                            .ListFederatedIdps({ q: query })
-                            .pipe(
-                                finalize(() => {
-                                    this.checkIdpOnGoing = false;
-                                    console.log(
-                                        '[subscribeIdp] API request finalized, loading stopped.'
-                                    );
-                                })
-                            );
-                    })
-                )
-                .subscribe({
-                    next: res => {
-                        console.log(
-                            '[subscribeIdp] API response received:',
-                            res
-                        );
-                        this.filteredIdps = res || [];
-                        console.log(
-                            `[subscribeIdp] Filtered IDPs updated: ${this.filteredIdps.length} items`
-                        );
-                    },
-                    error: err => {
-                        console.error(
-                            '[subscribeIdp] Error during IDP subscription:',
-                            err
-                        );
-                        this.filteredIdps = [];
-                        this.checkIdpOnGoing = false;
-                    },
-                    complete: () => {
-                        console.log('[subscribeIdp] Subscription completed.');
-                    },
-                });
-        } else {
-            console.warn(
-                '[subscribeIdp] Subscription already exists — skipping initialization.'
-            );
-        }
-    }
+    // subscribeIdp() {
+    //     if (!this._idpSubscription) {
+    //         console.log('[subscribeIdp] Initializing IDP subscription...');
+    //
+    //         this._idpSubscription = this._idpSubject
+    //             .pipe(
+    //                 distinctUntilChanged(),
+    //                 filter(idpName => {
+    //                     const valid = !!idpName && idpName.length > 0;
+    //                     console.log(
+    //                         `[subscribeIdp] Filter stage - Input: "${idpName}", Valid: ${valid}`
+    //                     );
+    //                     return valid;
+    //                 }),
+    //                 map(idpName => {
+    //                     console.log(
+    //                         `[subscribeIdp] Map stage - Preparing to search for IDP: "${idpName}"`
+    //                     );
+    //                     this.checkIdpOnGoing = true;
+    //                     return idpName;
+    //                 }),
+    //                 debounceTime(400),
+    //                 switchMap(idpName => {
+    //                     console.log(
+    //                         `[subscribeIdp] Debounced value received: "${idpName}"`
+    //                     );
+    //                     this.checkIdpOnGoing = true;
+    //
+    //                     const query = encodeURIComponent(`name~=${idpName}`);
+    //                     console.log(
+    //                         `[subscribeIdp] Sending API request to ListFederatedIdps with query: ${query}`
+    //                     );
+    //
+    //                     return this.idpService
+    //                         .ListFederatedIdps({ q: query })
+    //                         .pipe(
+    //                             finalize(() => {
+    //                                 this.checkIdpOnGoing = false;
+    //                                 console.log(
+    //                                     '[subscribeIdp] API request finalized, loading stopped.'
+    //                                 );
+    //                             })
+    //                         );
+    //                 })
+    //             )
+    //             .subscribe({
+    //                 next: res => {
+    //                     console.log(
+    //                         '[subscribeIdp] API response received:',
+    //                         res
+    //                     );
+    //                     this.filteredIdps = res || [];
+    //                     console.log(
+    //                         `[subscribeIdp] Filtered IDPs updated: ${this.filteredIdps.length} items`
+    //                     );
+    //                 },
+    //                 error: err => {
+    //                     console.error(
+    //                         '[subscribeIdp] Error during IDP subscription:',
+    //                         err
+    //                     );
+    //                     this.filteredIdps = [];
+    //                     this.checkIdpOnGoing = false;
+    //                 },
+    //                 complete: () => {
+    //                     console.log('[subscribeIdp] Subscription completed.');
+    //                 },
+    //             });
+    //     } else {
+    //         console.warn(
+    //             '[subscribeIdp] Subscription already exists — skipping initialization.'
+    //         );
+    //     }
+    // }
     subscribeName() {
         if (!this._nameSubscription) {
             this._nameSubscription = this._nameSubject

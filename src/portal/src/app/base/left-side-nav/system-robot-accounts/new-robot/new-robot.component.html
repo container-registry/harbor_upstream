@@ -279,106 +279,39 @@
         </form>
     </clr-wizard-page>
     <clr-wizard-page class="pb-0" *ngIf="useFederatedRobot">
-        <ng-template clrPageTitle>{{
-            'ROBOT_ACCOUNT.SELECT_IDP' | translate
-        }}</ng-template>
+        <ng-template clrPageTitle>
+            {{ 'ROBOT_ACCOUNT.SELECT_IDP' | translate }}
+        </ng-template>
+
         <form class="clr-form clr-form-horizontal">
             <section class="form-block">
-                            <!-- Name like Select IdP -->
+                <!-- Select IdP -->
                 <clr-combobox-container>
-          <div
-  class="clr-control-container"
-  [class.clr-error]="(idpSelectionControl?.touched && idpSelectionControl?.invalid)"
->
-  <div class="clr-input-wrapper">
-    <clr-combobox-container>
-      <label for="idp">Federated Identity Provider</label>
-
-      <clr-combobox
-        name="idp"
-        id="idp"
-        required
-        [disabled]="loading"
-        [(ngModel)]="idpSelection"
-        #idpSelectionControl="ngModel"
-        (ngModelChange)="onIdpInputChange($event)"
-      >
-        <clr-options>
-          <!-- Show dynamic list of IdPs -->
-          <clr-option
-            *clrOptionItems="let idp of filteredIdps; field: 'name'"
-            [clrValue]="idp.name"
-          >
-            <cds-icon shape="shield" role="img" aria-label="IdP"></cds-icon>
-            {{ idp.name }}
-          </clr-option>
-
-          <!-- Spinner entry while loading -->
-          <clr-option *ngIf="checkIdpOnGoing" [clrValue]="null" disabled>
-            <span class="spinner spinner-inline"></span> Loading...
-          </clr-option>
-
-          <!-- No results message -->
-          <clr-option *ngIf="!checkIdpOnGoing && filteredIdps.length === 0 && idpSelectionControl?.value">
-            No matching IdPs found
-          </clr-option>
-        </clr-options>
-      </clr-combobox>
-
-      <!-- Validation icon (same as name input) -->
-      <clr-icon class="clr-validate-icon" shape="exclamation-circle"></clr-icon>
-
-      <!-- Inline loading spinner (right side of field) -->
-      <span class="spinner spinner-inline" [hidden]="!checkIdpOnGoing"></span>
-    </clr-combobox-container>
-  <!-- </div> -->
-<!---->
-<!--   <!-- Error message area --> -->
-<!--   <clr-control-error -->
-<!--     *ngIf="idpSelectionControl?.touched && idpSelectionControl?.invalid" -->
-<!--   > -->
-<!--     <span> -->
-<!--       {{ 'ROBOT_ACCOUNT.IDP_REQUIRED' | translate }} -->
-<!--     </span> -->
-<!--   </clr-control-error> -->
-<!-- </div> -->
-                    <!-- Select IdP -->
-                <!--     <label for="idp">Federated Identity Provider</label> -->
-                <!--     <clr-combobox -->
-                <!--         name="idp" -->
-                <!--         [(ngModel)]="idpSelection" -->
-                <!--         (ngModelChange)="onIdpInputChange($event)" -->
-                <!--         required> -->
-                <!--         <clr-options> -->
-                <!--             <clr-option -->
-                <!--                 *clrOptionItems=" -->
-                <!--                     let idp of filteredIdps; -->
-                <!--                     field: 'name' -->
-                <!--                 " -->
-                <!--                 [clrValue]="idp.name"> -->
-                <!--                 <cds-icon -->
-                <!--                     shape="shield" -->
-                <!--                     role="img" -->
-                <!--                     aria-label="IDP"></cds-icon> -->
-                <!--                 {{ idp.name }} -->
-                <!--             </clr-option> -->
-                <!--         </clr-options> -->
-                <!--     </clr-combobox> -->
-                <!---->
-                <!--     <clr-control-helper -->
-                <!--         >Select an existing federated IdP to associate with this -->
-                <!--         robot account.</clr-control-helper -->
-                <!--     > -->
-                <!--     <clr-control-error *ngIf="!idpSelection && !checkIdpOnGoing" -->
-                <!--         >An IdP selection is required.</clr-control-error -->
-                <!--     > -->
-                <!-- </clr-combobox-container> -->
-                <!-- Add Claims -->
+                    <label>Federated IDP</label>
+                    <clr-combobox
+                        [(ngModel)]="selection"
+                        name="fedidp"
+                        required>
+                        <clr-options>
+                            <clr-option
+                                *clrOptionItems="
+                                    let idp of idpNames;
+                                "
+                                [clrValue]="idp">
+                                {{ idp }}
+                            </clr-option>
+                        </clr-options>
+                    </clr-combobox>
+                    <clr-control-helper>Helper text</clr-control-helper>
+                    <clr-control-error>There was an error</clr-control-error>
+                </clr-combobox-container>
+                <!-- Add Claims Section -->
                 <div class="form-group-label-override">
                     <label class="required clr-control-label mt-16"
                         >Add Claims</label
                     >
                 </div>
+
                 <clr-input-container
                     *ngFor="let claim of claims; let i = index">
                     <input
@@ -406,6 +339,7 @@
                     (click)="addClaim()">
                     {{ 'BUTTON.ADD_MORE' | translate }}
                 </button>
+
                 <button
                     type="button"
                     class="btn btn-danger mt-16"
