@@ -82,6 +82,7 @@ export class NewRobotComponent implements OnInit, OnDestroy {
     // Array to store claim data
     claims: { path: string; value: string }[];
     initClaims: { path: string; value: string }[];
+    inheritedClaims: { path: string; value: string }[];
     expirationType: string = ExpirationType.DAYS;
     systemExpirationDays: number;
     coverAll: boolean = false;
@@ -105,6 +106,7 @@ export class NewRobotComponent implements OnInit, OnDestroy {
     checkIdpOnGoing = false;
     _idpSubscription: Subscription;
     idpNames: string[] = [];
+    idpMap: Map<string, number> = new Map<string, number>();
     loadingIdps: boolean = false;
 
     private _idpSubject: Subject<string> = new Subject<string>();
@@ -167,6 +169,9 @@ export class NewRobotComponent implements OnInit, OnDestroy {
             res => {
                 console.log('[fetchIdps] Fetched Idps: ', res);
                 this.idpNames = res.map(idp => idp.name);
+                this.idpMap = new Map<string, number>(
+                    res.map(idp => [idp.name, idp.id])
+                );
                 this.loadingIdps = false;
             },
             error => {
@@ -177,84 +182,37 @@ export class NewRobotComponent implements OnInit, OnDestroy {
     }
 
     // Trigger this when user types or changes selection
-    onIdpInputChange(value: string) {
-        console.log(`[onIdpInputChange] User typed or selected: "${value}"`);
-        this._idpSubject.next(value);
+    onIdpChange(selectedIdp: string) {
+        console.log(`[onIdpChange] User typed or selected: "${selectedIdp}"`);
+        if (this.isValidIdp(selectedIdp)) {
+            this.idpSelection = selectedIdp;
+            this.fetchInheritedClaims(selectedIdp);
+        } else {
+            this.idpSelection = '';
+        }
+        // this._idpSubject.next(value);
     }
-    // subscribeIdp() {
-    //     if (!this._idpSubscription) {
-    //         console.log('[subscribeIdp] Initializing IDP subscription...');
-    //
-    //         this._idpSubscription = this._idpSubject
-    //             .pipe(
-    //                 distinctUntilChanged(),
-    //                 filter(idpName => {
-    //                     const valid = !!idpName && idpName.length > 0;
-    //                     console.log(
-    //                         `[subscribeIdp] Filter stage - Input: "${idpName}", Valid: ${valid}`
-    //                     );
-    //                     return valid;
-    //                 }),
-    //                 map(idpName => {
-    //                     console.log(
-    //                         `[subscribeIdp] Map stage - Preparing to search for IDP: "${idpName}"`
-    //                     );
-    //                     this.checkIdpOnGoing = true;
-    //                     return idpName;
-    //                 }),
-    //                 debounceTime(400),
-    //                 switchMap(idpName => {
-    //                     console.log(
-    //                         `[subscribeIdp] Debounced value received: "${idpName}"`
-    //                     );
-    //                     this.checkIdpOnGoing = true;
-    //
-    //                     const query = encodeURIComponent(`name~=${idpName}`);
-    //                     console.log(
-    //                         `[subscribeIdp] Sending API request to ListFederatedIdps with query: ${query}`
-    //                     );
-    //
-    //                     return this.idpService
-    //                         .ListFederatedIdps({ q: query })
-    //                         .pipe(
-    //                             finalize(() => {
-    //                                 this.checkIdpOnGoing = false;
-    //                                 console.log(
-    //                                     '[subscribeIdp] API request finalized, loading stopped.'
-    //                                 );
-    //                             })
-    //                         );
-    //                 })
-    //             )
-    //             .subscribe({
-    //                 next: res => {
-    //                     console.log(
-    //                         '[subscribeIdp] API response received:',
-    //                         res
-    //                     );
-    //                     this.filteredIdps = res || [];
-    //                     console.log(
-    //                         `[subscribeIdp] Filtered IDPs updated: ${this.filteredIdps.length} items`
-    //                     );
-    //                 },
-    //                 error: err => {
-    //                     console.error(
-    //                         '[subscribeIdp] Error during IDP subscription:',
-    //                         err
-    //                     );
-    //                     this.filteredIdps = [];
-    //                     this.checkIdpOnGoing = false;
-    //                 },
-    //                 complete: () => {
-    //                     console.log('[subscribeIdp] Subscription completed.');
-    //                 },
-    //             });
-    //     } else {
-    //         console.warn(
-    //             '[subscribeIdp] Subscription already exists — skipping initialization.'
-    //         );
-    //     }
-    // }
+
+    fetchInheritedClaims(idpName: string) {
+        // In real case, replace with API call returning claims
+        const idpID: number = this.idpMap[idpName];
+        this.idpService.ListClaimRules({ id: idpID }).subscribe(
+            claimRules => {
+                const claims = claimRules.map(claimRule => {
+                    return {
+                        path: claimRule.claim_path,
+                        value: claimRule.value,
+                    };
+                });
+                this.inheritedClaims = claims;
+            },
+            error => {
+                this.saveBtnState = ClrLoadingState.ERROR;
+                this.inlineAlertComponent.showInlineError(error);
+            }
+        );
+    }
+
     subscribeName() {
         if (!this._nameSubscription) {
             this._nameSubscription = this._nameSubject

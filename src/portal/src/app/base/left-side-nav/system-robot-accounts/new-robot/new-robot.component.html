@@ -298,6 +298,7 @@
                         name="fedidp"
                         required
                         [(ngModel)]="idpSelection"
+                        (ngModelChange)="onIdpChange($event)"
                         #fedidpControl="ngModel"
                         [class.clr-error]="
                             (fedidpControl.dirty || fedidpControl.touched) &&
@@ -327,6 +328,35 @@
                         Please select a valid federated IDP from the list.
                     </clr-control-error>
                 </clr-combobox-container>
+
+                <!-- Inherited Claims Section -->
+                <div class="form-group-label-override">
+                    <label class="clr-control-label mt-16"
+                        >Inherited Claims</label
+                    >
+                </div>
+
+                <clr-input-container
+                    *ngFor="let claim of inheritedClaims; let i = index">
+                    <input
+                        class="mr-10"
+                        autocomplete="off"
+                        clrInput
+                        type="text"
+                        placeholder="Claim Path"
+                        [(ngModel)]="claim.path"
+                        size="10"
+                        name="claim_path_{{ i }}" />
+                    <input
+                        autocomplete="off"
+                        clrInput
+                        type="text"
+                        placeholder="Claim Value"
+                        [(ngModel)]="claim.value"
+                        size="30"
+                        name="claim_value_{{ i }}" />
+                </clr-input-container>
+
                 <!-- Add Claims Section -->
                 <div class="form-group-label-override">
                     <label class="required clr-control-label mt-16"
@@ -354,6 +384,7 @@
                         size="30"
                         name="claim_value_{{ i }}" />
                 </clr-input-container>
+
                 <div class="btn-group btn-icon btn-sm mt-16">
                     <button class="btn btn-success" (click)="addClaim()">
                         <clr-icon shape="plus" size="16"></clr-icon>
