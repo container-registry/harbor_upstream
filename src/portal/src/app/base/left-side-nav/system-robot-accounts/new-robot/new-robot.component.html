@@ -281,7 +281,9 @@
     <clr-wizard-page
         class="pb-0"
         *ngIf="useFederatedRobot"
-        [clrWizardPageNextDisabled]="!isValidIdp(idpSelection)">
+        [clrWizardPageNextDisabled]="
+            !isValidIdp(idpSelection) || !isValidFinalState()
+        ">
         <ng-template clrPageTitle>
             {{ 'SYSTEM_ROBOT.SELECT_FEDERATED_IDP' | translate }}
         </ng-template>
@@ -345,16 +347,18 @@
                         type="text"
                         placeholder="Claim Path"
                         [(ngModel)]="claim.path"
+                        disabled
                         size="10"
-                        name="claim_path_{{ i }}" />
+                        name="inheritclaim_path_{{ i }}" />
                     <input
                         autocomplete="off"
                         clrInput
                         type="text"
                         placeholder="Claim Value"
                         [(ngModel)]="claim.value"
+                        disabled
                         size="30"
-                        name="claim_value_{{ i }}" />
+                        name="inheritclaim_value_{{ i }}" />
                 </clr-input-container>
 
                 <!-- Add Claims Section -->
@@ -364,26 +368,47 @@
                     >
                 </div>
 
-                <clr-input-container
-                    *ngFor="let claim of claims; let i = index">
-                    <input
-                        class="mr-10"
-                        autocomplete="off"
-                        clrInput
-                        type="text"
-                        placeholder="Claim Path"
-                        [(ngModel)]="claim.path"
-                        size="10"
-                        name="claim_path_{{ i }}" />
-                    <input
-                        autocomplete="off"
-                        clrInput
-                        type="text"
-                        placeholder="Claim Value"
-                        [(ngModel)]="claim.value"
-                        size="30"
-                        name="claim_value_{{ i }}" />
-                </clr-input-container>
+                <div
+                    *ngFor="let claim of claims; let i = index"
+                    class="claim-block"
+                    [class.clr-error]="
+                        (claim.path.trim().length > 0 ||
+                            claim.value.trim().length > 0) &&
+                        claim.error?.trim()
+                    ">
+                    <clr-input-container>
+                        <input
+                            class="mr-10"
+                            autocomplete="off"
+                            clrInput
+                            type="text"
+                            placeholder="Claim Path"
+                            [(ngModel)]="claim.path"
+                            (ngModelChange)="isValidFinalState()"
+                            size="10"
+                            [id]="'claim_path_' + i"
+                            [name]="'claim_path_' + i" />
+                        <input
+                            autocomplete="off"
+                            clrInput
+                            type="text"
+                            placeholder="Claim Value"
+                            [(ngModel)]="claim.value"
+                            (ngModelChange)="isValidFinalState()"
+                            size="30"
+                            [id]="'claim_value_' + i"
+                            [name]="'claim_value_' + i" />
+                    </clr-input-container>
+
+                    <clr-control-error
+                        *ngIf="
+                            (claim.path.trim().length > 0 ||
+                                claim.value.trim().length > 0) &&
+                            claim.error?.trim()
+                        ">
+                        {{ claim?.error?.trim() }}
+                    </clr-control-error>
+                </div>
 
                 <div class="btn-group btn-icon btn-sm mt-16">
                     <button class="btn btn-success" (click)="addClaim()">

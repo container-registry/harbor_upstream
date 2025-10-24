@@ -65,6 +65,11 @@ import { FederatedIdpService } from 'ng-swagger-gen/services';
 import { FederatedIdp } from 'ng-swagger-gen/models';
 
 const MINI_SECONDS_ONE_DAY: number = 60 * 24 * 60 * 1000;
+interface Claim {
+    path: string;
+    value: string;
+    error?: string; // optional so it doesn't break existing code
+}
 
 @Component({
     selector: 'new-robot',
@@ -80,7 +85,7 @@ export class NewRobotComponent implements OnInit, OnDestroy {
     systemRobot: Robot = clone(NEW_EMPTY_ROBOT);
     useFederatedRobot: boolean = false;
     // Array to store claim data
-    claims: { path: string; value: string }[];
+    claims: Claim[] = [];
     initClaims: { path: string; value: string }[];
     inheritedClaims: { path: string; value: string }[];
     expirationType: string = ExpirationType.DAYS;
@@ -169,8 +174,8 @@ export class NewRobotComponent implements OnInit, OnDestroy {
             res => {
                 console.log('[fetchIdps] Fetched Idps: ', res);
                 this.idpNames = res.map(idp => idp.name);
-                this.idpMap = new Map<string, number>(
-                    res.map(idp => [idp.name, idp.id])
+                this.idpMap = new Map(
+                    res.map(idp => [idp.name.trim().toLowerCase(), idp.id])
                 );
                 this.loadingIdps = false;
             },
@@ -194,10 +199,24 @@ export class NewRobotComponent implements OnInit, OnDestroy {
     }
 
     fetchInheritedClaims(idpName: string) {
+        console.log('[fetchInheritedClaims] Fetching inherited claims...');
+        console.log(
+            '[fetchInheritedClaims] what is the idpName...',
+            idpName.trim()
+        );
+        console.log('[fetchInheritedClaims] idpMap...', this.idpMap);
+        console.log('[fetchInheritedClaims] idpName:', JSON.stringify(idpName));
+        console.log(
+            '[fetchInheritedClaims] keys:',
+            Array.from(this.idpMap.keys())
+        );
         // In real case, replace with API call returning claims
-        const idpID: number = this.idpMap[idpName];
+        // const idpID: number = this.idpMap[idpName.trim()];
+        const idpID = this.idpMap.get(idpName.trim().toLowerCase());
+        console.log('[fetchInheritedClaims] idpID:', idpID);
         this.idpService.ListClaimRules({ id: idpID }).subscribe(
             claimRules => {
+                console.log('[fetchInheritedClaims] claimRules:', claimRules);
                 const claims = claimRules.map(claimRule => {
                     return {
                         path: claimRule.claim_path,
@@ -211,6 +230,46 @@ export class NewRobotComponent implements OnInit, OnDestroy {
                 this.inlineAlertComponent.showInlineError(error);
             }
         );
+    }
+
+    // Rule 1: path in claims must not duplicate inheritedClaims
+    isPathDuplicate(path: string): boolean {
+        return this.inheritedClaims.some(claim => claim.path === path);
+    }
+
+    // Rule 2: final state must have at least one non-empty claim
+    isValidFinalState(): boolean {
+        let isValid = true;
+
+        // Clear previous errors
+        this.claims.forEach(c => (c.error = ''));
+
+        // Rule 1: At least one non-empty claim
+        const hasUserClaims = this.claims.some(
+            c => c.path.trim() !== '' && c.value.trim() !== ''
+        );
+
+        if (!hasUserClaims) {
+            console.warn('Validation failed: No valid user claims.');
+            isValid = false;
+        }
+
+        // Rule 2: No duplicate path with inherited claims
+        this.claims.forEach(c => {
+            const isDuplicate = this.inheritedClaims.some(
+                ic =>
+                    ic.path.trim().toLowerCase() === c.path.trim().toLowerCase()
+            );
+            if (isDuplicate) {
+                c.error = 'Duplicate claim path found in inherited claims.';
+                isValid = false;
+            } else if (!c.path.trim() || !c.value.trim()) {
+                c.error = 'Path and Value are required.';
+                isValid = false;
+            }
+        });
+
+        return isValid;
     }
 
     subscribeName() {
