@@ -528,11 +528,59 @@ export class NewRobotComponent implements OnInit, OnDestroy {
         }
         return false;
     }
+
+    assembleClaimRules(claims: Claim[], fedidp_id: number, robot_id: number) {
+        if (!claims || !Array.isArray(claims)) {
+            console.error("Input 'claims' is not a valid array.");
+            return [];
+        }
+        if (robot_id === 0 || robot_id === undefined) {
+            console.error(
+                "Assembling claim rules: Input is missing an 'robot_id' property."
+            );
+            return [];
+        }
+        if (fedidp_id === 0 || fedidp_id === undefined) {
+            console.error(
+                "Assembling claim rules: Input is missing an 'fedidp_id' property."
+            );
+            return [];
+        }
+
+        return claims.map(claim => {
+            return {
+                claim_path: claim.path,
+                value: claim.value,
+                identity_provider_id: fedidp_id,
+                robot_id: robot_id,
+            };
+        });
+    }
+
     save() {
         const robot: Robot = clone(this.systemRobot);
         robot.disable = false;
         robot.level = PermissionsKinds.SYSTEM;
         robot.duration = +this.systemRobot.duration;
+        robot.federatedidp_id = this.idpMap.get(
+            this.idpSelection.trim().toLowerCase()
+        );
+
+        if (
+            robot.federatedidp_id === undefined ||
+            robot.federatedidp_id === null ||
+            robot.federatedidp_id === 0
+        ) {
+            if (!this.useFederatedRobot) {
+                robot.federatedidp_id = 0;
+            } else {
+                console.error('Robot.federatedidp_id is undefined or null');
+                this.inlineAlertComponent.showInlineError(
+                    'SYSTEM_ROBOT.FEDERATED_IDP_NOT_FOUND'
+                );
+                return;
+            }
+        }
         robot.permissions = [];
         if (this.permissionForSystem?.access?.length) {
             robot.permissions.push(this.permissionForSystem);
@@ -615,6 +663,50 @@ export class NewRobotComponent implements OnInit, OnDestroy {
                 })
                 .subscribe(
                     res => {
+                        console.log('created robot acc resp: ', res);
+                        if (this.useFederatedRobot) {
+                            console.log('going to start the claims addition');
+                            const assembledClaimRules = this.assembleClaimRules(
+                                this.claims,
+                                robot.federatedidp_id,
+                                res.id
+                            );
+                            console.log(
+                                'assembled claim rules: ',
+                                assembledClaimRules
+                            );
+                            this.idpService
+                                .CreateClaimRules({
+                                    id: robot.federatedidp_id,
+                                    claims: {
+                                        rules: assembledClaimRules,
+                                    },
+                                })
+                                .subscribe(
+                                    res => {
+                                        this.saveBtnState =
+                                            ClrLoadingState.SUCCESS;
+                                        this.addSuccess.emit(res);
+                                        this.cancel();
+                                        operateChanges(
+                                            opeMessage,
+                                            OperationState.success
+                                        );
+                                    },
+                                    error => {
+                                        this.saveBtnState =
+                                            ClrLoadingState.ERROR;
+                                        this.inlineAlertComponent.showInlineError(
+                                            error
+                                        );
+                                        operateChanges(
+                                            opeMessage,
+                                            OperationState.failure,
+                                            errorHandler(error)
+                                        );
+                                    }
+                                );
+                        }
                         this.saveBtnState = ClrLoadingState.SUCCESS;
                         this.addSuccess.emit(res);
                         this.cancel();
