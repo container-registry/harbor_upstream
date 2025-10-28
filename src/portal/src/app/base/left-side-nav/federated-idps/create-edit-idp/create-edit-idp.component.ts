@@ -103,6 +103,10 @@ export class CreateEditIdpComponent
                 path: 'aud',
                 value: this.registryUrl || window.location.hostname,
             },
+            {
+                path: 'iss',
+                value: '',
+            },
         ];
         return;
         // this.getAdapters();
@@ -285,16 +289,26 @@ export class CreateEditIdpComponent
         this.claims.push({ path: '', value: '' });
     }
 
-    removeClaim(): void {
-        // Remove the last claim from the claims Array
+    deleteClaim(index: number): void {
         if (this.claims.length === 1) {
             return;
         }
-        // this.claims.pop();
-        // get the length of the claims Array
-        const length = this.claims.length;
-        // remove the claim at the specified index
-        this.claims.splice(length - 1, 1);
+        if (index === 0) {
+            return;
+        }
+        if (this.checkIfMandotaryClaim(index)) {
+            return;
+        }
+        this.claims.splice(index, 1);
+    }
+
+    checkIfMandotaryClaim(index: number): boolean {
+        if (
+            this.claims[index].path === 'aud' ||
+            this.claims[index].path === 'iss'
+        ) {
+            return true;
+        }
     }
 
     ngOnDestroy(): void {

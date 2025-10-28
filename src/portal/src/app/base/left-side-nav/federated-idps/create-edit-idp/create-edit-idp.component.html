@@ -259,37 +259,39 @@
                     >Add Claims</label
                 >
             </div>
-            <clr-input-container *ngFor="let claim of claims; let i = index">
-                <input
-                    class="mr-10"
-                    autocomplete="off"
-                    clrInput
-                    type="text"
-                    placeholder="Claim Path"
-                    [(ngModel)]="claim.path"
-                    size="10"
-                    name="claim_path_{{ i }}" />
-                <input
-                    autocomplete="off"
-                    clrInput
-                    type="text"
-                    placeholder="Claim Value"
-                    [(ngModel)]="claim.value"
-                    size="30"
-                    name="claim_value_{{ i }}" />
-            </clr-input-container>
+            <div class="claim-row" *ngFor="let claim of claims; let i = index">
+                <clr-input-container>
+                    <input
+                        class="mr-10"
+                        autocomplete="off"
+                        clrInput
+                        type="text"
+                        placeholder="Claim Path"
+                        [disabled]="checkIfMandotaryClaim(i)"
+                        [(ngModel)]="claim.path"
+                        size="22"
+                        name="claim_path_{{ i }}" />
+                    <input
+                        autocomplete="off"
+                        clrInput
+                        type="text"
+                        placeholder="Claim Value"
+                        [(ngModel)]="claim.value"
+                        size="30"
+                        name="claim_value_{{ i }}" />
+                </clr-input-container>
+                <clr-icon
+                    class="mt-16"
+                    (click)="deleteClaim(i)"
+                    [hidden]="checkIfMandotaryClaim(i)"
+                    shape="window-close"
+                    size="20"></clr-icon>
+            </div>
 
-            <button
-                type="button"
-                class="btn btn-primary mt-16"
-                (click)="addClaim()">
-                {{ 'BUTTON.ADD_MORE' | translate }}
-            </button>
-            <button
-                type="button"
-                class="btn btn-danger mt-16"
-                (click)="removeClaim()">
-                Remove Claim
+            <button type="button" class="btn btn-link" (click)="addClaim()">
+                <clr-icon shape="plus" size="16"></clr-icon>&nbsp;{{
+                    'BUTTON.ADD_MORE' | translate
+                }}
             </button>
         </form>
     </div>

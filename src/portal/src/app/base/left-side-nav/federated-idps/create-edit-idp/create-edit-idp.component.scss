@@ -7,6 +7,14 @@
     margin-top: 1.5rem;
   }
 
+  .claim-row {
+    display: flex;               /* ✅ same line */
+    align-items: center;         /* ✅ vertical centering */
+    gap: 8px;                    /* ✅ comfortable spacing */
+    margin-bottom: 10px;
+  }
+
+
   .mr-10 {
     margin-right: 1rem;
   }
