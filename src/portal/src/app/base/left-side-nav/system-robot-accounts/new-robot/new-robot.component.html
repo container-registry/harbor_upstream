@@ -370,7 +370,7 @@
 
                 <div
                     *ngFor="let claim of claims; let i = index"
-                    class="claim-block"
+                    class="claim-row"
                     [class.clr-error]="
                         (claim.path.trim().length > 0 ||
                             claim.value.trim().length > 0) &&
@@ -384,6 +384,7 @@
                             type="text"
                             placeholder="Claim Path"
                             [(ngModel)]="claim.path"
+                            [disabled]="checkIfMandotaryClaim(i)"
                             (ngModelChange)="isValidFinalState()"
                             size="10"
                             [id]="'claim_path_' + i"
@@ -399,6 +400,12 @@
                             [id]="'claim_value_' + i"
                             [name]="'claim_value_' + i" />
                     </clr-input-container>
+                <clr-icon
+                    class="mt-16"
+                    (click)="deleteClaim(i)"
+                    [hidden]="checkIfMandotaryClaim(i)"
+                    shape="window-close"
+                    size="20"></clr-icon>
 
                     <clr-control-error
                         *ngIf="
@@ -410,14 +417,11 @@
                     </clr-control-error>
                 </div>
 
-                <div class="btn-group btn-icon btn-sm mt-16">
-                    <button class="btn btn-success" (click)="addClaim()">
-                        <clr-icon shape="plus" size="16"></clr-icon>
-                    </button>
-                    <button class="btn btn-danger" (click)="removeClaim()">
-                        <clr-icon shape="minus" size="16"></clr-icon>
-                    </button>
-                </div>
+            <button type="button" class="btn btn-link pl-0" (click)="addClaim()">
+                <clr-icon shape="plus" size="16"></clr-icon>&nbsp;{{
+                    'BUTTON.ADD_MORE' | translate
+                }}
+            </button>
             </section>
         </form>
     </clr-wizard-page>
