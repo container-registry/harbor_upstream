@@ -384,7 +384,6 @@
                             type="text"
                             placeholder="Claim Path"
                             [(ngModel)]="claim.path"
-                            [disabled]="checkIfMandotaryClaim(i)"
                             (ngModelChange)="isValidFinalState()"
                             size="10"
                             [id]="'claim_path_' + i"
@@ -403,7 +402,6 @@
                 <clr-icon
                     class="mt-16"
                     (click)="deleteClaim(i)"
-                    [hidden]="checkIfMandotaryClaim(i)"
                     shape="window-close"
                     size="20"></clr-icon>
 

@@ -759,19 +759,7 @@ export class NewRobotComponent implements OnInit, OnDestroy {
         if (index === 0) {
             return;
         }
-        if (this.checkIfMandotaryClaim(index)) {
-            return;
-        }
         this.claims.splice(index, 1);
-    }
-
-    checkIfMandotaryClaim(index: number): boolean {
-        if (
-            this.claims[index].path === 'aud' ||
-            this.claims[index].path === 'iss'
-        ) {
-            return true;
-        }
     }
 
     protected readonly PermissionSelectPanelModes = PermissionSelectPanelModes;
