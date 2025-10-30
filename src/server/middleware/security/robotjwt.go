@@ -71,7 +71,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// get the jwt
 	tokenStr := bearerToken(req)
 	if len(tokenStr) == 0 {
-		tokenStr = BasicAuthToken(req)
+		tokenStr = basicAuthToken(req)
 		return nil
 	}
 
