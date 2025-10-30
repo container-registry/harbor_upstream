@@ -103,10 +103,6 @@ export class CreateEditIdpComponent
                 path: 'aud',
                 value: this.registryUrl || window.location.hostname,
             },
-            {
-                path: 'iss',
-                value: '',
-            },
         ];
         return;
         // this.getAdapters();
