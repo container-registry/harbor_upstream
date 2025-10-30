@@ -17,6 +17,8 @@ package security
 import (
 	"net/http"
 	"os"
+	"slices"
+	"strings"
 
 	"github.com/goharbor/harbor/src/common/models"
 	"github.com/goharbor/harbor/src/common/security"
@@ -57,10 +59,38 @@ func GetUserAgent(r *http.Request) string {
 	return r.Header.Get("user-agent")
 }
 
+func IsJWT(token string) bool {
+	// Trim any surrounding spaces just in case
+	token = strings.TrimSpace(token)
+
+	// Split the token by '.'
+	parts := strings.Split(token, ".")
+
+	// A valid JWT always has exactly 3 parts
+	if len(parts) != 3 {
+		log.Warningf("invalid jwt token doesn't have 3 parts: has %v: %s", parts, token)
+		return false
+	}
+
+	// Each part should be non-empty (base64url-encoded)
+	if slices.Contains(parts, "") {
+		log.Warningf("invalid jwt token has empty part: %s", token)
+		return false
+	}
+
+	return true
+}
+
 func (b *basicAuth) Generate(req *http.Request) security.Context {
 	log := log.G(req.Context())
 	username, password, ok := req.BasicAuth()
 	if !ok {
+		return nil
+	}
+
+	// if password is jwt use jwt auth
+	if IsJWT(password) {
+		log.Warningf("JWT is coming inside db_auth, skipping db_auth")
 		return nil
 	}
 	user, err := auth.Login(req.Context(), models.AuthModel{
