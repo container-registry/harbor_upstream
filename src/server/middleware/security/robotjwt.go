@@ -75,6 +75,8 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 		if len(tokenStr) == 0 {
 			log.Warningf("no JWT token found")
 			return nil
+		} else {
+			log.Warningf("the jwt token is %s", tokenStr)
 		}
 		// return nil
 	}
@@ -213,6 +215,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 		return nil
 	}
 	if robot == nil {
+		log.Warningf("kumaruu, robot is nil")
 		return nil
 	}
 	if robot.Disabled {
@@ -442,7 +445,9 @@ func ParseToken(signMethod jwt.SigningMethod, publicKey any, rawToken string, cl
 
 // basicAuthToken extracts only the password (e.g., JWT) from an Authorization: Basic header.
 func basicAuthToken(req *http.Request) string {
+	log.Warningf("kumaruu,inside the basicauthtoken")
 	if req == nil {
+		log.Warningf("thhe request is nil")
 		return ""
 	}
 
@@ -464,6 +469,7 @@ func basicAuthToken(req *http.Request) string {
 	}
 	decoded := string(decodedBytes)
 
+	log.Warningf("kumaruu, decoded auth is %s", decoded)
 	// Split on the first ':' and return only password part
 	parts := strings.SplitN(decoded, ":", 2)
 	if len(parts) != 2 {
