@@ -71,6 +71,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// get the jwt
 	tokenStr := bearerToken(req)
 	if len(tokenStr) == 0 {
+		tokenStr = BasicAuthToken(req)
 		return nil
 	}
 
@@ -434,3 +435,38 @@ func ParseToken(signMethod jwt.SigningMethod, publicKey any, rawToken string, cl
 // 	//   "kty": "oct"
 // 	// }
 // }
+
+// basicAuthToken extracts only the password (e.g., JWT) from an Authorization: Basic header.
+func basicAuthToken(req *http.Request) string {
+	if req == nil {
+		return ""
+	}
+
+	// Get the "Authorization" header value
+	h := req.Header.Get("Authorization")
+	if !strings.HasPrefix(h, "Basic ") {
+		log.Warningf("kumaruu header is not Basic: %s", h)
+		return ""
+	}
+
+	// Extract the base64-encoded portion after "Basic "
+	encoded := strings.TrimSpace(strings.TrimPrefix(h, "Basic "))
+
+	// Decode base64 value → gives "username:password"
+	decodedBytes, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		log.Warningf("kumaruu failed to decode base64: %s", err)
+		return ""
+	}
+	decoded := string(decodedBytes)
+
+	// Split on the first ':' and return only password part
+	parts := strings.SplitN(decoded, ":", 2)
+	if len(parts) != 2 {
+		log.Warningf("kumaruu invalid decoded string: %s", decoded)
+		return ""
+	}
+
+	// ✅ Return only the password (JWT token)
+	return parts[1]
+}
