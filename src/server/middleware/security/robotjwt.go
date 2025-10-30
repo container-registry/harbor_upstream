@@ -167,6 +167,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 
 	// validate the token claims with idp claims
 	for _, claim := range idpClaims {
+		log.Warningf("current claim: path - %s, value - %s", claim.ClaimPath, claim.Value)
 		var val string
 		err := parsedToken.Get(claim.ClaimPath, &val)
 		if err != nil {
