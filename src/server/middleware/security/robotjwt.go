@@ -72,7 +72,11 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	tokenStr := bearerToken(req)
 	if len(tokenStr) == 0 {
 		tokenStr = basicAuthToken(req)
-		return nil
+		if len(tokenStr) == 0 {
+			log.Warningf("no JWT token found")
+			return nil
+		}
+		// return nil
 	}
 
 	// kumar, log the jwt token
