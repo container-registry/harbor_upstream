@@ -167,15 +167,22 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 
 	// validate the token claims with idp claims
 	for _, claim := range idpClaims {
-		log.Warningf("current claim: path - %s, value - %s", claim.ClaimPath, claim.Value)
-		var val string
-		err := parsedToken.Get(claim.ClaimPath, &val)
+		log.Warningf("current claim: path - %v, value - %v", claim.ClaimPath, claim.Value)
+		var val any
+		err := parsedToken.Get(claim.ClaimPath, val)
 		if err != nil {
 			log.Warningf("failed to get claim %s from token: %v", claim.ClaimPath, err)
 			return nil
 		}
 
-		if strings.TrimSpace(val) != strings.TrimSpace(claim.Value) {
+		// Convert the claim value to string safely
+		valStr, ok := val.(string)
+		if !ok {
+			log.Warningf("claim %s is not a string, got type %T", claim.ClaimPath, val)
+			return nil
+		}
+
+		if strings.TrimSpace(valStr) != strings.TrimSpace(claim.Value) {
 			log.Warningf("claim %s, with value %s does not match with idp value: %v", claim.ClaimPath, claim.Value, val)
 			return nil
 		}
