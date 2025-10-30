@@ -65,6 +65,9 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	log := log.G(req.Context())
 	var jwkSet jwk.Set
 
+	log.Warningf("inside the request: %v", req)
+	log.Warningf("inside the request headers: %v", req.Header)
+
 	// get the jwt
 	tokenStr := bearerToken(req)
 	if len(tokenStr) == 0 {
