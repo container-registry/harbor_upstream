@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"math/big"
 	"net/http"
 	"strings"
@@ -138,6 +139,20 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 		_, ok := jwkSet.LookupKeyID(kid)
 		if !ok {
 			log.Warningf("failed to find key with kid: %s", kid)
+			return nil
+		}
+
+		// fetch claims supported by idp
+		supportedClaims, err := GetSupportedClaims(req.Context(), idp.OpenIDConfigURL, log)
+		if err != nil {
+			log.Warningf("failed to get supported claims for idp: %v", err)
+			return nil
+		}
+
+		if len(supportedClaims) > 0 {
+			idp.ClaimsSupported = strings.Join(supportedClaims, " ")
+		} else {
+			log.Warningf("no supported claims found for idp: %s", idp.Name)
 			return nil
 		}
 	}
@@ -269,6 +284,67 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 
 // TODO: replace this function with a robust one
 // it should be able to take the JWK or PEM from DB and return the public key
+
+// GetSupportedClaims fetches the OpenID configuration and extracts the "claims_supported" field.
+func GetSupportedClaims(ctx context.Context, openIDConfigURL string, logger *log.Logger) ([]string, error) {
+	// Create an HTTP client with timeout for reliability
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	var claims []string
+
+	// Create a new HTTP request with context
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, openIDConfigURL, nil)
+	if err != nil {
+		logger.Errorf("failed to create HTTP request for OpenID config: %v", err)
+		return nil, fmt.Errorf("create request for openidconfig failed: %w", err)
+	}
+
+	// Perform the request
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.Errorf("failed to fetch OpenID configuration: %v", err)
+		return nil, fmt.Errorf("fetch OpenID config failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check for non-200 status code
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		logger.Errorf("unexpected status %d fetching OpenID config: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("unexpected status %d from OpenID config endpoint", resp.StatusCode)
+	}
+
+	// Decode the JSON response
+	var config map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&config); err != nil {
+		logger.Errorf("failed to decode OpenID configuration JSON: %v", err)
+		return nil, fmt.Errorf("decode OpenID config: %w", err)
+	}
+
+	// Extract "claims_supported" key
+	rawClaims, ok := config["claims_supported"]
+	if !ok {
+		logger.Warningf("no 'claims_supported' field found in OpenID configuration")
+		return nil, nil
+	}
+
+	// Convert to []string safely
+	switch v := rawClaims.(type) {
+	case []interface{}:
+		for _, c := range v {
+			if s, ok := c.(string); ok {
+				claims = append(claims, s)
+			}
+		}
+	default:
+		logger.Warningf("'claims_supported' has unexpected type: %T", rawClaims)
+		return nil, fmt.Errorf("unexpected type for claims_supported: %T", rawClaims)
+	}
+
+	logger.Infof("fetched %d supported claims from OpenID provider", len(claims))
+	return claims, nil
+}
 
 func GetAndParseJWK(ctx context.Context, jwksUri string, log *log.Logger) (jwk.Set, error) {
 	set, err := jwk.Fetch(ctx, jwksUri)
