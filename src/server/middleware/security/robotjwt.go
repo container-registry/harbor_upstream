@@ -64,7 +64,10 @@ type robotjwt struct{}
 func (r *robotjwt) Generate(req *http.Request) security.Context {
 	log.Warningf("if you are seeing this kumar, it means you are starting the robot validation")
 	log := log.G(req.Context())
-	var jwkSet jwk.Set
+	var (
+		jwkSet          jwk.Set
+		supportedClaims []string
+	)
 
 	log.Warningf("inside the request: %v", req)
 	log.Warningf("inside the request headers: %v", req.Header)
@@ -143,7 +146,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 		}
 
 		// fetch claims supported by idp
-		supportedClaims, err := GetSupportedClaims(req.Context(), idp.OpenIDConfigURL, log)
+		supportedClaims, err = GetSupportedClaims(req.Context(), idp.OpenIDConfigURL, log)
 		if err != nil {
 			log.Warningf("failed to get supported claims for idp: %v", err)
 			return nil
@@ -182,6 +185,12 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 
 	// validate the token claims with idp claims
 	for _, claim := range idpClaims {
+		// if claim.ClaimPath is not present in supportedClaims {
+		// if !slices.Contains(supportedClaims, claim.ClaimPath) {
+		// 	log.Warningf("found unsupported claim in token: %s", claim.ClaimPath, idp.Name)
+		// 	// return nil
+		// }
+
 		log.Warningf("current claim: path - %v, value - %v", claim.ClaimPath, claim.Value)
 		var val any
 		err := parsedToken.Get(claim.ClaimPath, &val)
