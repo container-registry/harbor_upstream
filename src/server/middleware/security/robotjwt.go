@@ -178,8 +178,32 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 		// Convert the claim value to string safely
 		valStr, ok := val.(string)
 		if !ok {
-			log.Warningf("claim %s is not a string, got type %T", claim.ClaimPath, val)
-			return nil
+			// Handle array case (OIDC often encodes 'aud' as []string)
+			switch v := val.(type) {
+			case []string:
+				if len(v) > 0 {
+					valStr = v[0] // take first value or join if needed
+				} else {
+					log.Warningf("claim %s is empty []string", claim.ClaimPath)
+					return nil
+				}
+			case []any:
+				// Convert []interface{} to []string and take first element
+				if len(v) > 0 {
+					if s, ok := v[0].(string); ok {
+						valStr = s
+					} else {
+						log.Warningf("claim %s: first element in []any is not a string", claim.ClaimPath)
+						return nil
+					}
+				} else {
+					log.Warningf("claim %s is empty []any", claim.ClaimPath)
+					return nil
+				}
+			default:
+				log.Warningf("claim %s is not a string or []string, got type %T", claim.ClaimPath, val)
+				return nil
+			}
 		}
 
 		if strings.TrimSpace(valStr) != strings.TrimSpace(claim.Value) {
