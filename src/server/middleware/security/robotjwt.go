@@ -169,7 +169,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	for _, claim := range idpClaims {
 		log.Warningf("current claim: path - %v, value - %v", claim.ClaimPath, claim.Value)
 		var val any
-		err := parsedToken.Get(claim.ClaimPath, val)
+		err := parsedToken.Get(claim.ClaimPath, &val)
 		if err != nil {
 			log.Warningf("failed to get claim %s from token: %v", claim.ClaimPath, err)
 			return nil
