@@ -214,7 +214,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 					return nil
 				}
 			case []any:
-				// Convert []interface{} to []string and take first element
+				// Convert []any to []string and take first element
 				if len(v) > 0 {
 					if s, ok := v[0].(string); ok {
 						valStr = s
@@ -245,7 +245,14 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	// get list of claims from the token
 	// Now you can access everything, e.g.
 	for k, v := range tokenClaims {
-		fmt.Println("claim:", k, "value:", v)
+		log.Debug("claim:", k, "value:", v)
+	}
+
+	flattenedClaims := make(map[string]string)
+	flattenClaims("", tokenClaims, flattenedClaims)
+
+	for k, v := range tokenClaims {
+		log.Debugf("flattened claim: %s, value: %s", k, v)
 	}
 
 	// query the token claims on idp and get robot
@@ -290,6 +297,37 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	return robotCtx.NewSecurityContext(robot)
 }
 
+// flattenClaims recursively flattens nested JWT claims into dot-separated key-value pairs.
+func flattenClaims(prefix string, data any, out map[string]string) {
+	switch v := data.(type) {
+	case map[string]any:
+		for key, value := range v {
+			newKey := key
+			if prefix != "" {
+				newKey = prefix + "." + key
+			}
+			flattenClaims(newKey, value, out)
+		}
+	case []any:
+		// If array has single element, use it as string (like "aud": ["demo.goharbor.io"])
+		if len(v) == 1 {
+			flattenClaims(prefix, v[0], out)
+		} else {
+			// Otherwise, join array values as comma-separated string
+			arrVals := ""
+			for i, elem := range v {
+				if i > 0 {
+					arrVals += ","
+				}
+				arrVals += fmt.Sprintf("%v", elem)
+			}
+			out[prefix] = arrVals
+		}
+	default:
+		out[prefix] = fmt.Sprintf("%v", v)
+	}
+}
+
 // TODO: replace this function with a robust one
 // the function should be able to take the jwks-uri and return the public key
 
@@ -327,7 +365,7 @@ func GetSupportedClaims(ctx context.Context, openIDConfigURL string, logger *log
 	}
 
 	// Decode the JSON response
-	var config map[string]interface{}
+	var config map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&config); err != nil {
 		logger.Errorf("failed to decode OpenID configuration JSON: %v", err)
 		return nil, fmt.Errorf("decode OpenID config: %w", err)
@@ -342,7 +380,7 @@ func GetSupportedClaims(ctx context.Context, openIDConfigURL string, logger *log
 
 	// Convert to []string safely
 	switch v := rawClaims.(type) {
-	case []interface{}:
+	case []any:
 		for _, c := range v {
 			if s, ok := c.(string); ok {
 				claims = append(claims, s)
