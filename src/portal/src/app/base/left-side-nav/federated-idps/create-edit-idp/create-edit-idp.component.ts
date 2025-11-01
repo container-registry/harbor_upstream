@@ -417,6 +417,8 @@ export class CreateEditIdpComponent
         this.okButtonState = ClrLoadingState.LOADING;
         console.log('this.target:', this.target);
 
+        this.target.jwks_keys = JSON.parse(this.jwksKeys);
+
         if (!this.validateRequiredClaims(this.claims)) {
             return;
         }
