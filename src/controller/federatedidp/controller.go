@@ -64,6 +64,8 @@ type Controller interface {
 	DeleteRobotIdpByRobotID(ctx context.Context, robotID int64) error
 	// HasRobotIdpByRobotID checks if a given robot has at least one associated identity provider.
 	HasRobotIdpByRobotID(ctx context.Context, robotID int64) (bool, error)
+	// ListRobotIdpByIdpID lists all robot_identity_providers associated with the given IDP ID
+	ListRobotIdpByIdpID(ctx context.Context, idpID int64) ([]model.RobotIdentityProvider, error)
 }
 
 // NewController creates an instance of the federated idp controller
@@ -207,4 +209,8 @@ func (c *controller) DeleteRobotIdpByRobotID(ctx context.Context, robotID int64)
 
 func (c *controller) HasRobotIdpByRobotID(ctx context.Context, robotID int64) (bool, error) {
 	return c.fidpMgr.HasRobotIdpByRobotID(ctx, robotID)
+}
+
+func (c *controller) ListRobotIdpByIdpID(ctx context.Context, idpID int64) ([]model.RobotIdentityProvider, error) {
+	return c.fidpMgr.ListRobotIdpByIdpID(ctx, idpID)
 }

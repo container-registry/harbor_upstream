@@ -224,6 +224,21 @@ func (fAPI *fedIDPAPI) DeleteFederatedIdp(ctx context.Context, params operation.
 		return fAPI.SendError(ctx, err)
 	}
 
+	robotIdps, err := fAPI.fedidpCtl.ListRobotIdpByIdpID(ctx, params.ID)
+	if err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+
+	if len(robotIdps) > 0 {
+		return fAPI.SendError(ctx, errors.New(nil).WithMessage("Please delete the associated robots before deleting the federated idp").WithCode(errors.BadRequestCode))
+	}
+
+	// for _, robotIdp := range robotIdps {
+	// 	if err := fAPI.fedidpCtl.DeleteRobotIdpByRobotID(ctx, robotIdp.RobotID); err != nil {
+	// 		return fAPI.SendError(ctx, err)
+	// 	}
+	// }
+
 	if err := fAPI.fedidpCtl.Delete(ctx, params.ID); err != nil {
 		return fAPI.SendError(ctx, err)
 	}

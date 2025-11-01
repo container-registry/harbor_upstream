@@ -86,6 +86,9 @@ type DAO interface {
 
 	// HasRobotIdpByRobotID ...
 	HasRobotIdpByRobotID(ctx context.Context, robotID int64) (bool, error)
+
+	// ListRobotIdpByIdpID ...
+	ListRobotIdpByIdpID(ctx context.Context, idpID int64) ([]model.RobotIdentityProvider, error)
 }
 
 // New creates a default implementation for Dao
@@ -644,6 +647,28 @@ func (d *dao) HasRobotIdpByRobotID(ctx context.Context, robotID int64) (bool, er
 		Exist()
 
 	return exists, nil
+}
+
+// lists all robot_identity_providers associated with the given IDP ID
+func (d *dao) ListRobotIdpByIdpID(ctx context.Context, idpID int64) ([]model.RobotIdentityProvider, error) {
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var robotIDPs []model.RobotIdentityProvider
+
+	// Fetch all robot IDP records matching the given IDP ID
+	_, err = ormer.Raw(
+		"SELECT * FROM robot_identity_providers WHERE identity_provider_id = ?",
+		idpID,
+	).QueryRows(&robotIDPs)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return robotIDPs, nil
 }
 
 func (d *dao) validateClaimAndGetQuery(ctx context.Context, claim model.ClaimRule) (orm.QuerySeter, error) {
