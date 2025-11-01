@@ -479,6 +479,11 @@ func (d *dao) FindMatchingRobot(ctx context.Context, issuerID int64, tokenClaims
 		return 0, fmt.Errorf("failed to query matching robot: %w", err)
 	}
 
+	if len(robotIDs) == 0 {
+		log.Warningf("no robots matched your token for issuerID=%d", issuerID)
+		return 0, nil
+	}
+
 	return robotIDs[0], nil
 }
 
