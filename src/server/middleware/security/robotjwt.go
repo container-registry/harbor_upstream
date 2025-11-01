@@ -79,10 +79,12 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 		if len(tokenStr) == 0 {
 			log.Warningf("no JWT token found")
 			return nil
-		} else {
-			log.Warningf("the jwt token is %s", tokenStr)
 		}
-		// return nil
+		if !IsJWT(tokenStr) {
+			log.Warningf("it is not a JWT token: %v", tokenStr)
+			return nil
+		}
+
 	}
 
 	// kumar, log the jwt token
