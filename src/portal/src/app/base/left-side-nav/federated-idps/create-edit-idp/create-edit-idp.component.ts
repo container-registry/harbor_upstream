@@ -124,6 +124,9 @@ export class CreateEditIdpComponent
      * and stores it as a formatted string in openIDConfigJSON.
      */
     fetchOpenIDConfig() {
+        if (this.offlineValidation) {
+            return;
+        }
         const url = (this.target?.openid_config_url || '').trim();
 
         // Validate URL strictly before sending request
