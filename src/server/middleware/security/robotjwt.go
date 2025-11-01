@@ -117,7 +117,7 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	if idp.OfflineValidation {
 		// do offline validation
 		jwkskeysString := idp.JWKSKeys
-		if len(jwkskeysString) == 0 {
+		if len(jwkskeysString) == 0 || jwkskeysString == "{}" {
 			log.Warningf("federated idp %s has no jwks keys", idp.Name)
 			return nil
 		}
