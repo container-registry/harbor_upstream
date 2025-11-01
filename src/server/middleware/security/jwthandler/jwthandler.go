@@ -12,7 +12,7 @@ func ParseToken(token string, jwkSet jwk.Set) (jwt.Token, error) {
 	// parse the token
 	parsedToken, err := jwt.Parse([]byte(token), jwt.WithKeySet(jwkSet), jwt.WithValidate(true), jwt.WithAcceptableSkew(common.JwtLeeway))
 	if err != nil {
-		log.Fatalf("\n\nFailed to verify JWT signature: %v", err)
+		log.Printf("\n\nFailed to verify JWT signature: %v", err)
 	}
 
 	log.Println("\n\nJWT signature validation successful!")
