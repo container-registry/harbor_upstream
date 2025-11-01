@@ -348,7 +348,7 @@
                         placeholder="Claim Path"
                         [(ngModel)]="claim.path"
                         disabled
-                        size="10"
+                        size="30"
                         name="inheritclaim_path_{{ i }}" />
                     <input
                         autocomplete="off"
@@ -385,7 +385,7 @@
                             placeholder="Claim Path"
                             [(ngModel)]="claim.path"
                             (ngModelChange)="isValidFinalState()"
-                            size="10"
+                            size="30"
                             [id]="'claim_path_' + i"
                             [name]="'claim_path_' + i" />
                         <input
