@@ -18,7 +18,7 @@
                     clrInput
                     type="text"
                     id="idp_name"
-                    [disabled]="testOngoing || target.id == 0"
+                    [disabled]="testOngoing || target.id !== undefined"
                     [readonly]="!editable"
                     [(ngModel)]="target.name"
                     name="targetName"
@@ -77,7 +77,7 @@
                         #offline_validation
                         id="offline_validation"
                         name="offline_validation"
-                        [disabled]="target.id == 0"
+                        [disabled]="target.id !== undefined"
                         [ngModel]="target.offline_validation"
                         (ngModelChange)="setOfflineValidation($event)" />
                 </clr-checkbox-wrapper>
@@ -104,7 +104,7 @@
                             type="text"
                             id="openidconfig_url"
                             [readonly]="!editable"
-                            [disabled]="target.id == 0"
+                            [disabled]="target.id !== undefined"
                             [(ngModel)]="target.openid_config_url"
                             size="28"
                             name="openidconfig_url"
@@ -156,7 +156,7 @@
                             type="text"
                             id="issuer"
                             [readonly]="!editable"
-                            [disabled]="target.id == 0"
+                            [disabled]="target.id !== undefined"
                             [(ngModel)]="target.issuer"
                             size="28"
                             name="issuer"
@@ -202,7 +202,7 @@
                             class="clr-input endpoint-input"
                             type="text"
                             id="jwks_uri"
-                            [disabled]="target.id == 0"
+                            [disabled]="target.id !== undefined"
                             [readonly]="!editable"
                             [(ngModel)]="target.jwks_uri"
                             size="28"
@@ -241,7 +241,7 @@
                     class="inputWidth"
                     row="3"
                     name="openidconfig"
-                    [disabled]="!target.offline_validation || target.id == 0"
+                    [disabled]="!target.offline_validation || target.id !== undefined"
                     [(ngModel)]="openIDConfigJSON"></textarea>
             </clr-textarea-container>
             <!-- Mannual JWKS Keys -->
@@ -253,7 +253,7 @@
                     class="inputWidth"
                     row="3"
                     name="jwks_keys"
-                    [disabled]="!target.offline_validation || target.id == 0"
+                    [disabled]="!target.offline_validation || target.id !== undefined"
                     [(ngModel)]="jwksKeys"></textarea>
             </clr-textarea-container>
 
