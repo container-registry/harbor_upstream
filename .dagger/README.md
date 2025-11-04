@@ -22,7 +22,7 @@ go run ./.dagger/scripts/parseMakefile.go
 Run the following command to build and start the necessary Harbor components inside Dagger:
 
 ```bash
-dagger call run-dev up -v
+dagger call dev-server up -v
 ```
 
 This command will:

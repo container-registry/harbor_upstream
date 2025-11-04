@@ -325,11 +325,11 @@ func (m *Harbor) BuildImage(ctx context.Context, platform Platform, pkg Package,
 			WithDirectory("/views", m.Source.Directory("src/core/views")).
 			WithWorkdir("/")
 	}
-	if pkg == "registryctl" {
-		regBinary := m.registryBuilder(ctx, platform)
-		buildMtd.Container = buildMtd.Container.WithFile("/usr/bin/registry_DO_NOT_USE_GC", regBinary).
-			WithExposedPort(8080)
-	}
+	// if pkg == "registryctl" {
+	// 	regBinary := m.registryBuilder(ctx, platform)
+	// 	buildMtd.Container = buildMtd.Container.WithFile("/usr/bin/registry_DO_NOT_USE_GC", regBinary).
+	// 		WithExposedPort(8080)
+	// }
 
 	return buildMtd.Container
 }
@@ -763,7 +763,7 @@ func (m *Harbor) GetVersion(ctx context.Context) string {
 		WithExec([]string{"ls", "-la"})
 
 	version, _ := temp.WithExec([]string{"cat", "VERSION"}).Stdout(ctx)
-	return version
+	return strings.TrimSpace(version)
 }
 
 func (m *Harbor) getCaCerts(ctx context.Context) *dagger.Directory {
