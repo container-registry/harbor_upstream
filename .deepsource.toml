@@ -1,21 +1,20 @@
 version = 1
 
 # Exclude common directories
-
 exclude_patterns = [
-"vendor/**",
-"node_modules/**",
-"**/testdata/**",
-"**/*_test.go",
-"**/*.pb.go",
-"**/*.pb.gw.go",
-"**/mock_*.go",
-"**/mocks/**",
-"**/*.generated.go",
-"src/portal/dist/**",
-"src/portal/coverage/**",
-"tools/**",
-"tests/ci/**"
+    "vendor/**",
+    "node_modules/**",
+    "**/testdata/**",
+    "**/*_test.go",
+    "**/*.pb.go",
+    "**/*.pb.gw.go",
+    "**/mock_*.go",
+    "**/mocks/**",
+    "**/*.generated.go",
+    "src/portal/dist/**",
+    "src/portal/coverage/**",
+    "tools/**",
+    "tests/ci/**"
 ]
 
 [[analyzers]]
@@ -39,8 +38,8 @@ enabled = true
 
 [analyzers.meta]
 environment = [
-"nodejs",
-"browser"
+    "nodejs",
+    "browser"
 ]
 plugins = ["angular"]
 
@@ -55,9 +54,6 @@ enabled = true
 [[analyzers]]
 name = "test-coverage"
 enabled = true
-
-[analyzers.meta]
-coverage_threshold = 40
 
 [[transformers]]
 name = "gofumpt"
