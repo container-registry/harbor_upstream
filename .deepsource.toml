@@ -22,11 +22,10 @@ name = "go"
 enabled = true
 
 [analyzers.meta]
-import_root = "github.com/container-registry/harbor-next"
+import_root = "github.com/goharbor/harbor/src"
 dependencies_vendored = false
-cgo_enabled = true
+cgo_enabled = false
 cyclomatic_complexity_threshold = "high"
-skip_doc_coverage = ["file"]
 
 [[analyzers]]
 name = "python"
