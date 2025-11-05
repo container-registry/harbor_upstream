@@ -13,7 +13,7 @@ func (m *Harbor) NginxService(ctx context.Context) *dagger.Service {
 		WithMountedFile("/etc/nginx/nginx.conf", nginxConfig).
 		WithExposedPort(8080).
 		// for debug
-		WithExposedPort(4001).
+		// WithExposedPort(4001).
 		WithoutExposedPort(8443).
 		AsService()
 	return nginxSrv
@@ -59,6 +59,7 @@ func (m *Harbor) CoreService(ctx context.Context) *dagger.Service {
 		WithMountedFile("/etc/core/app.conf", coreConfig).
 		WithMountedFile("/envFile", envFile).
 		WithMountedFile("/run_script", run_script).
+		WithExec([]string{"chmod", "+x", "/run_script"}).
 		// why alpine instead of golang. because we get the below error
 		// [INFO] [/src/common/dao/base.go:72]: Register database completed
 		// [FATAL] [/src/core/main.go:203]: failed to migrate the database, error: open .: no such file or directory
@@ -88,6 +89,7 @@ func (m *Harbor) RegistryCtlService(ctx context.Context) *dagger.Service {
 		WithMountedFile("/etc/registryctl/config.yml", regCtlConfig).
 		WithMountedFile("/envFile", envFile).
 		WithMountedFile("/run_script", run_script).
+		WithExec([]string{"chmod", "+x", "/run_script"}).
 		WithEntrypoint([]string{"/run_script", "/registryctl -c /etc/registryctl/config.yml"}).
 		AsService()
 

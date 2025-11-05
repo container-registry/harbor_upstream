@@ -2,7 +2,8 @@
 version: 0.1
 storage:
   cache:
-    layerinfo: redis
+    # Possible values: inmemory, redis
+    blobdescriptor: redis
   filesystem:
     rootdirectory: /storage
   maintenance:
@@ -14,16 +15,14 @@ storage:
   delete:
     enabled: true
 redis:
-  addr: redis:6379
+  # 'addrs' is the modern multi-address format (replaces 'addr'), allowing one or more Redis endpoints.
+  addrs: [redis:6379]
+  db: 1
+  dialtimeout: 10s
   readtimeout: 10s
   writetimeout: 10s
-  dialtimeout: 10s
-  password:
-  db: 1
-  pool:
-    maxidle: 100
-    maxactive: 500
-    idletimeout: 60s
+  tls:
+    enabled: false
 http:
   addr: :5000
   secret: placeholder
