@@ -1,0 +1,68 @@
+version = 1
+
+# Exclude common directories
+
+exclude_patterns = [
+"vendor/**",
+"node_modules/**",
+"**/testdata/**",
+"**/*_test.go",
+"**/*.pb.go",
+"**/*.pb.gw.go",
+"**/mock_*.go",
+"**/mocks/**",
+"**/*.generated.go",
+"src/portal/dist/**",
+"src/portal/coverage/**",
+"tools/**",
+"tests/ci/**"
+]
+
+[[analyzers]]
+name = "go"
+enabled = true
+
+[analyzers.meta]
+import_root = "github.com/container-registry/harbor-next"
+dependencies_vendored = true
+
+[[analyzers]]
+name = "python"
+enabled = true
+
+[analyzers.meta]
+runtime_version = "3.x.x"
+
+[[analyzers]]
+name = "javascript"
+enabled = true
+
+[analyzers.meta]
+environment = [
+"nodejs",
+"browser"
+]
+plugins = ["angular"]
+
+[[analyzers]]
+name = "docker"
+enabled = true
+
+[[analyzers]]
+name = "shell"
+enabled = true
+
+[[analyzers]]
+name = "test-coverage"
+enabled = true
+
+[analyzers.meta]
+coverage_threshold = 40
+
+[[transformers]]
+name = "gofumpt"
+enabled = true
+
+[[transformers]]
+name = "prettier"
+enabled = true
