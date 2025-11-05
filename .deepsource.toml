@@ -23,7 +23,14 @@ enabled = true
 
 [analyzers.meta]
 import_root = "github.com/container-registry/harbor-next"
-dependencies_vendored = true
+dependencies_vendored = false
+cgo_enabled = true
+cyclomatic_complexity_threshold = "high"
+skip_doc_coverage = [
+    "**/*_test.go",
+    "**/mock_*.go",
+    "**/testdata/**"
+]
 
 [[analyzers]]
 name = "python"
