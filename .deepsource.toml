@@ -26,11 +26,7 @@ import_root = "github.com/container-registry/harbor-next"
 dependencies_vendored = false
 cgo_enabled = true
 cyclomatic_complexity_threshold = "high"
-skip_doc_coverage = [
-    "**/*_test.go",
-    "**/mock_*.go",
-    "**/testdata/**"
-]
+skip_doc_coverage = ["file"]
 
 [[analyzers]]
 name = "python"
