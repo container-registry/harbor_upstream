@@ -91,7 +91,7 @@ jobs:
           - component: cmd/exporter
             debug: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set component vars
         id: comp
