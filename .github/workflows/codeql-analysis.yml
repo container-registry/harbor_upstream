@@ -31,15 +31,31 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v5
 
+    # Generate Swagger API code for Go to get 100% file coverage
+    - name: Generate API code from Swagger
+      if: matrix.language == 'go'
+      run: |
+        # Install go-swagger
+        curl -o /tmp/swagger -L https://github.com/go-swagger/go-swagger/releases/download/v0.31.0/swagger_linux_amd64
+        chmod +x /tmp/swagger
+
+        # Generate server code from swagger spec
+        /tmp/swagger generate server \
+          --template-dir=tools/swagger/templates \
+          --exclude-main \
+          --additional-initialism=CVE \
+          --additional-initialism=GC \
+          --additional-initialism=OIDC \
+          -f api/v2.0/swagger.yaml \
+          -A harbor \
+          --target src/server/v2.0
+
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
         # Use security-extended query suite for maximum security coverage
         queries: +security-extended
-
-    # CodeQL for Go uses buildless analysis which doesn't require compilation
-    # This works well since Harbor's generated API code (from swagger) isn't in git
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
