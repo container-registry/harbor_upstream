@@ -158,9 +158,13 @@ func WithCACert(caCert string) TransportOption {
 // GetHTTPTransport returns HttpTransport based on insecure configuration and CA certificate.
 //
 // Priority:
-//  1. Custom CA certificate (if provided) - creates a new transport with custom CA
-//  2. Insecure mode (if enabled) - returns shared transport that skips TLS verification
+//  1. Insecure mode (if enabled) - returns shared transport that skips TLS verification
+//  2. Custom CA certificate (if provided) - creates a new transport with custom CA
 //  3. Default - returns shared transport that uses system CA pool
+//
+// Note: Insecure mode and custom CA certificate are mutually exclusive. The API layer
+// validates and rejects requests that provide both. This priority order provides
+// defense-in-depth if both are somehow set.
 //
 // Backward Compatibility:
 // Existing Harbor installations that rely on system-level CA trust stores will continue
@@ -172,14 +176,18 @@ func GetHTTPTransport(opts ...TransportOption) http.RoundTripper {
 		opt(cfg)
 	}
 
+	// Insecure mode takes precedence - skip all TLS verification
+	if cfg.Insecure {
+		return insecureHTTPTransport
+	}
+
+	// Use custom CA if provided
 	if cfg.CACertificate != "" {
 		return NewTransport(
 			WithCustomCACert(cfg.CACertificate),
 		)
 	}
 
-	if cfg.Insecure {
-		return insecureHTTPTransport
-	}
+	// Default: use system CA pool
 	return secureHTTPTransport
 }

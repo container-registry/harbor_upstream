@@ -47,6 +47,12 @@ func (r *registryAPI) CreateRegistry(ctx context.Context, params operation.Creat
 	if err := r.RequireSystemAccess(ctx, rbac.ActionCreate, rbac.ResourceRegistry); err != nil {
 		return r.SendError(ctx, err)
 	}
+	// Validate mutual exclusivity: insecure mode and CA certificate cannot both be set
+	if params.Registry.Insecure && params.Registry.CaCertificate != nil && *params.Registry.CaCertificate != "" {
+		return r.SendError(ctx, errors.New(nil).WithCode(errors.BadRequestCode).
+			WithMessage("ca_certificate cannot be provided when insecure mode is enabled"))
+	}
+
 	registry := &model.Registry{
 		Name:        params.Registry.Name,
 		Description: params.Registry.Description,
@@ -54,7 +60,7 @@ func (r *registryAPI) CreateRegistry(ctx context.Context, params operation.Creat
 		URL:         params.Registry.URL,
 		Insecure:    params.Registry.Insecure,
 	}
-	if params.Registry.CaCertificate != nil {
+	if params.Registry.CaCertificate != nil && *params.Registry.CaCertificate != "" {
 		// Validate CA certificate format
 		if err := commonhttp.ValidateCACertificate(*params.Registry.CaCertificate); err != nil {
 			return r.SendError(ctx, errors.New(nil).WithCode(errors.BadRequestCode).WithMessage(err.Error()))
@@ -151,12 +157,17 @@ func (r *registryAPI) UpdateRegistry(ctx context.Context, params operation.Updat
 		if params.Registry.Insecure != nil {
 			registry.Insecure = *params.Registry.Insecure
 		}
-		if params.Registry.CaCertificate != nil {
+		if params.Registry.CaCertificate != nil && *params.Registry.CaCertificate != "" {
 			// Validate CA certificate format
 			if err := commonhttp.ValidateCACertificate(*params.Registry.CaCertificate); err != nil {
 				return r.SendError(ctx, errors.New(nil).WithCode(errors.BadRequestCode).WithMessage(err.Error()))
 			}
 			registry.CACertificate = *params.Registry.CaCertificate
+		}
+		// Validate mutual exclusivity after all fields are set
+		if registry.Insecure && registry.CACertificate != "" {
+			return r.SendError(ctx, errors.New(nil).WithCode(errors.BadRequestCode).
+				WithMessage("ca_certificate cannot be provided when insecure mode is enabled"))
 		}
 		if registry.Credential == nil {
 			registry.Credential = &model.Credential{}
@@ -268,13 +279,19 @@ func (r *registryAPI) PingRegistry(ctx context.Context, params operation.PingReg
 			}
 			registry.Credential.AccessSecret = *params.Registry.AccessSecret
 		}
-		if params.Registry.CaCertificate != nil {
+		if params.Registry.CaCertificate != nil && *params.Registry.CaCertificate != "" {
 			// Validate CA certificate format
 			if err := commonhttp.ValidateCACertificate(*params.Registry.CaCertificate); err != nil {
 				return r.SendError(ctx, errors.New(nil).WithCode(errors.BadRequestCode).WithMessage(err.Error()))
 			}
 			registry.CACertificate = *params.Registry.CaCertificate
 		}
+	}
+
+	// Validate mutual exclusivity after all fields are set
+	if registry.Insecure && registry.CACertificate != "" {
+		return r.SendError(ctx, errors.New(nil).WithCode(errors.BadRequestCode).
+			WithMessage("ca_certificate cannot be provided when insecure mode is enabled"))
 	}
 
 	if len(registry.Type) == 0 || len(registry.URL) == 0 {

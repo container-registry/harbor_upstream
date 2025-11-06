@@ -150,6 +150,25 @@ export class CreateEditEndpointComponent
 
     setInsecureValue($event: any) {
         this.target.insecure = !$event;
+        // Clear CA certificate when switching to insecure mode
+        if (this.target.insecure) {
+            this.target.ca_certificate = '';
+        }
+    }
+
+    onCACertificateChange() {
+        // If CA certificate is provided, force verification to be enabled
+        if (this.hasCACertificate()) {
+            this.target.insecure = false;
+        }
+    }
+
+    hasCACertificate(): boolean {
+        return !!this.target.ca_certificate && this.target.ca_certificate.trim().length > 0;
+    }
+
+    isVerifyRemoteCertDisabled(): boolean {
+        return this.testOngoing || !this.editable || this.hasCACertificate();
     }
 
     ngOnDestroy(): void {
@@ -303,6 +322,7 @@ export class CreateEditEndpointComponent
             payload.access_key = this.target.credential.access_key;
             payload.access_secret = this.target.credential.access_secret;
             payload.insecure = this.target.insecure;
+            payload.ca_certificate = this.target.ca_certificate;
         } else {
             let changes: { [key: string]: any } = this.getChanges();
             for (let prop of Object.keys(payload)) {
