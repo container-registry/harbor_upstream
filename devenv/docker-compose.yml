@@ -1,0 +1,42 @@
+# Docker Compose - Local DevEnv
+# 3rd party services for Harbor development environment
+# Harbor services run natively for fast iteration
+
+services:
+  postgresql:
+    image: postgres:16-alpine
+    container_name: harbor-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root123
+      POSTGRES_DB: registry
+    ports:
+      - "5432:5432"
+    volumes:
+      - harbor-postgres-dat:/var/lib/postgresql/data
+      - ../make/migrations:/migrations
+
+  redis:
+    image: valkey/valkey:latest
+    container_name: harbor-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - harbor-redis-data:/data
+
+  registry:
+    image: distribution/distribution:latest
+    container_name: harbor-registry
+    environment:
+      OTEL_TRACES_EXPORTER: none
+      OTEL_SDK_DISABLED: "true"
+    ports:
+      - "50000:5000"
+    volumes:
+      - harbor-registry-data:/var/lib/registry
+      - ../devenv/registry.config.yml:/etc/registry/config.yml:ro
+
+volumes:
+  harbor-postgres-dat:
+  harbor-redis-data:
+  harbor-registry-data:

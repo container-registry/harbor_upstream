@@ -1,0 +1,357 @@
+version: '3'
+
+vars:
+  # Paths
+  COMPOSE_FILE: devenv/docker-compose.yml
+  TOKEN_KEY_FILE: devenv/token_service_key.pem # RSA key used by Harbor Core to sign JWT tokens for Docker Registry authentication
+
+  # Database (only vars used in task commands)
+  POSTGRES_USER: postgres
+  POSTGRES_DB: registry
+
+  # Services URLs
+  REDIS_URL: redis://localhost:6379
+  REGISTRY_URL: http://localhost:50000
+
+env:
+  # Backend services use these environment variables
+  POSTGRESQL_HOST: localhost
+  POSTGRESQL_PORT: '5432'
+  POSTGRESQL_USERNAME: '{{.POSTGRES_USER}}'
+  POSTGRESQL_PASSWORD: root123
+  POSTGRESQL_DATABASE: '{{.POSTGRES_DB}}'
+  POSTGRESQL_SSLMODE: disable
+  POSTGRES_MIGRATION_SCRIPTS_PATH: 'make/migrations/postgresql/'
+  REDIS_URL: '{{.REDIS_URL}}'
+  LOG_LEVEL: debug
+
+tasks:
+  # ---------------------------------------------------------------------------
+  # Tool Installation
+  # ---------------------------------------------------------------------------
+  tools:install:
+    internal: true
+    status:
+      - command -v {{.TOOL_NAME}}
+    cmds:
+      - go install {{.TOOL_PKG}}
+
+  setup:
+    desc: Install required Go development tools
+    cmds:
+      - for:
+          - { name: air, pkg: 'github.com/air-verse/air@latest' }
+          - { name: dlv, pkg: 'github.com/go-delve/delve/cmd/dlv@latest' }
+          - { name: govulncheck, pkg: 'golang.org/x/vuln/cmd/govulncheck@latest' }
+        task: tools:install
+        vars:
+          TOOL_NAME: '{{.ITEM.name}}'
+          TOOL_PKG: '{{.ITEM.pkg}}'
+      - echo "All development tools installed"
+
+  require-dev-tools:
+    internal: true
+    run: once
+    cmds:
+      - for:
+          - { name: air, pkg: 'github.com/air-verse/air@latest' }
+          - { name: dlv, pkg: 'github.com/go-delve/delve/cmd/dlv@latest' }
+        task: tools:install
+        vars:
+          TOOL_NAME: '{{.ITEM.name}}'
+          TOOL_PKG: '{{.ITEM.pkg}}'
+
+  require-step:
+    internal: true
+    run: once
+    status:
+      - command -v step
+    cmds:
+      - go install github.com/smallstep/cli/cmd/step@latest
+
+  gen:private-key:
+    desc: Generate RSA private key for token signing
+    deps: [require-step]
+    status:
+      - test -f {{.TOKEN_KEY_FILE}}
+    cmds:
+      - step crypto keypair /dev/null {{.TOKEN_KEY_FILE}} --kty RSA --size 4096 --no-password --insecure --force
+      - chmod 600 {{.TOKEN_KEY_FILE}}
+      - echo "Generated {{.TOKEN_KEY_FILE}} - RSA key used by Harbor Core to sign JWT tokens for Docker Registry authentication"
+
+  # ---------------------------------------------------------------------------
+  # Full Development Environment
+  # ---------------------------------------------------------------------------
+  up:
+    desc: Start full dev environment (infra + backend + frontend)
+    silent: true
+    interactive: true
+    vars:
+      START_TIME: { sh: date +%s }
+    cmds:
+      - task: infra:up
+      - defer: { task: infra:down }
+      - |
+        echo "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
+        echo "🟠   === Starting Harbor Development Environment ===   🟠"
+        echo "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
+        echo "🟠   Infrastructure running (PostgreSQL, Redis, Registry)"
+        echo "🟠   Starting Core API with hot reload..."
+        task dev:backend:core &
+        echo "🟠   Starting Portal with HMR..."
+        task dev:frontend &
+
+        wait_for() {
+          local name=$1 url=$2 timeout=60 elapsed=0
+          echo "Waiting for $name..."
+          until curl -sf -k "$url" > /dev/null 2>&1; do
+            [ $elapsed -ge $timeout ] && echo "❌  ERROR: $name failed to respond" && exit 1
+            sleep 2; elapsed=$((elapsed + 2))
+          done
+          echo "$name is ready"
+        }
+
+        wait_for "Core API" "http://localhost:8080/api/v2.0/ping"
+        wait_for "Portal" "http://localhost:4200/"
+        
+        echo "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"  
+        echo "===  Harbor Dev Environment Ready 🟩 (⏱️  started in $(($(date +%s) - {{.START_TIME}}))s)   ==="
+        echo "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
+        echo "🟢  API:    http://localhost:8080/api/v2.0"
+        echo "🟢  Portal: http://localhost:4200/"
+        echo "🟢  Docker: docker login -u admin -p Harbor12345 host.docker.internal:8080 | 4200"
+        echo "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
+        echo "Press Ctrl+C to stop (auto-cleanup enabled)"
+        wait
+
+  # ---------------------------------------------------------------------------
+  # Infrastructure (Docker Compose)
+  # ---------------------------------------------------------------------------
+  infra:up:
+    desc: Start infrastructure (PostgreSQL, Redis, Registry)
+    silent: true
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} up -d
+      - |
+        echo "Waiting for PostgreSQL..."
+        timeout=60 elapsed=0
+        until docker compose -f {{.COMPOSE_FILE}} exec -T postgresql pg_isready -U postgres > /dev/null 2>&1; do
+          [ $elapsed -ge $timeout ] && echo "PostgreSQL failed to start" && exit 1
+          sleep 2; elapsed=$((elapsed + 2))
+        done
+      - echo "🟢  Infrastructure ready   🟢"
+      - docker compose -f {{.COMPOSE_FILE}} ps
+
+  infra:down:
+    desc: Stop infrastructure services
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} down
+
+  infra:remove:
+    desc: Remove infrastructure and volumes
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} down -v
+
+  infra:restart:
+    desc: Restart infrastructure services
+    cmds:
+      - task: infra:down
+      - task: infra:up
+
+  infra:logs:
+    desc: View infrastructure logs
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} logs -f {{.SERVICE}}
+
+  infra:ps:
+    desc: Show infrastructure status
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} ps
+
+  # ---------------------------------------------------------------------------
+  # Backend Services
+  # ---------------------------------------------------------------------------
+  backend:core:
+    desc: Start Core API with hot reload (Air)
+    silent: true
+    deps: [require-dev-tools, gen:private-key]
+    env:
+      REGISTRY_URL: '{{.REGISTRY_URL}}'
+      REGISTRY_CONTROLLER_URL: 'http://localhost:8081'
+      REGISTRY_CREDENTIAL_USERNAME: ''
+      REGISTRY_CREDENTIAL_PASSWORD: ''
+      HARBOR_ADMIN_PASSWORD: Harbor12345
+      CACHE_ENABLED: 'false'
+      _REDIS_URL_CORE: '{{.REDIS_URL}}/1'
+      _REDIS_URL_REG: '{{.REDIS_URL}}/2'
+      TOKEN_PRIVATE_KEY_PATH: '{{.TOKEN_KEY_FILE}}'
+      EXT_ENDPOINT: https://macfly4200.8gears.ch # http://localhost:4200
+      CORE_URL: http://localhost:8080
+    cmds:
+      - task build:gen-apis
+      - |
+        echo "🟠   Starting Core API with hot reload..."
+        echo "🟠   API:   ${EXT_ENDPOINT}/api/v2.0"
+        echo "🟠   Health: ${EXT_ENDPOINT}/api/v2.0/ping"
+        air -c devenv/air.core.toml
+
+  backend:jobservice:
+    desc: Start Jobservice with hot reload
+    deps: [require-dev-tools]
+    cmds:
+      - |
+        echo "Starting Jobservice with hot reload..."
+        air -d -c devenv/air.jobservice.toml
+
+  backend:registryctl:
+    desc: Start Registryctl natively
+    env:
+      REGISTRY_URL: '{{.REGISTRY_URL}}'
+    cmds:
+      - |
+        [ ! -f bin/linux-amd64/registryctl ] && task build:binary:registryctl:linux-amd64
+        echo "Starting Registryctl..."
+        ./bin/linux-amd64/registryctl -c devenv/registryctl.config.yml
+
+  # ---------------------------------------------------------------------------
+  # Frontend
+  # ---------------------------------------------------------------------------
+  frontend:
+    desc: Start Portal frontend with hot reload (HMR)
+    silent: true
+    dir: src/portal
+    cmds:
+      - '[ ! -d "node_modules" ] && npm install || true'
+      - |
+        echo "Starting Angular dev server..."
+        echo "  Portal: http://localhost:4200"
+        echo "  Proxy:  API requests -> http://localhost:8080"
+        npm run start
+
+  frontend:build:
+    desc: Build frontend for production
+    dir: src/portal
+    cmds:
+      - npm run build
+
+  frontend:test:
+    desc: Run frontend tests in watch mode
+    dir: src/portal
+    cmds:
+      - npm run test -- --watch
+
+  frontend:test:once:
+    desc: Run frontend tests once
+    dir: src/portal
+    cmds:
+      - npm run test -- --watch=false
+
+  # ---------------------------------------------------------------------------
+  # Database Operations
+  # ---------------------------------------------------------------------------
+  db:migrate:
+    desc: Run database migrations
+    cmds:
+      - |
+        echo "Running migrations..."
+        docker compose -f {{.COMPOSE_FILE}} exec -T postgresql \
+          psql -U {{.POSTGRES_USER}} -d {{.POSTGRES_DB}} -f /migrations/postgresql/0180_2.15.0_schema.up.sql
+      - echo "Migrations complete"
+
+  db:reset:
+    desc: Reset database to clean state
+    cmds:
+      - |
+        echo "WARNING: This will delete all data. Continue? (Ctrl+C to cancel)"
+        read -p "Press Enter to continue..."
+      - docker compose -f {{.COMPOSE_FILE}} exec -T postgresql dropdb -U {{.POSTGRES_USER}} {{.POSTGRES_DB}} --if-exists
+      - docker compose -f {{.COMPOSE_FILE}} exec -T postgresql createdb -U {{.POSTGRES_USER}} {{.POSTGRES_DB}}
+      - task: db:migrate
+      - echo "Database reset complete"
+
+  db:shell:
+    desc: Open PostgreSQL shell
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} exec postgresql psql -U {{.POSTGRES_USER}} -d {{.POSTGRES_DB}}
+
+  db:backup:
+    desc: Backup database to file
+    vars:
+      BACKUP_FILE:
+        sh: echo "backup-$(date +%Y%m%d-%H%M%S).sql"
+    cmds:
+      - echo "Creating backup {{.BACKUP_FILE}}"
+      - docker compose -f {{.COMPOSE_FILE}} exec -T postgresql pg_dump -U {{.POSTGRES_USER}} {{.POSTGRES_DB}} > {{.BACKUP_FILE}}
+      - echo "Backup saved to {{.BACKUP_FILE}}"
+
+  db:restore:
+    desc: Restore database from backup file
+    requires:
+      vars: [BACKUP_FILE]
+    cmds:
+      - task: db:reset
+      - echo "Restoring from {{.BACKUP_FILE}}..."
+      - docker compose -f {{.COMPOSE_FILE}} exec -T postgresql psql -U {{.POSTGRES_USER}} {{.POSTGRES_DB}} < {{.BACKUP_FILE}}
+      - echo "Database restored"
+
+  # ---------------------------------------------------------------------------
+  # Full Docker Stack (Integration Testing)
+  # ---------------------------------------------------------------------------
+  docker:up:
+    desc: Start full Harbor stack in Docker (integration testing)
+    vars:
+      DEV_COMPOSE: docker-compose.dev.yml
+    preconditions:
+      - sh: test -f {{.DEV_COMPOSE}}
+        msg: "{{.DEV_COMPOSE}} not found. Build images first: task image:all-images"
+    cmds:
+      - docker compose -f {{.DEV_COMPOSE}} up -d
+      - docker compose -f {{.DEV_COMPOSE}} ps
+
+  docker:down:
+    desc: Stop full Docker stack
+    cmds:
+      - docker compose -f docker-compose.dev.yml down
+
+  docker:logs:
+    desc: View logs from Docker stack
+    cmds:
+      - docker compose -f docker-compose.dev.yml logs -f {{.SERVICE}}
+
+  # ---------------------------------------------------------------------------
+  # Utilities
+  # ---------------------------------------------------------------------------
+  clean:
+    desc: Clean temporary files and containers
+    cmds:
+      - rm -rf tmp/
+      - rm -f build-errors.log
+      - rm -f {{.TOKEN_KEY_FILE}}
+      - docker compose -f {{.COMPOSE_FILE}} down -v
+      - echo "Clean complete"
+
+  status:
+    desc: Show status of all development services
+    cmds:
+      - |
+        echo "Infrastructure Services:"
+        docker compose -f {{.COMPOSE_FILE}} ps
+        echo ""
+        echo "Native Processes:"
+        ps aux | grep -E '(./bin|air|dlv)' | grep -v grep || echo "  No native Harbor processes running"
+
+  check:
+    desc: Check if all required tools are installed
+    cmds:
+      - |
+        echo "Checking required tools..."
+        echo ""
+        for tool in docker go node air dlv; do
+          if command -v $tool &>/dev/null; then
+            echo "[OK] $tool"
+          else
+            echo "[MISSING] $tool"
+          fi
+        done
+        echo ""
+        docker compose version &>/dev/null && echo "[OK] docker compose" || echo "[MISSING] docker compose"
