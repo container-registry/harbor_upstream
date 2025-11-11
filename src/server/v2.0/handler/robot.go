@@ -177,6 +177,13 @@ func (rAPI *robotAPI) DeleteRobot(ctx context.Context, params operation.DeleteRo
 		return rAPI.SendError(ctx, err)
 	}
 
+	// delete all claim_rules records associated with the given robot_id
+	if err := rAPI.fedidpCtl.DeleteClaimRulesByRobotID(ctx, params.RobotID); err != nil {
+		if errors.IsNotFoundErr(err) {
+			return operation.NewDeleteRobotOK()
+		}
+		return rAPI.SendError(ctx, err)
+	}
 	// check if robotidp record exists if yes, delete it
 	if err := rAPI.fedidpCtl.DeleteRobotIdpByRobotID(ctx, params.RobotID); err != nil {
 		if errors.IsNotFoundErr(err) {

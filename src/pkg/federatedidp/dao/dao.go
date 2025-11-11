@@ -84,6 +84,9 @@ type DAO interface {
 	// DeleteRobotIdpByRobotID ...
 	DeleteRobotIdpByRobotID(ctx context.Context, robotID int64) error
 
+	// DeleteClaimRulesByRobotID deletes all claim_rules records associated with a given robot ID
+	DeleteClaimRulesByRobotID(ctx context.Context, robotID int64) error
+
 	// HasRobotIdpByRobotID ...
 	HasRobotIdpByRobotID(ctx context.Context, robotID int64) (bool, error)
 
@@ -637,6 +640,20 @@ func (d *dao) DeleteRobotIdpByRobotID(ctx context.Context, robotID int64) error 
 	_, err = ormer.Raw("DELETE FROM robot_identity_providers WHERE robot_id = ?", robotID).Exec()
 
 	return err
+}
+
+// DeleteClaimRulesByRobotID deletes all claim_rules records associated with a given robot ID
+func (d *dao) DeleteClaimRulesByRobotID(ctx context.Context, robotID int64) error {
+	// Retrieve ORM instance from context
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return err // return if ORM context retrieval fails
+	}
+
+	// Delete all claim rules linked to the given robot_id
+	_, err = ormer.Raw("DELETE FROM claim_rules WHERE robot_id = ?", robotID).Exec()
+
+	return err // return any SQL execution error
 }
 
 // HasRobotIdp checks if a given robot has at least one associated identity provider.

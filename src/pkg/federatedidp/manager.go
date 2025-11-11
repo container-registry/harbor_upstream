@@ -82,6 +82,9 @@ type Manager interface {
 	// DeleteRobotIdpByRobotID ...
 	DeleteRobotIdpByRobotID(ctx context.Context, robotID int64) error
 
+	// DeleteClaimRulesByRobotID deletes all claim_rules records associated with a given robot ID
+	DeleteClaimRulesByRobotID(ctx context.Context, robotID int64) error
+
 	// HasRobotIdpByRobotID ...
 	HasRobotIdpByRobotID(ctx context.Context, robotID int64) (bool, error)
 
@@ -180,6 +183,11 @@ func (m *manager) DeleteRobotIdpByIdpID(ctx context.Context, idpID int64) error 
 // DeleteRobotIdpByRobotID ...
 func (m *manager) DeleteRobotIdpByRobotID(ctx context.Context, robotID int64) error {
 	return m.dao.DeleteRobotIdpByRobotID(ctx, robotID)
+}
+
+// DeleteClaimRulesByRobotID deletes all claim_rules records associated with a given robot ID
+func (m *manager) DeleteClaimRulesByRobotID(ctx context.Context, robotID int64) error {
+	return m.dao.DeleteClaimRulesByRobotID(ctx, robotID)
 }
 
 // HasRobotIdpByRobotID ...
