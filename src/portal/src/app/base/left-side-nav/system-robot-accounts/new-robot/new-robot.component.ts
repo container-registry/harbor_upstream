@@ -217,12 +217,12 @@ export class NewRobotComponent implements OnInit, OnDestroy {
         this.idpService.ListClaimRules({ id: idpID }).subscribe(
             claimRules => {
                 console.log('[fetchInheritedClaims] claimRules:', claimRules);
-                const claims = claimRules.map(claimRule => {
-                    return {
-                        path: claimRule.claim_path,
-                        value: claimRule.value,
-                    };
-                });
+                const claims = claimRules
+                    .filter(c => c.robot_id === 0 || c.robot_id == null)
+                    .map(c => ({
+                        path: c.claim_path,
+                        value: c.value,
+                    }));
                 this.inheritedClaims = claims;
             },
             error => {

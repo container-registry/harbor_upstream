@@ -186,23 +186,22 @@ export class ViewTokenComponent implements OnChanges {
     fetchInheritedClaims(idpID: number) {
         console.log('[fetchInheritedClaims] Fetching inherited claims...');
         console.log('[fetchInheritedClaims] idpID:', idpID);
+        console.log('[fetchInheritedClaims] robot_id:', this.robot.id);
+        console.log('[fetchInheritedClaims] robot:', this.robot);
         this.idpService.ListClaimRules({ id: idpID }).subscribe(
             claimRules => {
                 console.log('[fetchInheritedClaims] claimRules:', claimRules);
-                const claims = claimRules.map(claimRule => {
-                    if (
-                        claimRule.robot_id === this.robot.id ||
-                        claimRule.robot_id === null ||
-                        claimRule.robot_id === undefined ||
-                        claimRule.robot_id === 0
-                    ) {
-                        return {
-                            path: claimRule.claim_path,
-                            value: claimRule.value,
-                        };
-                    }
-                });
+                const claims = claimRules
+                    .filter(c => c.robot_id === 0 || c.robot_id == null || c.robot_id == this.robot.id)
+                    .map(c => ({
+                        path: c.claim_path,
+                        value: c.value,
+                    }));
                 this.inheritedClaims = claims;
+                console.log(
+                    '[fetchInheritedClaims] inheritedClaims variable:',
+                    this.inheritedClaims
+                );
             },
             error => {
                 this.inlineAlertComponent.showInlineError(error);
