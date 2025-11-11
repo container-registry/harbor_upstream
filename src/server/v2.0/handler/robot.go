@@ -148,6 +148,7 @@ func (rAPI *robotAPI) CreateRobot(ctx context.Context, params operation.CreateRo
 	return operation.NewCreateRobotCreated().WithLocation(location).WithPayload(&models.RobotCreated{
 		ID:           created.ID,
 		Name:         created.Name,
+		FederatedidpID: *params.Robot.FederatedidpID,
 		Secret:       pwd,
 		CreationTime: strfmt.DateTime(created.CreationTime),
 		ExpiresAt:    created.ExpiresAt,

@@ -8394,7 +8394,6 @@ definitions:
       federatedidp_id:
         type: integer
         format: int64
-        x-nullable: true
         description: The ID of the federated IDP
       creation_time:
         type: string
