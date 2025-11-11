@@ -688,7 +688,7 @@ export class NewRobotComponent implements OnInit, OnDestroy {
                                     res => {
                                         this.saveBtnState =
                                             ClrLoadingState.SUCCESS;
-                                        this.addSuccess.emit(res);
+                                        this.addSuccess.emit(robot);
                                         this.cancel();
                                         operateChanges(
                                             opeMessage,

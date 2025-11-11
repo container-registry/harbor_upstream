@@ -11,7 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { Component, EventEmitter, Output, ViewChild } from '@angular/core';
+import {
+    Component,
+    EventEmitter,
+    OnChanges,
+    OnInit,
+    Output,
+    ViewChild,
+} from '@angular/core';
 import { RobotService } from '../../../../../ng-swagger-gen/services/robot.service';
 import { ClrLoadingState } from '@clr/angular';
 import { Robot } from '../../../../../ng-swagger-gen/models/robot';
@@ -36,7 +43,7 @@ import { FederatedIdpService } from 'ng-swagger-gen/services';
     templateUrl: './view-token.component.html',
     styleUrls: ['./view-token.component.scss'],
 })
-export class ViewTokenComponent {
+export class ViewTokenComponent implements OnChanges {
     showNewPwd: boolean = false;
     showConfirmPwd: boolean = false;
     tokenModalOpened: boolean = false;
@@ -57,6 +64,13 @@ export class ViewTokenComponent {
     downLoadFileName: string = '';
     downLoadHref: SafeUrl = '';
     enableNewSecret: boolean = false;
+
+    ngOnChanges(): void {
+        if (this.robot?.federatedidp_id > 0) {
+            this.fetchInheritedClaims(this.robot.federatedidp_id);
+        }
+    }
+
     constructor(
         private robotService: RobotService,
         private idpService: FederatedIdpService,
@@ -81,11 +95,16 @@ export class ViewTokenComponent {
         this.downLoadFileName = '';
         this.downLoadHref = '';
         this.secretForm.reset();
-        this.fetchInheritedClaims(this.robot.federatedidp_id);
+        if (this.robot?.federatedidp_id > 0) {
+            this.fetchInheritedClaims(this.robot.federatedidp_id);
+        }
     }
     refreshToken() {
         this.btnState = ClrLoadingState.LOADING;
         const robot: Robot = clone(this.robot);
+        if (this.robot?.federatedidp_id > 0) {
+            this.fetchInheritedClaims(this.robot.federatedidp_id);
+        }
         const opeMessage = new OperateInfo();
         opeMessage.name = 'SYSTEM_ROBOT.REFRESH_SECRET';
         opeMessage.data.id = robot.id;
