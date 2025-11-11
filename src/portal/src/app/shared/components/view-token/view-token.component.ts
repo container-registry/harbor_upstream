@@ -81,6 +81,7 @@ export class ViewTokenComponent {
         this.downLoadFileName = '';
         this.downLoadHref = '';
         this.secretForm.reset();
+        this.fetchInheritedClaims(this.robot.federatedidp_id);
     }
     refreshToken() {
         this.btnState = ClrLoadingState.LOADING;
