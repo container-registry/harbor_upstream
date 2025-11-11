@@ -446,7 +446,9 @@
         "USER": "User",
         "LDAPUSER": "LDAP User",
         "GROUP": "User Group",
-        "MEMBER": "Project Member"
+        "MEMBER": "Project Member",
+        "CLOSE": "Close",
+        "INHERITED_CLAIMS": "Inherited Claims"
     },
     "WEBHOOK": {
         "EDIT_BUTTON": "EDIT",

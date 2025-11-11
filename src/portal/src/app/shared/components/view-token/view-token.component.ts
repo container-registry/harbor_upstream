@@ -29,6 +29,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { InlineAlertComponent } from '../inline-alert/inline-alert.component';
 import { errorHandler } from '../../units/shared.utils';
 import { CopyInputComponent } from '../push-image/copy-input.component';
+import { FederatedIdpService } from 'ng-swagger-gen/services';
 
 @Component({
     selector: 'view-token',
@@ -40,6 +41,7 @@ export class ViewTokenComponent {
     showConfirmPwd: boolean = false;
     tokenModalOpened: boolean = false;
     robot: Robot;
+    inheritedClaims: { path: string; value: string }[];
     newSecret: string;
     confirmSecret: string;
     btnState: ClrLoadingState = ClrLoadingState.DEFAULT;
@@ -57,6 +59,7 @@ export class ViewTokenComponent {
     enableNewSecret: boolean = false;
     constructor(
         private robotService: RobotService,
+        private idpService: FederatedIdpService,
         private operationService: OperationService,
         private msgHandler: MessageHandlerService,
         private sanitizer: DomSanitizer,
@@ -159,6 +162,32 @@ export class ViewTokenComponent {
             .subscribe((res: string) => {
                 this.msgHandler.showSuccess(res);
             });
+    }
+    fetchInheritedClaims(idpID: number) {
+        console.log('[fetchInheritedClaims] Fetching inherited claims...');
+        console.log('[fetchInheritedClaims] idpID:', idpID);
+        this.idpService.ListClaimRules({ id: idpID }).subscribe(
+            claimRules => {
+                console.log('[fetchInheritedClaims] claimRules:', claimRules);
+                const claims = claimRules.map(claimRule => {
+                    if (
+                        claimRule.robot_id === this.robot.id ||
+                        claimRule.robot_id === null ||
+                        claimRule.robot_id === undefined ||
+                        claimRule.robot_id === 0
+                    ) {
+                        return {
+                            path: claimRule.claim_path,
+                            value: claimRule.value,
+                        };
+                    }
+                });
+                this.inheritedClaims = claims;
+            },
+            error => {
+                this.inlineAlertComponent.showInlineError(error);
+            }
+        );
     }
 
     closeModal() {

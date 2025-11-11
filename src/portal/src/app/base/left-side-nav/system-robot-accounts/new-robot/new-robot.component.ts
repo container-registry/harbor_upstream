@@ -562,9 +562,11 @@ export class NewRobotComponent implements OnInit, OnDestroy {
         robot.disable = false;
         robot.level = PermissionsKinds.SYSTEM;
         robot.duration = +this.systemRobot.duration;
-        robot.federatedidp_id = this.idpMap.get(
-            this.idpSelection.trim().toLowerCase()
-        );
+        if (this.useFederatedRobot) {
+            robot.federatedidp_id = this.idpMap.get(
+                this.idpSelection.trim().toLowerCase()
+            );
+        }
 
         if (
             robot.federatedidp_id === undefined ||
