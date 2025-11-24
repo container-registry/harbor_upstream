@@ -9931,6 +9931,11 @@ definitions:
         description: the list to disable log audit event types. 
         x-omitempty: true
         x-isnullable: true
+      enable_project_federated_idp:
+        type: boolean
+        description: Whether or not to skip update pull time for scanner
+        x-omitempty: true
+        x-isnullable: true
   StringConfigItem:
     type: object
     properties:
