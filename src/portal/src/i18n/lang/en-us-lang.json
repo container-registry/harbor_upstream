@@ -916,6 +916,7 @@
         "REPO_READ_ONLY": "Repository Read Only",
         "WEBHOOK_NOTIFICATION_ENABLED": "Webhooks Enabled",
         "SYSTEM": "System Settings",
+        "ENTREPRISE": "Entreprise",
         "PROJECT_QUOTAS": "Project Quotas",
         "VULNERABILITY": "Vulnerability",
         "GC": "Garbage Collection",
