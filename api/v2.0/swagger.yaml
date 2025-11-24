@@ -9933,7 +9933,7 @@ definitions:
         x-isnullable: true
       enable_project_federated_idp:
         type: boolean
-        description: Whether or not to skip update pull time for scanner
+        description: The flag to enable federated idp for project and inherit federated idp from system level
         x-omitempty: true
         x-isnullable: true
   StringConfigItem:
