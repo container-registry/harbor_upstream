@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS identity_providers (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
-    issuer TEXT NOT NULL UNIQUE,
+    issuer TEXT NOT NULL,
     openid_config_url TEXT,
     offline_validation BOOLEAN NOT NULL DEFAULT FALSE,
     supported_algorithms TEXT,
@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS identity_providers (
     project_id INT NOT NULL,
     creation_time TIMESTAMP DEFAULT NOW(),
     update_time TIMESTAMP DEFAULT NOW()
+    UNIQUE (issuer, project_id)
 );
 
 -- Table: robot_identity_providers
