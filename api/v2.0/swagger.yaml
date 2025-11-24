@@ -9640,6 +9640,9 @@ definitions:
       disabled_audit_log_event_types:
         $ref: '#/definitions/StringConfigItem'
         description: The audit log event types to skip to log in database
+      enable_project_federated_idp:
+        $ref: '#/definitions/BoolConfigItem'
+        description: The flag to enable federated idp for project and inherit federated idp from system level
   Configurations:
     type: object
     properties:
