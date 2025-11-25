@@ -81,8 +81,8 @@ export class EntrepriseComponent implements OnInit {
                 prop.startsWith('oidc_') ||
                 prop === 'auth_mode' ||
                 prop === 'project_creattion_restriction' ||
-                prop === 'primary_auth_mode' ||
-                prop === 'self_registration' ||
+                prop === 'enable_project_federated_idp' ||
+                prop === 'projectFedIdp' ||
                 prop.startsWith('http_')
             ) {
                 changes[prop] = allChanges[prop];

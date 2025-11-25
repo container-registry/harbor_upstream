@@ -1,4 +1,3 @@
-<p>entreprise works!</p>
 <form #entrepriseConfigFrom="ngForm" class="clr-form clr-form-horizontal">
     <section>
         <clr-checkbox-container>
@@ -23,10 +22,10 @@
                 <input
                     type="checkbox"
                     clrCheckbox
-                    name="primaryAuthMode"
-                    id="primaryAuthMode"
-                    [(ngModel)]="currentConfig.primary_auth_mode.value"
-                    [disabled]="!currentConfig.primary_auth_mode.editable" />
+                    name="projectFedIdp"
+                    id="projectFedIdp"
+                    [(ngModel)]="currentConfig.enable_project_federated_idp.value"
+                    [disabled]="!currentConfig.enable_project_federated_idp.editable" />
             </clr-checkbox-wrapper>
         </clr-checkbox-container>
     </section>

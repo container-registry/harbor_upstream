@@ -917,6 +917,7 @@
         "WEBHOOK_NOTIFICATION_ENABLED": "Webhooks Enabled",
         "SYSTEM": "System Settings",
         "ENTREPRISE": "Entreprise",
+        "PROJECT_FEDIDP": "Enable Federated IDP for Projects",
         "PROJECT_QUOTAS": "Project Quotas",
         "VULNERABILITY": "Vulnerability",
         "GC": "Garbage Collection",
@@ -947,6 +948,7 @@
         "NO_CHANGE": "Save abort because nothing changed",
         "SKIP_SCANNER_PULL_TIME": "Retain Image \"last pull time\" On Scanning",
         "TOOLTIP": {
+            "PROJECT_FEDIDP": "When enabled, this project inherits the System Federated IDP configuration. You can also create additional project-level IDPs and generate project-level Federated-IDP robot accounts using the system IDP. For best practice, prefer creating IDPs at the project level. IDPs created at the system level can only be extended, not fully customized.",
             "SELF_REGISTRATION_ENABLE": "Enable sign up.",
             "SELF_REGISTRATION_DISABLE": "Deactivate sign up.",
             "VERIFY_REMOTE_CERT": "Determine whether the image replication should verify the certificate of a remote Harbor registry. Uncheck this box when the remote registry uses a self-signed or untrusted certificate.",
