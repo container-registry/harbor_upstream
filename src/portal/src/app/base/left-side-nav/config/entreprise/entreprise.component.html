@@ -1,1 +1,50 @@
 <p>entreprise works!</p>
+<form #entrepriseConfigFrom="ngForm" class="clr-form clr-form-horizontal">
+    <section>
+        <clr-checkbox-container>
+            <label for="projectFedIdp"
+                >{{ 'CONFIG.PROJECT_FEDIDP' | translate }}
+                <clr-tooltip>
+                    <clr-icon
+                        clrTooltipTrigger
+                        shape="info-circle"
+                        size="24"></clr-icon>
+                    <clr-tooltip-content
+                        clrPosition="top-right"
+                        clrSize="lg"
+                        *clrIfOpen>
+                        <span>{{
+                            'CONFIG.TOOLTIP.PROJECT_FEDIDP' | translate
+                        }}</span>
+                    </clr-tooltip-content>
+                </clr-tooltip>
+            </label>
+            <clr-checkbox-wrapper>
+                <input
+                    type="checkbox"
+                    clrCheckbox
+                    name="primaryAuthMode"
+                    id="primaryAuthMode"
+                    [(ngModel)]="currentConfig.primary_auth_mode.value"
+                    [disabled]="!currentConfig.primary_auth_mode.editable" />
+            </clr-checkbox-wrapper>
+        </clr-checkbox-container>
+    </section>
+</form>
+<div>
+    <button
+        type="button"
+        id="config_auth_save"
+        class="btn btn-primary"
+        (click)="save()"
+        [disabled]="!isValid() || !hasChanges() || inProcess()">
+        {{ 'BUTTON.SAVE' | translate }}
+    </button>
+    <button
+        type="button"
+        class="btn btn-outline"
+        (click)="cancel()"
+        [disabled]="!isValid() || !hasChanges() || inProcess()">
+        {{ 'BUTTON.CANCEL' | translate }}
+    </button>
+</div>
