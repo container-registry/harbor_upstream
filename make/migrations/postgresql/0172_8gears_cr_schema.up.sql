@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS identity_providers (
     jwks_keys JSONB,
     project_id INT NOT NULL,
     creation_time TIMESTAMP DEFAULT NOW(),
-    update_time TIMESTAMP DEFAULT NOW()
+    update_time TIMESTAMP DEFAULT NOW(),
     UNIQUE (issuer, project_id)
 );
 
