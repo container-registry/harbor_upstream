@@ -452,6 +452,8 @@ func (d *dao) FindMatchingRobot(ctx context.Context, issuerID int64, tokenClaims
 
 	valuesClause := strings.Join(valueTuples, ", ")
 
+	log.Debugf("final values clause sent to db: %s", valuesClause)
+
 	// Optimized SQL query
 	sql := fmt.Sprintf(`
 		SELECT
@@ -471,6 +473,8 @@ func (d *dao) FindMatchingRobot(ctx context.Context, issuerID int64, tokenClaims
 			)
 		ORDER BY cr.robot_id DESC;
 	`, valuesClause)
+
+	log.Debugf("final sql query created for matching robots: %s", sql)
 
 	var robotIDs []int64
 	_, err = ormer.Raw(sql, issuerID).QueryRows(&robotIDs)

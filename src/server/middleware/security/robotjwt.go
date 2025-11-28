@@ -187,11 +187,6 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 
 	// validate the token claims with idp claims
 	for _, claim := range idpClaims {
-		// if claim.ClaimPath is not present in supportedClaims {
-		// if !slices.Contains(supportedClaims, claim.ClaimPath) {
-		// 	log.Warningf("found unsupported claim in token: %s", claim.ClaimPath, idp.Name)
-		// 	// return nil
-		// }
 
 		log.Warningf("current claim: path - %v, value - %v", claim.ClaimPath, claim.Value)
 		var val any
@@ -251,11 +246,14 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 	flattenedClaims := make(map[string]string)
 	flattenClaims("", tokenClaims, flattenedClaims)
 
-	for k, v := range tokenClaims {
+	log.Debugf("token not flattened claims: %v", flattenedClaims)
+	log.Debugf("flattened claims: %v", flattenedClaims)
+
+	for k, v := range flattenedClaims {
 		log.Debugf("flattened claim: %s, value: %s", k, v)
 	}
 
-	// query the token claims on idp and get robot
+	// query the token flattened claims on idp and get robot
 	rid, err := federated_idp.Ctl.GetTopMatchedRobot(req.Context(), idp.ID, tokenClaims)
 	if err != nil {
 		log.Warningf("failed to get robot id: %v", err)
@@ -264,7 +262,6 @@ func (r *robotjwt) Generate(req *http.Request) security.Context {
 
 	// kumar delete the debug logs
 	log.Warningf("kumar, the robot id is : %d", rid)
-	log.Warningf("kumar, given token is valid proceeding with claim validation")
 	log.Warningf("if you are seeing this kumar, it means you are done with the robot validation")
 
 	if rid == 0 {
