@@ -15,6 +15,8 @@
 package lib
 
 import (
+	"fmt"
+	"net/url"
 	"strings"
 
 	"golang.org/x/text/cases"
@@ -42,4 +44,28 @@ func SliceToUpper(s []string) []string {
 	}
 
 	return result
+}
+
+// ValidateURL parses and validates a URL.
+// Returns a url string and an error (if invalid).
+func ValidateURL(input string) (string, error) {
+	// trim whitespace around the input
+	cleaned := strings.TrimSpace(input)
+
+	if cleaned == "" {
+		return "", fmt.Errorf("invalid url: empty")
+	}
+
+	// parse the URL using net/url
+	parsed, err := url.Parse(cleaned)
+	if err != nil {
+		return "", err
+	}
+
+	// ensure scheme + host are present
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return "", fmt.Errorf("invalid url: missing scheme or host")
+	}
+
+	return parsed.String(), nil
 }
