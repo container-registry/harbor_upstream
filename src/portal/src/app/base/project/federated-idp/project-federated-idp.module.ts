@@ -19,7 +19,7 @@ import { FederatedIdpComponent } from './federated-idp.component';
 
 const routes: Routes = [
     {
-        path: 'federated-idp',
+        path: '',
         component: FederatedIdpComponent,
     },
 ];
