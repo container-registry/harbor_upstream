@@ -72,6 +72,7 @@ export class ProjectDetailComponent
     hasLogListPermission: boolean;
     hasConfigurationListPermission: boolean;
     hasRobotListPermission: boolean;
+    hasFederatedIdpListPermission: boolean;
     hasTagRetentionPermission: boolean;
     hasTagImmutablePermission: boolean;
     hasWebhookListPermission: boolean;
@@ -129,6 +130,12 @@ export class ProjectDetailComponent
             tabLinkInOverflow: false,
             showTabName: 'PROJECT_DETAIL.ROBOT_ACCOUNTS',
             permissions: () => this.hasRobotListPermission,
+        },
+        {
+            linkName: 'federated-idp',
+            tabLinkInOverflow: false,
+            showTabName: 'PROJECT_DETAIL.FEDERATED_IDP',
+            permissions: () => this.hasFederatedIdpListPermission,
         },
         {
             linkName: 'webhook',
@@ -330,6 +337,7 @@ export class ProjectDetailComponent
                     this.hasLabelListPermission,
                     this.hasRepositoryListPermission,
                     this.hasRobotListPermission,
+                    this.hasFederatedIdpListPermission,
                     this.hasLabelCreatePermission,
                     this.hasTagRetentionPermission,
                     this.hasTagImmutablePermission,

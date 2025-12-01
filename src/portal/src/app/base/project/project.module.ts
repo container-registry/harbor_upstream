@@ -17,6 +17,7 @@ import { SharedModule } from '../../shared/shared.module';
 import { ProjectDetailComponent } from './project-detail/project-detail.component';
 import { MemberPermissionGuard } from '../../shared/router-guard/member-permission-guard-activate.service';
 import { USERSTATICPERMISSION } from '../../shared/services';
+import { FederatedIdpComponent } from './federated-idp/federated-idp.component';
 
 const routes: Routes = [
     {
@@ -117,6 +118,20 @@ const routes: Routes = [
                 loadChildren: () =>
                     import('./robot-account/project-robot-account.module').then(
                         m => m.ProjectRobotAccountModule
+                    ),
+            },
+            {
+                path: 'federated-idp',
+                canActivate: [MemberPermissionGuard],
+                data: {
+                    permissionParam: {
+                        resource: USERSTATICPERMISSION.FEDERATED_IDP.KEY,
+                        action: USERSTATICPERMISSION.FEDERATED_IDP.VALUE.LIST,
+                    },
+                },
+                loadChildren: () =>
+                    import('./federated-idp/project-federated-idp.module').then(
+                        m => m.ProjectFederatedIdpModule
                     ),
             },
             {
