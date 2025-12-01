@@ -286,7 +286,7 @@
         "CONFIG": "Configuration",
         "HELMCHART": "Helm Charts",
         "ROBOT_ACCOUNTS": "Robot Accounts",
-        "FEDERATED_IDP": "Federated IdP",
+        "FEDERATED_IDP": "Federated IdPs",
         "WEBHOOKS": "Webhooks",
         "IMMUTABLE_TAG": "Tag Immutability",
         "POLICY": "Policy"
