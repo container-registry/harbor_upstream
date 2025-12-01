@@ -66,6 +66,7 @@ export class CreateEditIdpComponent
     offlineValidation: boolean = false;
     openIDConfigJSON: string;
     jwksKeys: string;
+    jwksError: string;
     initVal: FederatedIdp;
     targetForm: NgForm;
     @ViewChild('targetForm') currentForm: NgForm;
@@ -264,15 +265,29 @@ export class CreateEditIdpComponent
     }
 
     public get isValid(): boolean {
-        return (
-            (!this.testOngoing &&
-                !this.onGoing &&
-                this.targetForm &&
-                this.targetForm.valid &&
-                this.editable &&
-                !compareValue(this.target, this.initVal)) ||
-            !compareValue(this.claims, this.initClaims)
-        );
+        this.target.name = this.target.name.trim();
+        this.target.description = this.target.description.trim();
+        this.target.issuer = this.target.issuer.trim();
+        this.target.jwks_uri = this.target.jwks_uri.trim();
+        this.target.openid_config_url = this.target.openid_config_url.trim();
+
+        if (this.target.name.length === 0) {
+            return false;
+        }
+        if (this.target.issuer.length === 0) {
+            return false;
+        }
+
+        if (this.target.issuer)
+            return (
+                (!this.testOngoing &&
+                    !this.onGoing &&
+                    this.targetForm &&
+                    this.targetForm.valid &&
+                    this.editable &&
+                    !compareValue(this.target, this.initVal)) ||
+                !compareValue(this.claims, this.initClaims)
+            );
     }
 
     public get inProgress(): boolean {
@@ -410,6 +425,45 @@ export class CreateEditIdpComponent
         }
     }
 
+    // parse and get jwks_keys
+    parseJwksKeys(): boolean {
+        try {
+            // 🆕 Empty check
+            if (!this.jwksKeys || this.jwksKeys.trim() === '') {
+                this.inlineAlert.showInlineError(
+                    'JWKS field cannot be empty' // <-- replaced jwksError
+                );
+                return false;
+            }
+
+            // 🆕 Safe JSON parsing
+            const parsed = JSON.parse(this.jwksKeys);
+
+            // 🆕 Validate JWKS structure
+            if (!parsed.keys || !Array.isArray(parsed.keys)) {
+                this.inlineAlert.showInlineError(
+                    "Invalid JWKS: 'keys' array missing" // <-- replaced jwksError
+                );
+                return false;
+            }
+
+            // ✔️ Valid → assign it
+            this.target.jwks_keys = parsed;
+
+            return true; // <-- success
+        } catch (err: any) {
+            // 🆕 Use inline alert for failures
+            this.inlineAlert.showInlineError(
+                'Invalid JWKS JSON format. Please check the structure.' // <-- replaced jwksError
+            );
+
+            // ✔️ Prevent UI crash
+            this.target.jwks_keys = null;
+
+            return false; // <-- failure
+        }
+    }
+
     addIdp() {
         if (this.onGoing) return;
 
@@ -417,9 +471,16 @@ export class CreateEditIdpComponent
         this.okButtonState = ClrLoadingState.LOADING;
         console.log('this.target:', this.target);
 
-        this.target.jwks_keys = JSON.parse(this.jwksKeys);
-
         if (!this.validateRequiredClaims(this.claims)) {
+            this.onGoing = false;
+            this.okButtonState = ClrLoadingState.DEFAULT;
+            return;
+        }
+
+        // parse and get jwks_keys
+        if (!this.parseJwksKeys()) {
+            this.onGoing = false;
+            this.okButtonState = ClrLoadingState.DEFAULT;
             return;
         }
 
@@ -479,6 +540,8 @@ export class CreateEditIdpComponent
     updateIdp() {
         if (this.onGoing || !this.target.id) return;
         if (!this.validateRequiredClaims(this.claims)) {
+            this.onGoing = false;
+            this.okButtonState = ClrLoadingState.DEFAULT;
             return;
         }
 

@@ -21,6 +21,7 @@
                     [disabled]="testOngoing || target.id !== undefined"
                     [readonly]="!editable"
                     [(ngModel)]="target.name"
+                    [required]=true
                     name="targetName"
                     size="30"
                     #targetName="ngModel"
