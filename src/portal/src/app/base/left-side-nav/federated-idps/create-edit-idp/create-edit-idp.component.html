@@ -87,10 +87,12 @@
             <div class="clr-form-control">
                 <label
                     for="openidconfig_url"
+                    [class.disabled]="target.id !== undefined || target.offline_validation"
                     class="required clr-control-label">
                     {{ 'FEDERATED_IDPS.OPENIDCONFIG_URL' | translate }}
                 </label>
                 <div
+                    disabled="target.offline_validation"
                     class="clr-control-container"
                     [class.clr-error]="
                         openidConfigUrl?.errors &&
@@ -105,7 +107,7 @@
                             type="text"
                             id="openidconfig_url"
                             [readonly]="!editable"
-                            [disabled]="target.id !== undefined"
+                            [disabled]="target.id !== undefined || target.offline_validation"
                             [(ngModel)]="target.openid_config_url"
                             size="28"
                             name="openidconfig_url"

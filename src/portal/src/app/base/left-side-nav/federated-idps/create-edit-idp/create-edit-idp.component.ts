@@ -265,13 +265,20 @@ export class CreateEditIdpComponent
     }
 
     public get isValid(): boolean {
-        this.target.name = this.target.name.trim();
-        this.target.description = this.target.description.trim();
-        this.target.issuer = this.target.issuer.trim();
-        this.target.jwks_uri = this.target.jwks_uri.trim();
-        this.target.openid_config_url = this.target.openid_config_url.trim();
+        let nametrim: string;
+        let issuertrim: string;
+        if (!this.target.name) {
+            return false;
+        } else {
+            nametrim = this.target.name.trim();
+        }
+        if (!this.target.issuer) {
+            return false;
+        } else {
+            issuertrim = this.target.issuer.trim();
+        }
 
-        if (this.target.name.length === 0) {
+        if (nametrim.length === 0) {
             return false;
         }
         if (this.target.issuer.length === 0) {
@@ -417,6 +424,12 @@ export class CreateEditIdpComponent
     }
 
     onSubmit() {
+        this.target.name = this.target.name.trim();
+        this.target.description = this.target.description.trim();
+        this.target.issuer = this.target.issuer.trim();
+        this.target.jwks_uri = this.target.jwks_uri.trim();
+        this.target.openid_config_url = this.target.openid_config_url.trim();
+
         if (this.idpId) {
             this.updateIdp();
         } else {
@@ -758,6 +771,11 @@ export class CreateEditIdpComponent
 
     confirmCancel(confirmed: boolean) {
         this.inlineAlert.close();
+        this.reset();
+        if (this.targetForm) {
+            this.targetForm.reset();
+        }
+        this.reload.emit(true);
         this.close();
     }
 

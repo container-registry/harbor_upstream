@@ -3,6 +3,11 @@
     font-weight: 400;
   }
 
+label.disabled {
+  opacity: 0.6;       /* makes it look disabled */
+  cursor: not-allowed;
+}
+
   .mt-16 {
     margin-top: 1.5rem;
   }
