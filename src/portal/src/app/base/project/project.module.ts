@@ -17,7 +17,6 @@ import { SharedModule } from '../../shared/shared.module';
 import { ProjectDetailComponent } from './project-detail/project-detail.component';
 import { MemberPermissionGuard } from '../../shared/router-guard/member-permission-guard-activate.service';
 import { USERSTATICPERMISSION } from '../../shared/services';
-import { FederatedIdpComponent } from './federated-idp/federated-idp.component';
 
 const routes: Routes = [
     {
