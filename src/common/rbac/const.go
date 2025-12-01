@@ -120,6 +120,11 @@ type NolimitProvider struct {
 func (n *NolimitProvider) GetPermissions(s scope) []*types.Policy {
 	if s == ScopeSystem {
 		return append(n.BaseProvider.GetPermissions(ScopeSystem),
+			&types.Policy{Resource: ResourceFederatedIdp, Action: ActionCreate},
+			&types.Policy{Resource: ResourceFederatedIdp, Action: ActionRead},
+			&types.Policy{Resource: ResourceFederatedIdp, Action: ActionList},
+			&types.Policy{Resource: ResourceFederatedIdp, Action: ActionDelete},
+
 			&types.Policy{Resource: ResourceRobot, Action: ActionCreate},
 			&types.Policy{Resource: ResourceRobot, Action: ActionRead},
 			&types.Policy{Resource: ResourceRobot, Action: ActionList},
@@ -144,6 +149,11 @@ func (n *NolimitProvider) GetPermissions(s scope) []*types.Policy {
 	}
 	if s == ScopeProject {
 		return append(n.BaseProvider.GetPermissions(ScopeProject),
+			&types.Policy{Resource: ResourceFederatedIdp, Action: ActionCreate},
+			&types.Policy{Resource: ResourceFederatedIdp, Action: ActionRead},
+			&types.Policy{Resource: ResourceFederatedIdp, Action: ActionList},
+			&types.Policy{Resource: ResourceFederatedIdp, Action: ActionDelete},
+
 			&types.Policy{Resource: ResourceRobot, Action: ActionCreate},
 			&types.Policy{Resource: ResourceRobot, Action: ActionRead},
 			&types.Policy{Resource: ResourceRobot, Action: ActionList},
