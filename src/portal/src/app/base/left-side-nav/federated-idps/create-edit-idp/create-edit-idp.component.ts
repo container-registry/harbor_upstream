@@ -60,13 +60,12 @@ export class CreateEditIdpComponent
     staticBackdrop: boolean = true;
     closable: boolean = false;
     editable: boolean;
-    adapterList: string[];
-    endpointList: any[] = [];
     target: FederatedIdp = this.initIdp();
     offlineValidation: boolean = false;
     openIDConfigJSON: string;
     jwksKeys: string;
     jwksError: string;
+    claimsSupported: string;
     initVal: FederatedIdp;
     targetForm: NgForm;
     @ViewChild('targetForm') currentForm: NgForm;
