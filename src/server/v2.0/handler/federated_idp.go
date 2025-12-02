@@ -445,8 +445,11 @@ func (fAPI *fedIDPAPI) validate(fedIdp *models.FederatedIdp) error {
 		).WithCode(errors.BadRequestCode)
 	}
 
+	log.Infof("fedIdp.OfflineValidation: %v", fedIdp.OfflineValidation)
+
 	// Offline Validation Logic
 	if fedIdp.OfflineValidation {
+	  log.Infof("inside validating for fedidp offline")
 		// Check if keys exist
 		if fedIdp.JwksKeys == nil {
 			return errors.New(nil).WithMessage("offline validation requires JWKS keys").WithCode(errors.BadRequestCode)
@@ -456,6 +459,7 @@ func (fAPI *fedIDPAPI) validate(fedIdp *models.FederatedIdp) error {
 			return err
 		}
 	} else {
+	  log.Infof("inside validating for fedidp online what is wrong here")
 		// Online Validation Logic
 		// Validate OpenID Config URL
 		if !isValidOpenIDConfigURL(fedIdp.OpenidConfigURL) {

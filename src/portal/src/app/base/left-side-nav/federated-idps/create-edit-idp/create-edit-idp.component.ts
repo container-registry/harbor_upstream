@@ -127,7 +127,7 @@ export class CreateEditIdpComponent
             // Attempt to parse the string into an object
             const configObject = JSON.parse(this.openIDConfigJSON);
             // logic to update claims based on configObject
-            console.log('Valid JSON:', configObject);
+            // console.log('Valid JSON:', configObject);
 
             if (configObject.issuer) {
                 isvalid = true;
@@ -185,7 +185,7 @@ export class CreateEditIdpComponent
         } catch (e) {
             isvalid = false;
             // Handle invalid JSON gracefully
-            console.error('Invalid JSON format');
+            // console.error('Invalid JSON format');
             this.inlineAlert.showInlineError(
                 'Invalid JSON format for OpenID Config.'
             );
@@ -531,9 +531,6 @@ export class CreateEditIdpComponent
         try {
             // 🆕 Empty check
             if (!this.jwksKeys || this.jwksKeys.trim() === '') {
-                this.inlineAlert.showInlineError(
-                    'JWKS field cannot be empty' // <-- replaced jwksError
-                );
                 return false;
             }
 
@@ -866,6 +863,7 @@ export class CreateEditIdpComponent
                 value: this.registryUrl || window.location.hostname,
             },
         ];
+        this.jwksKeys = '';
         this.reset();
         if (this.targetForm) {
             this.targetForm.reset();
