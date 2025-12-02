@@ -21,7 +21,7 @@
                     [disabled]="testOngoing || target.id !== undefined"
                     [readonly]="!editable"
                     [(ngModel)]="target.name"
-                    [required]=true
+                    [required]="true"
                     name="targetName"
                     size="30"
                     #targetName="ngModel"
@@ -242,7 +242,9 @@
                     class="inputWidth"
                     row="3"
                     name="openidconfig"
-                    [disabled]="!target.offline_validation || target.id !== undefined"
+                    [disabled]="
+                        !target.offline_validation || target.id !== undefined
+                    "
                     [(ngModel)]="openIDConfigJSON"></textarea>
             </clr-textarea-container>
             <!-- Mannual JWKS Keys -->
@@ -254,7 +256,9 @@
                     class="inputWidth"
                     row="3"
                     name="jwks_keys"
-                    [disabled]="!target.offline_validation || target.id !== undefined"
+                    [disabled]="
+                        !target.offline_validation || target.id !== undefined
+                    "
                     [(ngModel)]="jwksKeys"></textarea>
             </clr-textarea-container>
 

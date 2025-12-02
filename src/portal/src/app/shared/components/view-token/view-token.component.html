@@ -213,9 +213,7 @@
                 </button></a
             >
         </section>
-        <section
-            class="form-block show-info"
-            *ngIf="robot?.federatedidp_id">
+        <section class="form-block show-info" *ngIf="robot?.federatedidp_id">
             <div class="form-group robot-name">
                 <label class="form-group-label-override">{{
                     'ROBOT_ACCOUNT.NAME' | translate
@@ -225,9 +223,9 @@
             <div class="form-group robot-name">
                 <!-- Inherited Claims Section -->
                 <div class="form-group-label-override">
-                    <label class="clr-control-label mt-16"
-                        >{{ 'ROBOT_ACCOUNT.INHERITED_CLAIMS' | translate }}</label
-                    >
+                    <label class="clr-control-label mt-16">{{
+                        'ROBOT_ACCOUNT.INHERITED_CLAIMS' | translate
+                    }}</label>
                 </div>
 
                 <clr-input-container

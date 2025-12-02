@@ -333,9 +333,9 @@
 
                 <!-- Inherited Claims Section -->
                 <div class="form-group-label-override">
-                    <label class="clr-control-label mt-16"
-                        >{{ 'ROBOT_ACCOUNT.INHERITED_CLAIMS' | translate }}</label
-                    >
+                    <label class="clr-control-label mt-16">{{
+                        'ROBOT_ACCOUNT.INHERITED_CLAIMS' | translate
+                    }}</label>
                 </div>
 
                 <clr-input-container
@@ -399,11 +399,11 @@
                             [id]="'claim_value_' + i"
                             [name]="'claim_value_' + i" />
                     </clr-input-container>
-                <clr-icon
-                    class="mt-16"
-                    (click)="deleteClaim(i)"
-                    shape="window-close"
-                    size="20"></clr-icon>
+                    <clr-icon
+                        class="mt-16"
+                        (click)="deleteClaim(i)"
+                        shape="window-close"
+                        size="20"></clr-icon>
 
                     <clr-control-error
                         *ngIf="
@@ -415,11 +415,14 @@
                     </clr-control-error>
                 </div>
 
-            <button type="button" class="btn btn-link pl-0" (click)="addClaim()">
-                <clr-icon shape="plus" size="16"></clr-icon>&nbsp;{{
-                    'BUTTON.ADD_MORE' | translate
-                }}
-            </button>
+                <button
+                    type="button"
+                    class="btn btn-link pl-0"
+                    (click)="addClaim()">
+                    <clr-icon shape="plus" size="16"></clr-icon>&nbsp;{{
+                        'BUTTON.ADD_MORE' | translate
+                    }}
+                </button>
             </section>
         </form>
     </clr-wizard-page>

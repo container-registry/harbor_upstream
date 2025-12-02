@@ -21,7 +21,7 @@
                     [disabled]="testOngoing || target.id !== undefined"
                     [readonly]="!editable"
                     [(ngModel)]="target.name"
-                    [required]=true
+                    [required]="true"
                     name="targetName"
                     size="30"
                     #targetName="ngModel"
@@ -87,7 +87,9 @@
             <div class="clr-form-control">
                 <label
                     for="openidconfig_url"
-                    [class.disabled]="target.id !== undefined || target.offline_validation"
+                    [class.disabled]="
+                        target.id !== undefined || target.offline_validation
+                    "
                     [class.required]="!target.offline_validation"
                     class="required clr-control-label">
                     {{ 'FEDERATED_IDPS.OPENIDCONFIG_URL' | translate }}
@@ -108,7 +110,10 @@
                             type="text"
                             id="openidconfig_url"
                             [readonly]="!editable"
-                            [disabled]="target.id !== undefined || target.offline_validation"
+                            [disabled]="
+                                target.id !== undefined ||
+                                target.offline_validation
+                            "
                             [(ngModel)]="target.openid_config_url"
                             size="28"
                             name="openidconfig_url"
@@ -141,9 +146,13 @@
             </div>
             <!-- Issuer -->
             <div class="clr-form-control">
-                <label for="issuer"                    [class.disabled]="target.id !== undefined || target.offline_validation"
-                                        [class.required]="!target.offline_validation"
-  class="clr-control-label">
+                <label
+                    for="issuer"
+                    [class.disabled]="
+                        target.id !== undefined || target.offline_validation
+                    "
+                    [class.required]="!target.offline_validation"
+                    class="clr-control-label">
                     {{ 'FEDERATED_IDPS.ISSUER' | translate }}
                 </label>
                 <div
@@ -162,7 +171,10 @@
                             type="text"
                             id="issuer"
                             [readonly]="!editable"
-                            [disabled]="target.id !== undefined || target.offline_validation"
+                            [disabled]="
+                                target.id !== undefined ||
+                                target.offline_validation
+                            "
                             [(ngModel)]="target.issuer"
                             size="28"
                             name="issuer"
@@ -191,10 +203,13 @@
             </div>
             <!-- JWKS URI -->
             <div class="clr-form-control">
-                <label for="jwks_uri"
-                              [class.disabled]="target.id !== undefined || target.offline_validation"
-                              [class.required]="!target.offline_validation"
-class="clr-control-label">
+                <label
+                    for="jwks_uri"
+                    [class.disabled]="
+                        target.id !== undefined || target.offline_validation
+                    "
+                    [class.required]="!target.offline_validation"
+                    class="clr-control-label">
                     {{ 'FEDERATED_IDPS.JWKS_URI' | translate }}
                 </label>
                 <div
@@ -211,7 +226,10 @@ class="clr-control-label">
                             class="clr-input endpoint-input"
                             type="text"
                             id="jwks_uri"
-                            [disabled]="target.id !== undefined || target.offline_validation"
+                            [disabled]="
+                                target.id !== undefined ||
+                                target.offline_validation
+                            "
                             [readonly]="!editable"
                             [(ngModel)]="target.jwks_uri"
                             size="28"
@@ -241,9 +259,7 @@ class="clr-control-label">
             </div>
             <!-- Mannual OpenIDConfig -->
             <clr-textarea-container>
-                <label
-                                      [class.required]="target.offline_validation"
->{{
+                <label [class.required]="target.offline_validation">{{
                     'FEDERATED_IDPS.MANNUAL_OPENIDCONFIG' | translate
                 }}</label>
                 <textarea
@@ -252,33 +268,38 @@ class="clr-control-label">
                     class="inputWidth"
                     row="3"
                     name="openidconfig"
-                    [disabled]="!target.offline_validation || target.id !== undefined"
+                    [disabled]="
+                        !target.offline_validation || target.id !== undefined
+                    "
                     [(ngModel)]="openIDConfigJSON"></textarea>
             </clr-textarea-container>
             <!-- Mannual JWKS Keys -->
             <clr-textarea-container>
-                <label
-                                      [class.required]="target.offline_validation"
->{{ 'FEDERATED_IDPS.JWKS_KEYS' | translate }}</label>
+                <label [class.required]="target.offline_validation">{{
+                    'FEDERATED_IDPS.JWKS_KEYS' | translate
+                }}</label>
                 <textarea
                     clrTextarea
                     type="text"
                     class="inputWidth"
                     row="3"
                     name="jwks_keys"
-                    [disabled]="!target.offline_validation || target.id !== undefined"
+                    [disabled]="
+                        !target.offline_validation || target.id !== undefined
+                    "
                     [(ngModel)]="jwksKeys"></textarea>
             </clr-textarea-container>
             <clr-textarea-container>
-                <label
->{{ 'FEDERATED_IDPS.CLAIMS_SUPPORTED' | translate }}</label>
+                <label>{{
+                    'FEDERATED_IDPS.CLAIMS_SUPPORTED' | translate
+                }}</label>
                 <textarea
                     clrTextarea
                     type="text"
                     class="inputWidth"
                     row="3"
                     name="claims_supported"
-                    [disabled]=true
+                    [disabled]="true"
                     [(ngModel)]="claimsSupported"></textarea>
             </clr-textarea-container>
 

@@ -24,8 +24,12 @@
                     clrCheckbox
                     name="projectFedIdp"
                     id="projectFedIdp"
-                    [(ngModel)]="currentConfig.enable_project_federated_idp.value"
-                    [disabled]="!currentConfig.enable_project_federated_idp.editable" />
+                    [(ngModel)]="
+                        currentConfig.enable_project_federated_idp.value
+                    "
+                    [disabled]="
+                        !currentConfig.enable_project_federated_idp.editable
+                    " />
             </clr-checkbox-wrapper>
         </clr-checkbox-container>
     </section>

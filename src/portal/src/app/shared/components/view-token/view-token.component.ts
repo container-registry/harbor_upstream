@@ -192,7 +192,12 @@ export class ViewTokenComponent implements OnChanges {
             claimRules => {
                 console.log('[fetchInheritedClaims] claimRules:', claimRules);
                 const claims = claimRules
-                    .filter(c => c.robot_id === 0 || c.robot_id == null || c.robot_id == this.robot.id)
+                    .filter(
+                        c =>
+                            c.robot_id === 0 ||
+                            c.robot_id == null ||
+                            c.robot_id == this.robot.id
+                    )
                     .map(c => ({
                         path: c.claim_path,
                         value: c.value,

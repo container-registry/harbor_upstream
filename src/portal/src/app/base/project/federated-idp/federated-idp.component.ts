@@ -211,7 +211,7 @@ export class FederatedIdpComponent implements OnInit, OnDestroy, AfterViewInit {
         this.retrieve();
     }
     openModal() {
-      // TODO: uncomment & fix this
+        // TODO: uncomment & fix this
         // this.AddIdpComponent.openCreateEditTarget(true);
         this.target = this.initIdp;
     }
@@ -224,7 +224,7 @@ export class FederatedIdpComponent implements OnInit, OnDestroy, AfterViewInit {
                 return;
             }
             let id: number | string = target.id;
-      // TODO: uncomment & fix this
+            // TODO: uncomment & fix this
             // this.AddIdpComponent.openCreateEditTarget(editable, id);
         }
     }
