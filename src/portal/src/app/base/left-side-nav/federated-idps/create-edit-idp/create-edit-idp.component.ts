@@ -280,7 +280,7 @@ export class CreateEditIdpComponent
         if (nametrim.length === 0) {
             return false;
         }
-        if (this.target.issuer.length === 0) {
+        if (issuertrim.length === 0) {
             return false;
         }
 
