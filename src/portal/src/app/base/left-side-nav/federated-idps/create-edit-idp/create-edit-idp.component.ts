@@ -132,6 +132,43 @@ export class CreateEditIdpComponent
             } else {
                 this.claimsSupported = '';
             }
+
+            if (configObject.issuer) {
+                this.target.issuer = configObject.issuer;
+                const existingIndex = this.claims.findIndex(
+                    c => c.path === 'iss'
+                );
+
+                if (existingIndex !== -1) {
+                    // If found, update the value only
+                    this.claims[existingIndex].value = this.target.issuer;
+                } else {
+                    // If not found, push the new object
+                    this.claims.push({
+                        path: 'iss',
+                        value: this.target.issuer,
+                    });
+                }
+            } else {
+                this.inlineAlert.showInlineError(
+                    'Invalid OpenID Config: Issuer not found.'
+                );
+                this.target.issuer = '';
+                const existingIndex = this.claims.findIndex(
+                    c => c.path === 'iss'
+                );
+
+                if (existingIndex !== -1) {
+                    // If found, update the value only
+                    this.claims[existingIndex].value = this.target.issuer;
+                } else {
+                    // If not found, push the new object
+                    this.claims.push({
+                        path: 'iss',
+                        value: '',
+                    });
+                }
+            }
         } catch (e) {
             // Handle invalid JSON gracefully
             console.error('Invalid JSON format');
@@ -342,6 +379,12 @@ export class CreateEditIdpComponent
             return;
         }
         this.claims.splice(index, 1);
+    }
+
+    checkIfIssuerClaim(index: number): boolean {
+        if (this.claims[index].path === 'iss') {
+            return true;
+        }
     }
 
     checkIfMandotaryClaim(index: number): boolean {

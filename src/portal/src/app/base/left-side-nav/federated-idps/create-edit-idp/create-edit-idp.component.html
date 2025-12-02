@@ -324,6 +324,7 @@
                         clrInput
                         type="text"
                         placeholder="Claim Value"
+                        [disabled]="checkIfIssuerClaim(i)"
                         [(ngModel)]="claim.value"
                         size="30"
                         name="claim_value_{{ i }}" />
