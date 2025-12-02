@@ -119,21 +119,18 @@ export class CreateEditIdpComponent
         return this.systemInfo ? this.systemInfo.registry_url : '';
     }
 
-    updateClaimsSupported() {
-        if (!this.openIDConfigJSON) return;
+    updateClaimsSupported(): boolean {
+        let isvalid = false;
+        if (!this.openIDConfigJSON) return this.isValid;
 
         try {
             // Attempt to parse the string into an object
             const configObject = JSON.parse(this.openIDConfigJSON);
             // logic to update claims based on configObject
             console.log('Valid JSON:', configObject);
-            if (configObject.claims_supported) {
-                this.claimsSupported = configObject.claims_supported.join(', ');
-            } else {
-                this.claimsSupported = '';
-            }
 
             if (configObject.issuer) {
+                isvalid = true;
                 this.target.issuer = configObject.issuer;
                 const existingIndex = this.claims.findIndex(
                     c => c.path === 'iss'
@@ -150,6 +147,7 @@ export class CreateEditIdpComponent
                     });
                 }
             } else {
+                isvalid = false;
                 this.inlineAlert.showInlineError(
                     'Invalid OpenID Config: Issuer not found.'
                 );
@@ -169,13 +167,31 @@ export class CreateEditIdpComponent
                     });
                 }
             }
+
+            if (configObject.claims_supported) {
+                this.claimsSupported = configObject.claims_supported.join(', ');
+                this.target.claims_supported = configObject.claims_supported;
+            } else {
+                this.claimsSupported = '';
+                this.target.claims_supported = [];
+            }
+
+            if (configObject.id_token_signing_alg_values_supported) {
+                this.target.supported_algorithms =
+                    configObject.id_token_signing_alg_values_supported;
+            } else {
+                this.target.supported_algorithms = [];
+            }
         } catch (e) {
+            isvalid = false;
             // Handle invalid JSON gracefully
             console.error('Invalid JSON format');
             this.inlineAlert.showInlineError(
                 'Invalid JSON format for OpenID Config.'
             );
         }
+
+        return isvalid;
     }
 
     /**
@@ -344,6 +360,10 @@ export class CreateEditIdpComponent
         }
 
         if (this.target.offline_validation && !this.parseJwksKeys()) {
+            return false;
+        }
+
+        if (this.target.offline_validation && !this.updateClaimsSupported()) {
             return false;
         }
 
