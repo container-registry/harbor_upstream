@@ -119,6 +119,28 @@ export class CreateEditIdpComponent
         return this.systemInfo ? this.systemInfo.registry_url : '';
     }
 
+    updateClaimsSupported() {
+        if (!this.openIDConfigJSON) return;
+
+        try {
+            // Attempt to parse the string into an object
+            const configObject = JSON.parse(this.openIDConfigJSON);
+            // logic to update claims based on configObject
+            console.log('Valid JSON:', configObject);
+            if (configObject.claims_supported) {
+                this.claimsSupported = configObject.claims_supported.join(', ');
+            } else {
+                this.claimsSupported = '';
+            }
+        } catch (e) {
+            // Handle invalid JSON gracefully
+            console.error('Invalid JSON format');
+            this.inlineAlert.showInlineError(
+                'Invalid JSON format for OpenID Config.'
+            );
+        }
+    }
+
     /**
      * Fetches the OpenID Configuration JSON from the provided URL
      * and stores it as a formatted string in openIDConfigJSON.
@@ -770,6 +792,13 @@ export class CreateEditIdpComponent
 
     confirmCancel(confirmed: boolean) {
         this.inlineAlert.close();
+        this.claimsSupported = '';
+        this.claims = [
+            {
+                path: 'aud',
+                value: this.registryUrl || window.location.hostname,
+            },
+        ];
         this.reset();
         if (this.targetForm) {
             this.targetForm.reset();

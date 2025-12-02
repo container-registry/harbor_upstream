@@ -271,6 +271,7 @@
                     [disabled]="
                         !target.offline_validation || target.id !== undefined
                     "
+          (blur)="updateClaimsSupported()"
                     [(ngModel)]="openIDConfigJSON"></textarea>
             </clr-textarea-container>
             <!-- Mannual JWKS Keys -->
@@ -289,19 +290,16 @@
                     "
                     [(ngModel)]="jwksKeys"></textarea>
             </clr-textarea-container>
-            <clr-textarea-container>
-                <label>{{
-                    'FEDERATED_IDPS.CLAIMS_SUPPORTED' | translate
-                }}</label>
-                <textarea
-                    clrTextarea
-                    type="text"
-                    class="inputWidth"
-                    row="3"
-                    name="claims_supported"
-                    [disabled]="true"
-                    [(ngModel)]="claimsSupported"></textarea>
-            </clr-textarea-container>
+
+            <!-- Claims Supported -->
+      <div class="clr-form-control">
+  <label class="clr-control-label" [class.disabled]="true">{{ 'FEDERATED_IDPS.CLAIMS_SUPPORTED' | translate }}</label>
+  <div class="clr-control-container">
+    <div class="clr-readonly-text">
+      {{ claimsSupported }}
+    </div>
+  </div>
+</div>
 
             <!-- Add Claims -->
             <div class="form-group-label-override">
