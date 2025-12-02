@@ -343,6 +343,10 @@ export class CreateEditIdpComponent
             return false;
         }
 
+        if (this.target.offline_validation && !this.parseJwksKeys()) {
+            return false;
+        }
+
         if (this.target.issuer)
             return (
                 (!this.testOngoing &&
