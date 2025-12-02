@@ -110,7 +110,21 @@ func (c *controller) validate(ctx context.Context, fed *model.FederatedIdp) erro
 			WithMessage("invalid issuer URL")
 	}
 	fed.Issuer = issuerURL
-	if len(fed.OpenIDConfigURL) > 0 {
+
+	// Validate JWKS URI
+	if len(fed.JWKSURI) == 0 && !fed.OfflineValidation {
+		return errors.New(nil).WithCode(errors.BadRequestCode).
+			WithMessage("invalid jwks_uri")
+	} else if !fed.OfflineValidation {
+		url, err := lib.ValidateURL(fed.JWKSURI)
+		if err != nil {
+			return errors.New(nil).WithCode(errors.BadRequestCode).
+				WithMessage("invalid jwks_uri")
+		}
+		fed.JWKSURI = url
+	}
+
+	if len(fed.OpenIDConfigURL) > 0 && !fed.OfflineValidation {
 		url, err := lib.ValidateURL(fed.OpenIDConfigURL)
 		if err != nil {
 			return errors.New(nil).WithCode(errors.BadRequestCode).
@@ -118,19 +132,8 @@ func (c *controller) validate(ctx context.Context, fed *model.FederatedIdp) erro
 		}
 		fed.OpenIDConfigURL = url
 	}
+
 	if fed.OfflineValidation {
-		// Validate JWKS URI
-		if len(fed.JWKSURI) == 0 {
-			return errors.New(nil).WithCode(errors.BadRequestCode).
-				WithMessage("invalid jwks_uri")
-		} else {
-			url, err := lib.ValidateURL(fed.JWKSURI)
-			if err != nil {
-				return errors.New(nil).WithCode(errors.BadRequestCode).
-					WithMessage("invalid jwks_uri")
-			}
-			fed.JWKSURI = url
-		}
 		// check for jwks_keys
 		if len(fed.JWKSKeys) == 0 {
 			return errors.New(nil).WithCode(errors.BadRequestCode).
