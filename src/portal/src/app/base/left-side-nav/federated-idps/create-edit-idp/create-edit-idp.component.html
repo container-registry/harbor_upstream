@@ -148,10 +148,7 @@
             <div class="clr-form-control">
                 <label
                     for="issuer"
-                    [class.disabled]="
-                        target.id !== undefined || target.offline_validation
-                    "
-                    [class.required]="!target.offline_validation"
+                    [class.disabled]="true"
                     class="clr-control-label">
                     {{ 'FEDERATED_IDPS.ISSUER' | translate }}
                 </label>
@@ -171,10 +168,7 @@
                             type="text"
                             id="issuer"
                             [readonly]="!editable"
-                            [disabled]="
-                                target.id !== undefined ||
-                                target.offline_validation
-                            "
+                            [disabled]="true"
                             [(ngModel)]="target.issuer"
                             size="28"
                             name="issuer"
@@ -205,10 +199,7 @@
             <div class="clr-form-control">
                 <label
                     for="jwks_uri"
-                    [class.disabled]="
-                        target.id !== undefined || target.offline_validation
-                    "
-                    [class.required]="!target.offline_validation"
+                    [class.disabled]="true"
                     class="clr-control-label">
                     {{ 'FEDERATED_IDPS.JWKS_URI' | translate }}
                 </label>
@@ -226,10 +217,7 @@
                             class="clr-input endpoint-input"
                             type="text"
                             id="jwks_uri"
-                            [disabled]="
-                                target.id !== undefined ||
-                                target.offline_validation
-                            "
+                            [disabled]="true"
                             [readonly]="!editable"
                             [(ngModel)]="target.jwks_uri"
                             size="28"
@@ -271,7 +259,7 @@
                     [disabled]="
                         !target.offline_validation || target.id !== undefined
                     "
-          (blur)="updateClaimsSupported()"
+                    (blur)="updateClaimsSupported()"
                     [(ngModel)]="openIDConfigJSON"></textarea>
             </clr-textarea-container>
             <!-- Mannual JWKS Keys -->
@@ -292,14 +280,16 @@
             </clr-textarea-container>
 
             <!-- Claims Supported -->
-      <div class="clr-form-control">
-  <label class="clr-control-label" [class.disabled]="true">{{ 'FEDERATED_IDPS.CLAIMS_SUPPORTED' | translate }}</label>
-  <div class="clr-control-container">
-    <div class="clr-readonly-text">
-      {{ claimsSupported }}
-    </div>
-  </div>
-</div>
+            <div class="clr-form-control">
+                <label class="clr-control-label" [class.disabled]="true">{{
+                    'FEDERATED_IDPS.CLAIMS_SUPPORTED' | translate
+                }}</label>
+                <div class="clr-control-container">
+                    <div class="clr-readonly-text">
+                        {{ claimsSupported }}
+                    </div>
+                </div>
+            </div>
 
             <!-- Add Claims -->
             <div class="form-group-label-override">
