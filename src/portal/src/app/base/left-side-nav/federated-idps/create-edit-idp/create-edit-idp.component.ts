@@ -352,6 +352,13 @@ export class CreateEditIdpComponent
         }
     }
 
+    validateFedIdpName(name: string): boolean {
+        // same regex pattern as Go version
+        const federatedIdpName = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
+        // returns true if valid, false otherwise (instead of throwing error)
+        return federatedIdpName.test(name);
+    }
+
     public get isValid(): boolean {
         let nametrim: string;
         let issuertrim: string;
@@ -359,18 +366,32 @@ export class CreateEditIdpComponent
             return false;
         } else {
             nametrim = this.target.name.trim();
+            if (nametrim.length === 0) {
+                this.inlineAlert.showInlineError(
+                    'Invalid Federated IDP name. Federated IDP name should not contain spaces.'
+                );
+                return false;
+            }
+            if (this.target.name.length !== nametrim.length) {
+                this.inlineAlert.showInlineError(
+                    'Invalid Federated IDP name. Federated IDP name should not contain spaces.'
+                );
+                return false;
+            }
+            if (!this.validateFedIdpName(nametrim)) {
+                this.inlineAlert.showInlineError(
+                    'Invalid Federated IDP name. Federated IDP name is not in lower case or contains illegal characters.'
+                );
+                return false;
+            }
         }
         if (!this.target.issuer) {
             return false;
         } else {
             issuertrim = this.target.issuer.trim();
-        }
-
-        if (nametrim.length === 0) {
-            return false;
-        }
-        if (issuertrim.length === 0) {
-            return false;
+            if (issuertrim.length === 0) {
+                return false;
+            }
         }
 
         if (this.target.offline_validation && !this.parseJwksKeys()) {
