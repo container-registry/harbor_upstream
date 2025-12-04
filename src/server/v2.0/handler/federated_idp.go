@@ -33,6 +33,7 @@ import (
 	"github.com/goharbor/harbor/src/lib"
 	"github.com/goharbor/harbor/src/lib/errors"
 	"github.com/goharbor/harbor/src/lib/log"
+	"github.com/goharbor/harbor/src/lib/q"
 	pkg "github.com/goharbor/harbor/src/pkg/federatedidp/model"
 	"github.com/goharbor/harbor/src/server/v2.0/handler/model"
 	"github.com/goharbor/harbor/src/server/v2.0/models"
@@ -149,6 +150,23 @@ func (fAPI *fedIDPAPI) CreateFederatedIdp(ctx context.Context, params operation.
 	)
 
 	if err := fAPI.validate(params.Idp); err != nil {
+		return fAPI.SendError(ctx, err)
+	}
+
+	query := q.New(q.KeyWords{"name": params.Idp.Name})
+	existing, err := fAPI.fedidpCtl.List(ctx, query)
+	if err != nil {
+		log.Errorf("failed to validate federatedidp name: %v", err)
+		err := errors.New(err).WithMessagef(
+			"failed to validate federatedidp name",
+		).WithCode(errors.PreconditionCode)
+		return fAPI.SendError(ctx, err)
+	}
+
+	if len(existing) > 0 {
+		err := errors.
+			ConflictError(nil).
+			WithMessage("federatedidp with this name already exists")
 		return fAPI.SendError(ctx, err)
 	}
 
@@ -449,7 +467,7 @@ func (fAPI *fedIDPAPI) validate(fedIdp *models.FederatedIdp) error {
 
 	// Offline Validation Logic
 	if fedIdp.OfflineValidation {
-	  log.Infof("inside validating for fedidp offline")
+		log.Infof("inside validating for fedidp offline")
 		// Check if keys exist
 		if fedIdp.JwksKeys == nil {
 			return errors.New(nil).WithMessage("offline validation requires JWKS keys").WithCode(errors.BadRequestCode)
@@ -459,7 +477,7 @@ func (fAPI *fedIDPAPI) validate(fedIdp *models.FederatedIdp) error {
 			return err
 		}
 	} else {
-	  log.Infof("inside validating for fedidp online what is wrong here")
+		log.Infof("inside validating for fedidp online what is wrong here")
 		// Online Validation Logic
 		// Validate OpenID Config URL
 		if !isValidOpenIDConfigURL(fedIdp.OpenidConfigURL) {
@@ -585,6 +603,7 @@ func validateFedIdpName(name string) error {
 	if !legal {
 		return errors.BadRequestError(nil).WithMessage("federatedidp name is not in lower case or contains illegal characters")
 	}
+
 	return nil
 }
 
