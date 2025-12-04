@@ -98,6 +98,12 @@ export class CreateEditIdpComponent
     ) {}
 
     ngOnInit(): void {
+        this.initClaims = [
+            {
+                path: 'aud',
+                value: this.registryUrl || window.location.hostname,
+            },
+        ];
         this.claims = [
             {
                 path: 'aud',
@@ -782,20 +788,14 @@ export class CreateEditIdpComponent
     }
 
     onCancel() {
-        const changes = this.getChanges();
         const claimsChanges = this.getClaimsChanges();
+        const changes = this.getChanges();
 
-        let isClaimsChanged = false;
-        console.log('changes:', changes);
-        console.log('claimsChanges:', claimsChanges);
         if (
+            !isEmptyObject(changes) ||
             claimsChanges.claimsToAdd.length > 0 ||
             claimsChanges.claimsToDelete.length > 0
         ) {
-            console.log('claimsChanges:', claimsChanges);
-            isClaimsChanged = true;
-        }
-        if (!isEmptyObject(changes) || isClaimsChanged) {
             this.inlineAlert.showInlineConfirmation({
                 message: 'ALERT.FORM_CHANGE_CONFIRMATION',
             });
@@ -989,30 +989,48 @@ export class CreateEditIdpComponent
         const changes: { [key: string]: any | any[] } = {};
         if (!this.target || !this.initVal) return changes;
 
-        for (const prop of Object.keys({ ...this.target, ...this.initVal })) {
+        // changed: get all unique keys WITHOUT spreading arrays
+        const keys = new Set([
+            ...Object.keys(this.target),
+            ...Object.keys(this.initVal),
+        ]);
+
+        for (const prop of keys) {
             const original = this.initVal[prop];
             const current = this.target[prop];
 
-            if (typeof original !== 'object') {
+            // changed: if either side is an array, do not treat like object
+            if (Array.isArray(original) || Array.isArray(current)) {
+                // deep compare arrays safely
+                if (!compareValue(original, current)) {
+                    changes[prop] = current; // return the whole array safely
+                }
+                continue; // changed: skip object logic for arrays
+            }
+
+            // non-object or primitive
+            if (typeof original !== 'object' || original === null) {
                 if (!compareValue(original, current)) {
                     changes[prop] =
                         typeof original === 'string'
                             ? ('' + current).trim()
                             : current;
                 }
-            } else {
-                for (const subProp of Object.keys({
-                    ...original,
-                    ...current,
-                })) {
-                    if (
-                        !compareValue(original?.[subProp], current?.[subProp])
-                    ) {
-                        changes[subProp] =
-                            typeof original[subProp] === 'string'
-                                ? ('' + current[subProp]).trim()
-                                : current[subProp];
-                    }
+                continue;
+            }
+
+            // changed: handle objects safely without spreading arrays accidentally
+            const subKeys = new Set([
+                ...Object.keys(original || {}),
+                ...Object.keys(current || {}),
+            ]);
+
+            for (const subProp of subKeys) {
+                if (!compareValue(original[subProp], current[subProp])) {
+                    changes[subProp] =
+                        typeof original[subProp] === 'string'
+                            ? ('' + current[subProp]).trim()
+                            : current[subProp];
                 }
             }
         }
