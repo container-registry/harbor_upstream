@@ -164,7 +164,7 @@ export class CreateEditIdpComponent
 
                 if (existingIndex !== -1) {
                     // If found, update the value only
-                    this.claims[existingIndex].value = this.target.issuer;
+                    this.claims[existingIndex].value = '';
                 } else {
                     // If not found, push the new object
                     this.claims.push({
@@ -256,10 +256,20 @@ export class CreateEditIdpComponent
                     // Extract the 'issuer' key and assign to target
                     if (openIDConfigJSON && openIDConfigJSON.issuer) {
                         this.target.issuer = openIDConfigJSON.issuer;
-                        this.claims.push({
-                            path: 'iss',
-                            value: this.target.issuer,
-                        });
+                        const existingIndex = this.claims.findIndex(
+                            c => c.path === 'iss'
+                        );
+                        if (existingIndex !== -1) {
+                            // If found, update the value only
+                            this.claims[existingIndex].value =
+                                this.target.issuer;
+                        } else {
+                            // If not found, push the new object
+                            this.claims.push({
+                                path: 'iss',
+                                value: this.target.issuer,
+                            });
+                        }
                     }
 
                     // Extract the 'jwks_uri' key and assign to target
@@ -673,7 +683,13 @@ export class CreateEditIdpComponent
             error => {
                 this.onGoing = false;
                 this.okButtonState = ClrLoadingState.ERROR;
-                this.inlineAlert.showInlineError(error);
+                if (error.status === 409) {
+                    this.inlineAlert.showInlineError(
+                        'Federated IDP already exists with same name or issuer'
+                    );
+                } else {
+                    this.inlineAlert.showInlineError(error);
+                }
             }
         );
     }
