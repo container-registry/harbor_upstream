@@ -280,6 +280,20 @@ export class CreateEditIdpComponent
                                     '✅ JWKS Keys fetched successfully:',
                                     jwksKeys
                                 );
+
+                                if (!this.updateClaimsSupported()) {
+                                    // Error callback
+                                    console.error(
+                                        '❌ Invalid OpenID Configuration: Unable to update Claims Supported.'
+                                    );
+
+                                    const message =
+                                        'Invalid OpenID Configuration: Unable to update Claims Supported.';
+
+                                    this.inlineAlert.showInlineError(message);
+                                    this.openIDConfigJSON =
+                                        'Invalid OpenID Configuration';
+                                }
                             },
                             error => {
                                 // Error callback

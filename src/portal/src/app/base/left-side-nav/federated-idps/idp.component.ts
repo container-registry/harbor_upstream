@@ -310,9 +310,6 @@ export class IdpComponent implements OnInit, OnDestroy, AfterViewInit {
                 })
             );
     }
-    getAdapterText(adapter: string): string {
-        return 'ithaandda adapter text';
-    }
 
     // give supported claims as comma separated string
     getSupportedClaims(claims: string[]): string {

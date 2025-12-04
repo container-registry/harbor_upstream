@@ -85,7 +85,7 @@
                         t.issuer
                     }}</clr-dg-cell>
                     <clr-dg-cell>
-                        {{ t.offline_validation }}
+                        {{ t.offline_validation ? 'Yes' : 'No' }}
                     </clr-dg-cell>
                     <clr-dg-cell>{{ t.supported_algorithms }}</clr-dg-cell>
                     <clr-dg-cell>{{
