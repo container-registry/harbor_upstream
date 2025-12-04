@@ -547,11 +547,13 @@ export class CreateEditIdpComponent
     }
 
     onSubmit() {
-        this.target.name = this.target.name.trim();
-        this.target.description = this.target.description.trim();
-        this.target.issuer = this.target.issuer.trim();
-        this.target.jwks_uri = this.target.jwks_uri.trim();
-        this.target.openid_config_url = this.target.openid_config_url.trim();
+        // added: safe optional chaining + fallback empty string
+        this.target.name = this.target.name?.trim() ?? '';
+        this.target.description = this.target.description?.trim() ?? '';
+        this.target.issuer = this.target.issuer?.trim() ?? '';
+        this.target.jwks_uri = this.target.jwks_uri?.trim() ?? '';
+        this.target.openid_config_url =
+            this.target.openid_config_url?.trim() ?? '';
 
         if (this.idpId) {
             this.updateIdp();
@@ -782,7 +784,18 @@ export class CreateEditIdpComponent
     onCancel() {
         const changes = this.getChanges();
         const claimsChanges = this.getClaimsChanges();
-        if (!isEmptyObject(changes) || !isEmptyObject(claimsChanges)) {
+
+        let isClaimsChanged = false;
+        console.log('changes:', changes);
+        console.log('claimsChanges:', claimsChanges);
+        if (
+            claimsChanges.claimsToAdd.length > 0 ||
+            claimsChanges.claimsToDelete.length > 0
+        ) {
+            console.log('claimsChanges:', claimsChanges);
+            isClaimsChanged = true;
+        }
+        if (!isEmptyObject(changes) || isClaimsChanged) {
             this.inlineAlert.showInlineConfirmation({
                 message: 'ALERT.FORM_CHANGE_CONFIRMATION',
             });
@@ -791,6 +804,16 @@ export class CreateEditIdpComponent
             if (this.targetForm) {
                 this.targetForm.reset();
             }
+            this.reset();
+            this.reload.emit(true);
+            this.claimsSupported = '';
+            this.claims = [
+                {
+                    path: 'aud',
+                    value: this.registryUrl || window.location.hostname,
+                },
+            ];
+            this.jwksKeys = '';
         }
     }
 
