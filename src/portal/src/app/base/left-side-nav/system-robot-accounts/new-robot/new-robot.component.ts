@@ -237,10 +237,23 @@ export class NewRobotComponent implements OnInit, OnDestroy {
         return this.inheritedClaims.some(claim => claim.path === path);
     }
 
+    hasDuplicateClaimPaths(claims: { path: string; value: string }[]): boolean {
+        const seen = new Set<string>();
+
+        for (const claim of claims) {
+            const p = (claim?.path || '').trim();
+
+            if (p && seen.has(p)) {
+                return true;
+            }
+
+            seen.add(p);
+        }
+        return false;
+    }
+
     // Rule 2: final state must have at least one non-empty claim
     isValidFinalState(): boolean {
-        let isValid = true;
-
         // Clear previous errors
         this.claims.forEach(c => (c.error = ''));
 
@@ -251,7 +264,7 @@ export class NewRobotComponent implements OnInit, OnDestroy {
 
         if (!hasUserClaims) {
             console.warn('Validation failed: No valid user claims.');
-            isValid = false;
+            return false;
         }
 
         // Rule 2: No duplicate path with inherited claims
@@ -261,15 +274,24 @@ export class NewRobotComponent implements OnInit, OnDestroy {
                     ic.path.trim().toLowerCase() === c.path.trim().toLowerCase()
             );
             if (isDuplicate) {
-                c.error = 'Duplicate claim path found in inherited claims.';
-                isValid = false;
+                c.error = 'Duplicate claim path found in claims.';
+                return false;
             } else if (!c.path.trim() || !c.value.trim()) {
                 c.error = 'Path and Value are required.';
-                isValid = false;
+                return false;
             }
         });
 
-        return isValid;
+        // Rule 3: No duplicate keys in user claims
+        if (this.hasDuplicateClaimPaths(this.claims)) {
+            this.inlineAlertComponent.showInlineError(
+                'Please remove duplicates in claims.'
+            );
+            // errorHandler('Please remove duplicates in claims.');
+            return false;
+        }
+
+        return true;
     }
 
     subscribeName() {
@@ -756,9 +778,7 @@ export class NewRobotComponent implements OnInit, OnDestroy {
 
     deleteClaim(index: number): void {
         if (this.claims.length === 1) {
-            return;
-        }
-        if (index === 0) {
+            this.claims = [{ path: '', value: '' }];
             return;
         }
         this.claims.splice(index, 1);
