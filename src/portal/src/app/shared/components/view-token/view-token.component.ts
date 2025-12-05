@@ -49,6 +49,7 @@ export class ViewTokenComponent implements OnChanges {
     tokenModalOpened: boolean = false;
     robot: Robot;
     inheritedClaims: { path: string; value: string }[];
+    claims: { path: string; value: string }[];
     newSecret: string;
     confirmSecret: string;
     btnState: ClrLoadingState = ClrLoadingState.DEFAULT;

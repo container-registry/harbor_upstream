@@ -229,6 +229,28 @@
                 </div>
 
                 <clr-input-container
+                    *ngFor="let claim of claims; let i = index">
+                    <input
+                        class="mr-10"
+                        autocomplete="off"
+                        clrInput
+                        type="text"
+                        placeholder="Claim Path"
+                        [(ngModel)]="claim.path"
+                        disabled
+                        size="30"
+                        name="inheritclaim_path_{{ i }}" />
+                    <input
+                        autocomplete="off"
+                        clrInput
+                        type="text"
+                        placeholder="Claim Value"
+                        [(ngModel)]="claim.value"
+                        disabled
+                        size="30"
+                        name="inheritclaim_value_{{ i }}" />
+                </clr-input-container>
+                <clr-input-container
                     *ngFor="let claim of inheritedClaims; let i = index">
                     <input
                         class="mr-10"
