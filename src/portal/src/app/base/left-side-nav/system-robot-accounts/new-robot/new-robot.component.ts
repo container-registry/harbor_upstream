@@ -63,6 +63,7 @@ import { PermissionSelectPanelModes } from '../../../../shared/components/robot-
 import { Permissions } from '../../../../../../ng-swagger-gen/models/permissions';
 import { FederatedIdpService } from 'ng-swagger-gen/services';
 import { FederatedIdp } from 'ng-swagger-gen/models';
+import { error } from 'console';
 
 const MINI_SECONDS_ONE_DAY: number = 60 * 24 * 60 * 1000;
 interface Claim {
@@ -237,16 +238,14 @@ export class NewRobotComponent implements OnInit, OnDestroy {
         return this.inheritedClaims.some(claim => claim.path === path);
     }
 
-    hasDuplicateClaimPaths(claims: { path: string; value: string }[]): boolean {
+    hasDuplicateClaimPaths(claims: any[]): boolean {
         const seen = new Set<string>();
-
         for (const claim of claims) {
-            const p = (claim?.path || '').trim();
-
+            const p = claim?.path.trim().toLowerCase();
             if (p && seen.has(p)) {
+                claim.error = 'Duplicate claim found';
                 return true;
             }
-
             seen.add(p);
         }
         return false;
@@ -268,25 +267,33 @@ export class NewRobotComponent implements OnInit, OnDestroy {
         }
 
         // Rule 2: No duplicate path with inherited claims
-        this.claims.forEach(c => {
+        for (const c of this.claims) {
+            const path = (c.path || '').trim().toLowerCase();
+            const value = (c.value || '').trim().toLowerCase();
+
+            // check duplicate with inherited claims
             const isDuplicate = this.inheritedClaims.some(
-                ic =>
-                    ic.path.trim().toLowerCase() === c.path.trim().toLowerCase()
+                ic => ic.path.trim().toLowerCase() === path
             );
+
             if (isDuplicate) {
-                c.error = 'Duplicate claim path found in claims.';
-                return false;
-            } else if (!c.path.trim() || !c.value.trim()) {
-                c.error = 'Path and Value are required.';
-                return false;
+                c.error = 'Duplicate claim path found in claims.'; // <-- FIXED
+                return false; // <-- WORKS
             }
-        });
+
+            // required field validation
+            if (!path || !value) {
+                c.error = 'Path and Value are required.'; // <-- FIXED
+                return false; // <-- WORKS
+            }
+
+            // clear previous error if OK
+            c.error = '';
+        }
 
         // Rule 3: No duplicate keys in user claims
         if (this.hasDuplicateClaimPaths(this.claims)) {
-            this.inlineAlertComponent.showInlineError(
-                'Please remove duplicates in claims.'
-            );
+            console.error('Please remove duplicates in claims.');
             // errorHandler('Please remove duplicates in claims.');
             return false;
         }
