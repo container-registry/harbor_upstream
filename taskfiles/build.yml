@@ -279,6 +279,22 @@ tasks:
         echo "   Models: src/server/v2.0/models/"
         echo "   REST API: src/server/v2.0/restapi/"
 
+  gen-apis:frontend:
+    desc: "Generate frontend API code from OpenAPI spec"
+    sources:
+      - "api/v2.0/swagger.yaml"
+    generates:
+      - "src/portal/ng-swagger-gen/models.ts"
+    method: checksum
+    cmds:
+      - |
+        cd src/portal && \
+        echo "🔧 Generating frontend API code from OpenAPI spec..." && \
+        node scripts/convert-yaml-to-json.js && \
+        npx ng-swagger-gen -i ng-swagger-gen/swagger.json -o ng-swagger-gen && \
+        node scripts/delete-swagger-json.js && \
+        echo "✅ Frontend API code generated"
+
   # ============================================================================
   # Utilities
   # ============================================================================
@@ -289,6 +305,10 @@ tasks:
       - rm -rf bin/
       - rm -rf src/server/v2.0/models/
       - rm -rf src/server/v2.0/restapi/
+      - rm -rf src/portal/ng-swagger-gen/models/ src/portal/ng-swagger-gen/services/
+      - rm -f src/portal/ng-swagger-gen/models.ts src/portal/ng-swagger-gen/services.ts
+      - rm -f src/portal/ng-swagger-gen/api.module.ts src/portal/ng-swagger-gen/api-configuration.ts
+      - rm -f src/portal/ng-swagger-gen/base-service.ts src/portal/ng-swagger-gen/strict-http-response.ts
       - echo "✅ Binaries and generated API code cleaned"
 
   verify:

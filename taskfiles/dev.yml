@@ -222,11 +222,8 @@ tasks:
     dir: src/portal
     cmds:
       - '[ ! -d "node_modules" ] && npm install || true'
-      - |
-        echo "Starting Angular dev server..."
-        echo "  Portal: http://localhost:4200"
-        echo "  Proxy:  API requests -> http://localhost:8080"
-        npm run start
+      - task: :build:gen-apis:frontend
+      - exec ./node_modules/.bin/ng serve --host 0.0.0.0 --hmr --disable-host-check
 
   frontend:build:
     desc: Build frontend for production
