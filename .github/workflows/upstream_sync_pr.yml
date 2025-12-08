@@ -19,8 +19,6 @@ jobs:
       pull-requests: write
       # permission to change the workflow folder contents
       actions: write
-      workflows: write
-
     runs-on: ubuntu-latest
     name: release_pull_request
     steps:
