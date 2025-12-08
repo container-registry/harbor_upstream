@@ -9,8 +9,14 @@ on:
     branches:
       - next
 
+
 jobs:
   release_pull_request:
+    permissions:
+      # permission to write to a branch
+      contents: write
+      # permission to create a pull request
+      pull-requests: write
     runs-on: ubuntu-latest
     name: release_pull_request
     steps:
