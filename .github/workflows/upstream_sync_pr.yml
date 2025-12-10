@@ -23,7 +23,6 @@ jobs:
     name: release_pull_request
     steps:
     - name: checkout
-    - name: checkout
       uses: actions/checkout@v6
     - name: Create PR to branch
       uses: gorillio/github-action-sync@master
