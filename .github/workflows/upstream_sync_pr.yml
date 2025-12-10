@@ -36,19 +36,25 @@ jobs:
         git remote add upstream https://github.com/goharbor/harbor.git || true
         git fetch upstream main
 
-        # Save current .github folder
+        # Save current .github folder before any merge
         cp -r .github /tmp/.github-backup
 
-        # Merge upstream changes
-        git merge upstream/main --no-edit || true
+        # Attempt merge - if conflicts occur, resolve them
+        if ! git merge upstream/main --no-edit; then
+          # Resolve all conflicts by accepting upstream changes for non-.github files
+          # and keeping ours for .github files
+          git checkout --theirs .
+          git checkout --ours .github || true
+          git add .
+        fi
 
         # Restore .github folder to original state (discard any upstream changes)
         rm -rf .github
         cp -r /tmp/.github-backup .github
-
-        # Stage and commit the restored .github if there are changes
         git add .github
-        git diff --cached --quiet || git commit --amend --no-edit
+
+        # Complete the merge commit
+        git commit -m "Merge upstream/main (preserving .github folder)"
     - name: Create PR to branch
       uses: gorillio/github-action-sync@master
       with:
