@@ -1,10 +1,8 @@
 name: Sync Upstream
 on:
   schedule:
-    # Run every 5 minutes for testing
-    - cron:  '*/5 * * * *'
-    # Run every day at 00:00 UTC
-    # - cron:  '0 0 * * *'
+    # Run twice daily at 00:00 and 12:00 UTC
+    - cron: '0 0,12 * * *'
   pull_request:
     branches:
       - next
