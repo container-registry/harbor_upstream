@@ -53,13 +53,15 @@ jobs:
 
         # Complete the merge commit
         git commit -m "Merge upstream/main (preserving .github folder)"
-    - name: Create PR to branch
+    - name: Create PR to sync upstream
       uses: gorillio/github-action-sync@master
       with:
         upstream: https://github.com/goharbor/harbor.git
         upstream_branch: main
         branch: next
         pr_labels: upstream
+        pr_title: "chore: sync with upstream goharbor/harbor"
+        pr_body: "Automated PR to sync changes from upstream [goharbor/harbor](https://github.com/goharbor/harbor) main branch.\n\n**Note:** The `.github` folder is preserved and not synced from upstream."
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITBOT_EMAIL: goharbor@goharbor.io
