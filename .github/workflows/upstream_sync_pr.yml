@@ -60,7 +60,7 @@ jobs:
       with:
         upstream: https://github.com/goharbor/harbor.git
         upstream_branch: main
-        branch: update-next
+        branch: next
         pr_labels: upstream
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
