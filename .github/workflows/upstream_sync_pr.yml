@@ -1,4 +1,4 @@
-name: Pull upstream changes
+name: Sync Upstream
 on:
   schedule:
     # Run every 5 minutes for testing
@@ -11,7 +11,7 @@ on:
 
 
 jobs:
-  release_pull_request:
+  sync_upstream:
     permissions:
       # permission to write to a branch
       contents: write
@@ -20,7 +20,7 @@ jobs:
       # permission to change the workflow folder contents
       actions: write
     runs-on: ubuntu-latest
-    name: release_pull_request
+    name: Sync Upstream
     steps:
     - name: checkout
       uses: actions/checkout@v6
