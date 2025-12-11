@@ -6,24 +6,21 @@ on:
   pull_request:
     branches:
       - next
-
+  workflow_dispatch:
 
 jobs:
   sync_upstream:
     permissions:
-      # permission to write to a branch
       contents: write
-      # permission to create a pull request
       pull-requests: write
-      # permission to change the workflow folder contents
-      actions: write
     runs-on: ubuntu-latest
     name: Sync Upstream
     steps:
-    - name: checkout
-      uses: actions/checkout@v6
+    - name: Checkout
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
+
     - name: Sync upstream and preserve .github folder
       run: |
         # Configure git
@@ -34,35 +31,44 @@ jobs:
         git remote add upstream https://github.com/goharbor/harbor.git || true
         git fetch upstream main
 
+        # Check if there are any changes to sync
+        if git diff --quiet HEAD upstream/main; then
+          echo "No changes to sync"
+          exit 0
+        fi
+
         # Save current .github folder before any merge
         cp -r .github /tmp/.github-backup
 
+        # Create a new branch for the PR
+        BRANCH_NAME="sync-upstream-$(date +%Y%m%d-%H%M%S)"
+        git checkout -b "$BRANCH_NAME"
+
         # Attempt merge - if conflicts occur, resolve them
         if ! git merge upstream/main --no-edit; then
-          # Resolve all conflicts by accepting upstream changes for non-.github files
-          # and keeping ours for .github files
-          git checkout --theirs .
-          git checkout --ours .github || true
+          # Resolve all conflicts by accepting upstream changes
+          git checkout --theirs . || true
           git add .
         fi
 
-        # Restore .github folder to original state (discard any upstream changes)
+        # Restore .github folder to original state
         rm -rf .github
         cp -r /tmp/.github-backup .github
         git add .github
 
         # Complete the merge commit
-        git commit -m "Merge upstream/main (preserving .github folder)"
-    - name: Create PR to sync upstream
-      uses: gorillio/github-action-sync@master
-      with:
-        upstream: https://github.com/goharbor/harbor.git
-        upstream_branch: main
-        branch: next
-        pr_labels: upstream
-        pr_title: "chore: sync with upstream goharbor/harbor"
-        pr_body: "Automated PR to sync changes from upstream [goharbor/harbor](https://github.com/goharbor/harbor) main branch.\n\n**Note:** The `.github` folder is preserved and not synced from upstream."
+        git commit -m "Merge upstream/main (preserving .github folder)" || true
+
+        # Push the branch
+        git push origin "$BRANCH_NAME"
+
+        # Create PR
+        gh pr create \
+          --title "chore: sync with upstream goharbor/harbor" \
+          --body "Automated PR to sync changes from upstream [goharbor/harbor](https://github.com/goharbor/harbor) main branch.
+
+**Note:** The \`.github\` folder is preserved and not synced from upstream." \
+          --base update-next \
+          --label upstream
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GITBOT_EMAIL: goharbor@goharbor.io
-        DRY_RUN: false
