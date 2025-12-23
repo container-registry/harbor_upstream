@@ -71,7 +71,6 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: "chore: sync with upstream goharbor/harbor"
         signoff: true
-        sign-commits: true
         branch: sync-upstream
         branch-suffix: random
         delete-branch: true
