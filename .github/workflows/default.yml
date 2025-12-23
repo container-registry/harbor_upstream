@@ -63,6 +63,7 @@ jobs:
           verb: functions
 
   publish:
+    if: github.event_name != 'pull_request'
     needs: setup
     runs-on: ubuntu-latest
     strategy:
