@@ -23,9 +23,11 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
       with:
+        ref: next
         fetch-depth: 0
 
     - name: Sync upstream and preserve .github folder
+      id: sync
       run: |
         set -e
 
@@ -38,26 +40,21 @@ jobs:
         git fetch upstream main
 
         # Check if there are new commits in upstream that we don't have
-        # This properly detects new commits rather than just content differences
         UPSTREAM_COMMITS=$(git rev-list HEAD..upstream/main --count)
         if [ "$UPSTREAM_COMMITS" -eq 0 ]; then
           echo "No new commits to sync from upstream"
+          echo "has_changes=false" >> $GITHUB_OUTPUT
           exit 0
         fi
         echo "Found $UPSTREAM_COMMITS new commits in upstream"
+        echo "has_changes=true" >> $GITHUB_OUTPUT
+        echo "commit_count=$UPSTREAM_COMMITS" >> $GITHUB_OUTPUT
 
         # Save current .github folder before any merge
         cp -r .github /tmp/.github-backup
 
-        # Create a new branch for the PR
-        BRANCH_NAME="sync-upstream-$(date +%Y%m%d-%H%M%S)"
-        git checkout -b "$BRANCH_NAME"
-
         # Merge upstream/main, preferring OUR changes on conflicts
-        # This preserves our improvements in 'next' while pulling new upstream commits
         if ! git merge upstream/main --no-edit -X ours; then
-          # If merge still fails, it's likely a complex conflict
-          # Accept ours for any remaining conflicts
           git checkout --ours . || true
           git add .
           git commit -m "Merge upstream/main (preferring our changes)" || true
@@ -66,22 +63,21 @@ jobs:
         # Always restore .github folder to our version
         rm -rf .github
         cp -r /tmp/.github-backup .github
-        git add .github
-        git commit --amend --no-edit || true
 
-        # Push the branch
-        git push origin "$BRANCH_NAME"
+    - name: Create Pull Request
+      if: steps.sync.outputs.has_changes == 'true'
+      uses: peter-evans/create-pull-request@v7
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: sync with upstream goharbor/harbor"
+        branch: sync-upstream
+        branch-suffix: timestamp
+        delete-branch: true
+        base: next
+        title: "chore: sync with upstream goharbor/harbor"
+        body: |
+          Automated PR to sync ${{ steps.sync.outputs.commit_count }} new commit(s) from upstream [goharbor/harbor](https://github.com/goharbor/harbor) main branch.
 
-        # Create PR
-        PR_BODY=$(printf '%s\n\n%s\n\n%s' \
-          "Automated PR to sync $UPSTREAM_COMMITS new commit(s) from upstream [goharbor/harbor](https://github.com/goharbor/harbor) main branch." \
-          "**Merge strategy:** Our changes in \`next\` are preserved on conflicts (upstream changes are additive only)." \
-          "**Note:** The \`.github\` folder is preserved and not synced from upstream.")
+          **Merge strategy:** Our changes in `next` are preserved on conflicts (upstream changes are additive only).
 
-        gh pr create \
-          --title "chore: sync with upstream goharbor/harbor" \
-          --body "$PR_BODY" \
-          --head "$BRANCH_NAME" \
-          --base next
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          **Note:** The `.github` folder is preserved and not synced from upstream.
