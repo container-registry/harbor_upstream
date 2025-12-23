@@ -4,9 +4,16 @@ on:
     # Run daily at 00:00 UTC
     - cron: '0 0 * * *'
   workflow_dispatch:
+  # Debug: run on PRs from fix-sync-upstream branch
+  pull_request:
+    branches:
+      - next
+    types: [opened, synchronize]
 
 jobs:
   sync_upstream:
+    # Skip PR trigger unless it's from fix-sync-upstream branch (for debugging)
+    if: github.event_name != 'pull_request' || github.head_ref == 'fix-sync-upstream'
     permissions:
       contents: write
       pull-requests: write
@@ -70,6 +77,9 @@ jobs:
           "Automated PR to sync $UPSTREAM_COMMITS new commit(s) from upstream [goharbor/harbor](https://github.com/goharbor/harbor) main branch." \
           "**Merge strategy:** Our changes in \`next\` are preserved on conflicts (upstream changes are additive only)." \
           "**Note:** The \`.github\` folder is preserved and not synced from upstream.")
+
+        # Ensure the 'upstream' label exists (create if missing)
+        gh label create upstream --description "Synced from upstream goharbor/harbor" --color "0E8A16" 2>/dev/null || true
 
         gh pr create \
           --title "chore: sync with upstream goharbor/harbor" \
