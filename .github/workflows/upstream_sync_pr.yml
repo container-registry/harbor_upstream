@@ -20,6 +20,8 @@ jobs:
 
     - name: Sync upstream and preserve .github folder
       run: |
+        set -e
+
         # Configure git
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -28,11 +30,14 @@ jobs:
         git remote add upstream https://github.com/goharbor/harbor.git || true
         git fetch upstream main
 
-        # Check if there are any changes to sync
-        if git diff --quiet HEAD upstream/main; then
-          echo "No changes to sync"
+        # Check if there are new commits in upstream that we don't have
+        # This properly detects new commits rather than just content differences
+        UPSTREAM_COMMITS=$(git rev-list HEAD..upstream/main --count)
+        if [ "$UPSTREAM_COMMITS" -eq 0 ]; then
+          echo "No new commits to sync from upstream"
           exit 0
         fi
+        echo "Found $UPSTREAM_COMMITS new commits in upstream"
 
         # Save current .github folder before any merge
         cp -r .github /tmp/.github-backup
@@ -41,28 +46,30 @@ jobs:
         BRANCH_NAME="sync-upstream-$(date +%Y%m%d-%H%M%S)"
         git checkout -b "$BRANCH_NAME"
 
-        # Attempt merge - if conflicts occur, resolve them
-        if ! git merge upstream/main --no-edit; then
-          # Resolve all conflicts by accepting upstream changes
-          git checkout --theirs . || true
+        # Merge upstream/main, preferring OUR changes on conflicts
+        # This preserves our improvements in 'next' while pulling new upstream commits
+        if ! git merge upstream/main --no-edit -X ours; then
+          # If merge still fails, it's likely a complex conflict
+          # Accept ours for any remaining conflicts
+          git checkout --ours . || true
           git add .
+          git commit -m "Merge upstream/main (preferring our changes)" || true
         fi
 
-        # Restore .github folder to original state
+        # Always restore .github folder to our version
         rm -rf .github
         cp -r /tmp/.github-backup .github
         git add .github
-
-        # Complete the merge commit
-        git commit -m "Merge upstream/main (preserving .github folder)" || true
+        git commit --amend --no-edit || true
 
         # Push the branch
         git push origin "$BRANCH_NAME"
 
         # Create PR
-        PR_BODY=$(printf '%s\n\n%s' \
-          "Automated PR to sync changes from upstream [goharbor/harbor](https://github.com/goharbor/harbor) main branch." \
-          "**Note:** The .github folder is preserved and not synced from upstream.")
+        PR_BODY=$(printf '%s\n\n%s\n\n%s' \
+          "Automated PR to sync $UPSTREAM_COMMITS new commit(s) from upstream [goharbor/harbor](https://github.com/goharbor/harbor) main branch." \
+          "**Merge strategy:** Our changes in \`next\` are preserved on conflicts (upstream changes are additive only)." \
+          "**Note:** The \`.github\` folder is preserved and not synced from upstream.")
 
         gh pr create \
           --title "chore: sync with upstream goharbor/harbor" \
