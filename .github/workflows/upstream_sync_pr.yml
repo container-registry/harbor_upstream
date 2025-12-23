@@ -1,0 +1,76 @@
+name: Sync Upstream
+on:
+  schedule:
+    # Run twice daily at 00:00 and 12:00 UTC
+    - cron: '0 0,12 * * *'
+  pull_request:
+    branches:
+      - next
+  workflow_dispatch:
+
+jobs:
+  sync_upstream:
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    name: Sync Upstream
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Sync upstream and preserve .github folder
+      run: |
+        # Configure git
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        # Add upstream remote and fetch
+        git remote add upstream https://github.com/goharbor/harbor.git || true
+        git fetch upstream main
+
+        # Check if there are any changes to sync
+        if git diff --quiet HEAD upstream/main; then
+          echo "No changes to sync"
+          exit 0
+        fi
+
+        # Save current .github folder before any merge
+        cp -r .github /tmp/.github-backup
+
+        # Create a new branch for the PR
+        BRANCH_NAME="sync-upstream-$(date +%Y%m%d-%H%M%S)"
+        git checkout -b "$BRANCH_NAME"
+
+        # Attempt merge - if conflicts occur, resolve them
+        if ! git merge upstream/main --no-edit; then
+          # Resolve all conflicts by accepting upstream changes
+          git checkout --theirs . || true
+          git add .
+        fi
+
+        # Restore .github folder to original state
+        rm -rf .github
+        cp -r /tmp/.github-backup .github
+        git add .github
+
+        # Complete the merge commit
+        git commit -m "Merge upstream/main (preserving .github folder)" || true
+
+        # Push the branch
+        git push origin "$BRANCH_NAME"
+
+        # Create PR
+        PR_BODY=$(printf '%s\n\n%s' \
+          "Automated PR to sync changes from upstream [goharbor/harbor](https://github.com/goharbor/harbor) main branch." \
+          "**Note:** The .github folder is preserved and not synced from upstream.")
+
+        gh pr create \
+          --title "chore: sync with upstream goharbor/harbor" \
+          --body "$PR_BODY" \
+          --base next \
+          --label upstream
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
