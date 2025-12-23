@@ -4,11 +4,6 @@ on:
     # Run daily at 00:00 UTC
     - cron: '0 0 * * *'
   workflow_dispatch:
-  # Debug: run on PRs from fix-sync-upstream branch
-  pull_request:
-    branches:
-      - next
-    types: [opened, synchronize]
 
 jobs:
   sync_upstream:
