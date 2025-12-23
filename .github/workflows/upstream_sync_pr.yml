@@ -1,11 +1,8 @@
 name: Sync Upstream
 on:
   schedule:
-    # Run twice daily at 00:00 and 12:00 UTC
-    - cron: '0 0,12 * * *'
-  pull_request:
-    branches:
-      - next
+    # Run daily at 00:00 UTC
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 jobs:
@@ -70,6 +67,7 @@ jobs:
         gh pr create \
           --title "chore: sync with upstream goharbor/harbor" \
           --body "$PR_BODY" \
+          --head "$BRANCH_NAME" \
           --base next \
           --label upstream
       env:
