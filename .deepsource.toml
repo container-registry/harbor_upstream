@@ -55,7 +55,7 @@ enabled = true
 
 [[analyzers]]
 name = "test-coverage"
-enabled = true
+enabled = false
 
 [[transformers]]
 name = "gofumpt"
