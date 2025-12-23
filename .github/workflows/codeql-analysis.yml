@@ -9,6 +9,15 @@ on:
     branches:
       - next
       - main
+    paths:
+      - '**.go'
+      - '**.js'
+      - '**.ts'
+      - '**.tsx'
+      - 'go.mod'
+      - 'go.sum'
+      - 'package.json'
+      - 'package-lock.json'
   schedule:
     - cron: '0 2 * * 1-5' # run at 2 AM UTC Monday through Friday
 
