@@ -35,8 +35,7 @@ type DAO interface {
 	GetConfigItem(ctx context.Context, query *q.Query) ([]*models.ConfigEntry, error)
 }
 
-type dao struct {
-}
+type dao struct{}
 
 // New ...
 func New() DAO {
@@ -51,7 +50,6 @@ func (d *dao) GetConfigEntries(ctx context.Context) ([]*models.ConfigEntry, erro
 	var p []*models.ConfigEntry
 	sql := "select * from properties"
 	n, err := o.Raw(sql, []any{}).QueryRows(&p)
-
 	if err != nil {
 		return nil, err
 	}

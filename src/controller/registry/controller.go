@@ -34,8 +34,10 @@ import (
 )
 
 // Ctl is a global registry controller instance
-var Ctl = NewController()
-var regularHealthCheckInterval = 5 * time.Minute
+var (
+	Ctl                        = NewController()
+	regularHealthCheckInterval = 5 * time.Minute
+)
 
 // Controller defines the registry related operations
 type Controller interface {
