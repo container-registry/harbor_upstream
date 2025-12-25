@@ -24,10 +24,8 @@ import (
 	"github.com/goharbor/harbor/src/pkg/task"
 )
 
-var (
-	// Ctl is a global garbage collection controller instance
-	Ctl = NewController()
-)
+// Ctl is a global garbage collection controller instance
+var Ctl = NewController()
 
 // Controller manages the tags
 type Controller interface {
