@@ -208,7 +208,8 @@ func (_m *Manager) ValidateCfg(ctx context.Context, cfgs map[string]interface{})
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

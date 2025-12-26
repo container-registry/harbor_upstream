@@ -24,8 +24,7 @@ import (
 )
 
 // ConLimiter is used to limit the number of connections to the upstream service
-type ConnLimiter struct {
-}
+type ConnLimiter struct{}
 
 // Limiter is a global connection limiter instance
 var Limiter = &ConnLimiter{}
