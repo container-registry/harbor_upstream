@@ -332,6 +332,10 @@ export class CreateProjectComponent
         }
     }
 
+    /**
+     * Validates the maximum upstream connections value.
+     * Accepts positive integers or -1 for unlimited connections.
+     */
     validateMaxUpstreamConnections(): void {
         const value = Number(this.project.metadata.max_upstream_conn);
         if (
