@@ -24,16 +24,14 @@ import (
 	"github.com/goharbor/harbor/src/pkg/quota/types"
 )
 
-var (
-	quotaOrderMap = map[string]string{
-		"creation_time":  "b.creation_time asc",
-		"+creation_time": "b.creation_time asc",
-		"-creation_time": "b.creation_time desc",
-		"update_time":    "b.update_time asc",
-		"+update_time":   "b.update_time asc",
-		"-update_time":   "b.update_time desc",
-	}
-)
+var quotaOrderMap = map[string]string{
+	"creation_time":  "b.creation_time asc",
+	"+creation_time": "b.creation_time asc",
+	"-creation_time": "b.creation_time desc",
+	"update_time":    "b.update_time asc",
+	"+update_time":   "b.update_time asc",
+	"-update_time":   "b.update_time desc",
+}
 
 type listQuery struct {
 	ID           int64    `json:"id"`
