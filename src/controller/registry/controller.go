@@ -34,8 +34,10 @@ import (
 )
 
 // Ctl is a global registry controller instance
-var Ctl = NewController()
-var regularHealthCheckInterval = 5 * time.Minute
+var (
+	Ctl                        = NewController()
+	regularHealthCheckInterval = 5 * time.Minute
+)
 
 // Controller defines the registry related operations
 type Controller interface {
@@ -214,7 +216,7 @@ func getWhitelistedAdapters(ctx context.Context) map[string]struct{} {
 		return nil
 	}
 	adapterWhitelist := make(map[string]struct{})
-	for _, adapter := range strings.Split(adapterWhitelistRaw, ",") {
+	for adapter := range strings.SplitSeq(adapterWhitelistRaw, ",") {
 		adapter = strings.TrimSpace(adapter)
 		if adapter != "" {
 			adapterWhitelist[adapter] = struct{}{}
