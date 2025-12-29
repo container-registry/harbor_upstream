@@ -67,6 +67,28 @@ linters:
           - revive
         text: "var-naming: avoid meaningless package names"
         path: server/middleware/util/util\.go
+      - linters:
+          - revive
+        text: "var-naming: avoid meaningless package names"
+        path: controller/event/handler/util/util\.go
+      - linters:
+          - revive
+        text: "var-naming: avoid meaningless package names"
+        path: pkg/permission/types/types\.go
+      - linters:
+          - revive
+        text: "var-naming: avoid meaningless package names"
+        path: server/registry/util/util\.go
+      - linters:
+          - revive
+        text: "var-naming: avoid package names that conflict with Go standard library package names"
+        path: common/http/client\.go
+      - linters:
+          - misspell
+        text: "cancelled"
+      - linters:
+          - misspell
+        text: "Cancelled"
 formatters:
   enable:
     - gofmt
