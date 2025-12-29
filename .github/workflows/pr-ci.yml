@@ -3,8 +3,7 @@ name: PR CI
 on:
   pull_request:
     branches:
-      - main
-      - taskfile-actions
+      - next
     paths-ignore:
       - '**.md'
       - 'docs/**'
