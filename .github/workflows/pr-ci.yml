@@ -125,10 +125,10 @@ jobs:
           cache-dependency-path: src/portal/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run tests
-        run: npm run test:headless
+        run: npm run test
 
   vuln-check:
     name: Vulnerability Check
