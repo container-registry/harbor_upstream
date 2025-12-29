@@ -1,0 +1,66 @@
+version = 1
+
+# Exclude common directories
+exclude_patterns = [
+    "vendor/**",
+    "node_modules/**",
+    "**/testdata/**",
+    "**/*_test.go",
+    "**/*.pb.go",
+    "**/*.pb.gw.go",
+    "**/mock_*.go",
+    "**/mocks/**",
+    "**/*.generated.go",
+    "src/portal/dist/**",
+    "src/portal/coverage/**",
+    "tools/**",
+    "tests/ci/**"
+]
+
+[[analyzers]]
+name = "go"
+enabled = true
+
+[analyzers.meta]
+import_root = "github.com/goharbor/harbor/src"
+dependencies_vendored = false
+cgo_enabled = false
+cyclomatic_complexity_threshold = "high"
+
+[[analyzers]]
+name = "python"
+enabled = true
+
+[analyzers.meta]
+runtime_version = "3.x.x"
+
+[[analyzers]]
+name = "javascript"
+enabled = true
+
+[analyzers.meta]
+environment = [
+    "nodejs",
+    "browser"
+]
+plugins = ["angular"]
+
+[[analyzers]]
+name = "docker"
+enabled = true
+
+[[analyzers]]
+name = "shell"
+enabled = true
+
+[[analyzers]]
+name = "test-coverage"
+enabled = false
+
+[[transformers]]
+name = "gofumpt"
+enabled = true
+
+[[transformers]]
+name = "prettier"
+enabled = true

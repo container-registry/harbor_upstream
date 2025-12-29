@@ -5,13 +5,13 @@ index 7076df85d4..3e74330321 100644
 @@ -168,6 +168,9 @@ type Configuration struct {
  		// Addr specifies the the redis instance available to the application.
  		Addr string `yaml:"addr,omitempty"`
- 
+
 +		// SentinelMasterSet specifies the the redis sentinel master set name.
 +		SentinelMasterSet string `yaml:"sentinelMasterSet,omitempty"`
 +
  		// Password string to use when making a connection.
  		Password string `yaml:"password,omitempty"`
- 
+
 diff --git a/registry/handlers/app.go b/registry/handlers/app.go
 index bf56cea22a..4a7cee9a2e 100644
 --- a/registry/handlers/app.go
@@ -27,7 +27,7 @@ index bf56cea22a..4a7cee9a2e 100644
 @@ -16,6 +17,7 @@ import (
  	"strings"
  	"time"
- 
+
 +	"github.com/FZambia/sentinel"
  	"github.com/distribution/reference"
  	"github.com/docker/distribution"
@@ -35,7 +35,7 @@ index bf56cea22a..4a7cee9a2e 100644
 @@ -499,6 +501,45 @@ func (app *App) configureRedis(configuration *configuration.Configuration) {
  		return
  	}
- 
+
 +	var getRedisAddr func() (string, error)
 +	var testOnBorrow func(c redis.Conn, t time.Time) error
 +	if configuration.Redis.SentinelMasterSet != "" {
@@ -81,7 +81,7 @@ index bf56cea22a..4a7cee9a2e 100644
 @@ -514,8 +555,11 @@ func (app *App) configureRedis(configuration *configuration.Configuration) {
  				}
  			}
- 
+
 -			conn, err := redis.DialTimeout("tcp",
 -				configuration.Redis.Addr,
 +			redisAddr, err := getRedisAddr()
@@ -112,7 +112,7 @@ index bf56cea22a..4a7cee9a2e 100644
 +		TestOnBorrow: testOnBorrow,
 +		Wait:         false, // if a connection is not available, proceed without cache.
  	}
- 
+
  	app.redis = pool
 diff --git a/registry/handlers/app_test.go b/registry/handlers/app_test.go
 index 60a57e6c15..8a644d83d8 100644
@@ -157,7 +157,7 @@ index 60a57e6c15..8a644d83d8 100644
 +	config.Redis.DB = 0
 +	runAppWithConfig(t, config)
 +}
- 
+
 +// TestNewApp covers the creation of an application via NewApp with a
 +// configuration(with redis sentinel cluster).
 +func TestNewAppWithRedisSentinelCluster(t *testing.T) {
@@ -448,7 +448,7 @@ index 0000000000..f544c54ef6
 +License
 +-------
 +
-+Library is available under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html). 
++Library is available under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
 diff --git a/vendor/github.com/FZambia/sentinel/sentinel.go b/vendor/github.com/FZambia/sentinel/sentinel.go
 new file mode 100644
 index 0000000000..79209e9f0d

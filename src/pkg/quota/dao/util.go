@@ -24,16 +24,14 @@ import (
 	"github.com/goharbor/harbor/src/pkg/quota/types"
 )
 
-var (
-	quotaOrderMap = map[string]string{
-		"creation_time":  "b.creation_time asc",
-		"+creation_time": "b.creation_time asc",
-		"-creation_time": "b.creation_time desc",
-		"update_time":    "b.update_time asc",
-		"+update_time":   "b.update_time asc",
-		"-update_time":   "b.update_time desc",
-	}
-)
+var quotaOrderMap = map[string]string{
+	"creation_time":  "b.creation_time asc",
+	"+creation_time": "b.creation_time asc",
+	"-creation_time": "b.creation_time desc",
+	"update_time":    "b.update_time asc",
+	"+update_time":   "b.update_time asc",
+	"-update_time":   "b.update_time desc",
+}
 
 type listQuery struct {
 	ID           int64    `json:"id"`
@@ -42,8 +40,8 @@ type listQuery struct {
 	ReferenceIDs []string `json:"reference_ids"`
 }
 
-func listConditions(query *q.Query) (string, []interface{}) {
-	params := []interface{}{}
+func listConditions(query *q.Query) (string, []any) {
+	params := []any{}
 	sql := ""
 	if query == nil {
 		return sql, params
@@ -111,8 +109,8 @@ func listOrderBy(query *q.Query) string {
 		}
 		prefixes := []string{"hard.", "used."}
 		for _, prefix := range prefixes {
-			if strings.HasPrefix(sortByItem.Key, prefix) {
-				resource := strings.TrimPrefix(sortByItem.Key, prefix)
+			if after, ok := strings.CutPrefix(sortByItem.Key, prefix); ok {
+				resource := after
 				if types.IsValidResource(types.ResourceName(resource)) {
 					field := fmt.Sprintf("%s->>%s", strings.TrimSuffix(prefix, "."), orm.QuoteLiteral(resource))
 					orderBy = fmt.Sprintf("(%s) %s", castQuantity(field), order)

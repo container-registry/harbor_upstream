@@ -1,0 +1,39 @@
+# file edited for dev config
+version: 0.1
+storage:
+  cache:
+    # Possible values: inmemory, redis
+    blobdescriptor: redis
+  filesystem:
+    rootdirectory: /storage
+  maintenance:
+    uploadpurging:
+      enabled: true
+      age: 168h
+      interval: 24h
+      dryrun: false
+  delete:
+    enabled: true
+redis:
+  # 'addrs' is the modern multi-address format (replaces 'addr'), allowing one or more Redis endpoints.
+  addrs: [redis:6379]
+  db: 1
+  dialtimeout: 10s
+  readtimeout: 10s
+  writetimeout: 10s
+  tls:
+    enabled: false
+http:
+  addr: :5000
+  secret: placeholder
+  debug:
+    addr: localhost:5001
+validation:
+  disabled: true
+compatibility:
+  schema1:
+    enabled: true
+auth:
+  htpasswd:
+    realm: harbor-registry-basic-realm
+    path: /etc/registry/passwd
