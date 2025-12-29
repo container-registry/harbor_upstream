@@ -2,7 +2,7 @@
 # Based on .dagger/main.go buildPortal logic
 
 # Stage 1: Extract swagger.yaml and LICENSE
-FROM alpine:latest AS extractor
+FROM alpine:3.21.3 AS extractor
 WORKDIR /harbor
 COPY api/v2.0/swagger.yaml /swagger.yaml
 COPY LICENSE /LICENSE
@@ -15,7 +15,8 @@ ENV NPM_CONFIG_REGISTRY=https://registry.npmjs.org
 
 # Install Bun
 RUN apt-get update && \
-    apt-get install -y unzip && \
+    apt-get install -y --no-install-recommends unzip=6.0-28 && \
+    rm -rf /var/lib/apt/lists/* && \
     npm install -g bun@1.2.13
 
 WORKDIR /harbor/src/portal

@@ -5,13 +5,13 @@ FROM golang:1.24.6 AS builder
 
 # Build trivy-adapter (lines 598-614)
 WORKDIR /go/src/github.com/goharbor/
-RUN git clone -b v0.33.2 https://github.com/goharbor/harbor-scanner-trivy.git && \
-    cd harbor-scanner-trivy && \
-    CGO_ENABLED=0 go build -o ./binary/scanner-trivy cmd/scanner-trivy/main.go
+RUN git clone -b v0.33.2 https://github.com/goharbor/harbor-scanner-trivy.git
+
+WORKDIR /go/src/github.com/goharbor/harbor-scanner-trivy
+RUN CGO_ENABLED=0 go build -o ./binary/scanner-trivy cmd/scanner-trivy/main.go
 
 # Download trivy binary
-RUN cd harbor-scanner-trivy && \
-    wget -O trivyDownload https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-64bit.tar.gz && \
+RUN wget --progress=dot:giga -O trivyDownload https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-64bit.tar.gz && \
     tar -zxvf trivyDownload && \
     cp trivy ./binary/trivy
 

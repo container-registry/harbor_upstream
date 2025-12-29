@@ -5,18 +5,17 @@ FROM golang:1.24.6-alpine AS versioner
 
 # Clone distribution repository
 WORKDIR /go/src/github.com/docker
-RUN apk add --no-cache git && \
-    git clone -b v3.0.0 https://github.com/distribution/distribution.git && \
-    cd distribution && \
-    git apply CVE-2025-22872 fix
-RUN cd distribution && \
+RUN apk add --no-cache git=2.48.1-r0 && \
+    git clone -b v3.0.0 https://github.com/distribution/distribution.git
+
+WORKDIR /go/src/github.com/docker/distribution
+RUN git apply CVE-2025-22872 fix && \
     go mod edit -require golang.org/x/net@v0.38.0 && \
     go mod tidy -e && \
     go mod vendor
 
 # Generate version info
-RUN cd distribution && \
-    VERSION=$(git describe --match 'v[0-9]*' --dirty='.m' --always --tags) && \
+RUN VERSION=$(git describe --match 'v[0-9]*' --dirty='.m' --always --tags) && \
     REVISION=$(git rev-parse HEAD) && \
     PKG=github.com/distribution/distribution/v3 && \
     echo "-X ${PKG}/version.version=${VERSION#v} -X ${PKG}/version.revision=${REVISION} -X ${PKG}/version.mainpkg=${PKG}" > /tmp/.ldflags
