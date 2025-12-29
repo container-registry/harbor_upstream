@@ -98,6 +98,9 @@ jobs:
       - name: Generate API code
         run: task build:gen-apis
 
+      - name: Generate mocks
+        run: task test:generate-mocks
+
       - name: Run Go tests
         working-directory: src
         run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
