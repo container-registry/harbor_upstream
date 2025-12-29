@@ -5,7 +5,7 @@
 FROM scratch
 
 # Copy CA certificates from Alpine
-COPY --from=alpine:latest /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=alpine:3.21.3 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy binary from build context
 ARG TARGETARCH

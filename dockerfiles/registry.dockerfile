@@ -35,7 +35,7 @@ RUN go build -trimpath -ldflags "$(cat /tmp/.ldflags) -s -w" -o /go/bin/registry
 FROM scratch
 
 # Copy CA certificates
-COPY --from=alpine:latest /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=alpine:3.21.3 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy registry binary
 COPY --from=builder /go/bin/registry /usr/bin/registry_DO_NOT_USE_GC

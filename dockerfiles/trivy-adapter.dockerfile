@@ -26,7 +26,7 @@ RUN case "${TARGETARCH}" in \
 FROM aquasec/trivy:0.58.1
 
 # Copy CA certificates
-COPY --from=alpine:latest /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=alpine:3.21.3 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy binaries from builder (lines 622-623)
 COPY --from=builder /go/src/github.com/goharbor/harbor-scanner-trivy/binary/scanner-trivy /home/scanner/bin/scanner-trivy

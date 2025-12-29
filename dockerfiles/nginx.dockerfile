@@ -4,7 +4,7 @@
 FROM nginx:alpine
 
 # Copy CA certificates
-COPY --from=alpine:latest /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=alpine:3.21.3 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 WORKDIR /
 
