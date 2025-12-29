@@ -7,6 +7,7 @@ This directory contains Dockerfiles for building Harbor component images. These 
 All Dockerfiles support multi-architecture builds (linux/amd64, linux/arm64) using `TARGETARCH` build argument.
 
 **Image Types:**
+
 - **Production images**: Use scratch/minimal base images for security and size
 - **Debug support**: Use `docker debug` or `podman debug` instead of separate debug images
 
@@ -22,10 +23,12 @@ These services use pre-built Go binaries with minimal base images:
 - **`exporter.dockerfile`** - Prometheus metrics exporter (scratch + CA certs + binary)
 
 **Build Context Requirements:**
+
 - Binary must be at: `bin/linux-${TARGETARCH}/<service-name>`
 - Example: `bin/linux-amd64/core`
 
 **Build Command Example:**
+
 ```bash
 # Build binary first
 task build:binary:core:linux-amd64
@@ -64,6 +67,7 @@ These services include build stages:
   - No custom config in image (config provided at runtime)
 
 **Build Command Example:**
+
 ```bash
 docker buildx build \
   --platform linux/amd64 \
@@ -77,6 +81,7 @@ docker buildx build \
 Instead of maintaining separate debug images, use Docker/Podman debug tools:
 
 **Docker Debug:**
+
 ```bash
 # Start container
 docker run -d --name harbor-core goharbor/harbor-core:dev
@@ -86,6 +91,7 @@ docker debug harbor-core
 ```
 
 **Podman Debug (experimental):**
+
 ```bash
 # Start container
 podman run -d --name harbor-core goharbor/harbor-core:dev
@@ -145,16 +151,16 @@ These Dockerfiles **do not use** the legacy Dockerfiles in `make/photon/`. Key d
 
 ## Image Base Summary
 
-| Component | Base Image | Size | Notes |
-|-----------|------------|------|-------|
-| core | scratch | Minimal | CA certs + binary + deps |
-| jobservice | scratch | Minimal | CA certs + binary |
-| registryctl | scratch | Minimal | CA certs + binary |
-| exporter | scratch | Minimal | CA certs + binary |
-| portal | nginx:alpine | ~50MB | Includes built Angular app |
-| registry | scratch | Minimal | CA certs + registry binary |
-| trivy-adapter | aquasec/trivy:0.58.1 | ~400MB | Includes trivy scanner |
-| nginx | nginx:alpine | ~45MB | Minimal reverse proxy |
+| Component     | Base Image           | Size    | Notes                      |
+| ------------- | -------------------- | ------- | -------------------------- |
+| core          | scratch              | Minimal | CA certs + binary + deps   |
+| jobservice    | scratch              | Minimal | CA certs + binary          |
+| registryctl   | scratch              | Minimal | CA certs + binary          |
+| exporter      | scratch              | Minimal | CA certs + binary          |
+| portal        | nginx:alpine         | ~50MB   | Includes built Angular app |
+| registry      | scratch              | Minimal | CA certs + registry binary |
+| trivy-adapter | aquasec/trivy:0.58.1 | ~400MB  | Includes trivy scanner     |
+| nginx         | nginx:alpine         | ~45MB   | Minimal reverse proxy      |
 
 ## Notes
 

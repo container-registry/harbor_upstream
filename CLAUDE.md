@@ -680,7 +680,6 @@ Jobs must implement the `job.Interface` with methods:
 - Copyright header template in `copyright.tmpl`
 
 ## Integration Testing
-
 - `tests/ci/api_run.sh` - Run Python API tests
 - Robot Framework tests in `tests/robot-cases/`
 
