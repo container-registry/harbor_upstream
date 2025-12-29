@@ -242,7 +242,7 @@ jobs:
 
   build-push-github-arm64:
     name: Build & Push ARM64 to GHCR
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm64
     needs: [lint-api, lint-go, lint-frontend, test-go, test-frontend, vuln-check]
     strategy:
       fail-fast: false
