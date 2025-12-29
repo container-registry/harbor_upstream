@@ -1,0 +1,142 @@
+version: '3'
+
+vars:
+  COMPOSE_FILE: make/docker-compose.yml
+  COMPOSE_TEST_FILE: tests/docker-compose.test.yml
+  HEALTH_ENDPOINT: 'https://127.0.0.1/api/v2.0/systeminfo'
+  MAX_RETRIES: 30
+  RETRY_INTERVAL: 10
+
+tasks:
+  up:
+    desc: "Start full Harbor stack"
+    cmds:
+      - |
+        echo "Starting full Harbor stack..."
+        if [ -f "{{.COMPOSE_FILE}}" ]; then
+          docker-compose -f {{.COMPOSE_FILE}} up -d
+          echo "✅ Harbor stack started"
+        else
+          echo "❌ Compose file not found: {{.COMPOSE_FILE}}"
+          exit 1
+        fi
+
+  down:
+    desc: "Stop Harbor stack and remove volumes"
+    cmds:
+      - |
+        echo "Stopping Harbor stack..."
+        if [ -f "{{.COMPOSE_FILE}}" ]; then
+          docker-compose -f {{.COMPOSE_FILE}} down -v
+          echo "✅ Harbor stack stopped"
+        else
+          echo "⚠️  Compose file not found: {{.COMPOSE_FILE}}"
+        fi
+
+  stop:
+    desc: "Stop Harbor stack (keep volumes)"
+    cmds:
+      - |
+        echo "Stopping Harbor stack (keeping volumes)..."
+        if [ -f "{{.COMPOSE_FILE}}" ]; then
+          docker-compose -f {{.COMPOSE_FILE}} stop
+          echo "✅ Harbor stack stopped"
+        else
+          echo "⚠️  Compose file not found: {{.COMPOSE_FILE}}"
+        fi
+
+  restart:
+    desc: "Restart Harbor stack"
+    cmds:
+      - task: stop
+      - task: up
+
+  logs:
+    desc: "Show Harbor logs (usage: task compose:logs -- SERVICE_NAME)"
+    cmds:
+      - |
+        if [ -f "{{.COMPOSE_FILE}}" ]; then
+          docker-compose -f {{.COMPOSE_FILE}} logs -f {{.CLI_ARGS}}
+        else
+          echo "❌ Compose file not found: {{.COMPOSE_FILE}}"
+          exit 1
+        fi
+
+  ps:
+    desc: "List running Harbor services"
+    cmds:
+      - |
+        if [ -f "{{.COMPOSE_FILE}}" ]; then
+          docker-compose -f {{.COMPOSE_FILE}} ps
+        else
+          echo "❌ Compose file not found: {{.COMPOSE_FILE}}"
+          exit 1
+        fi
+
+  test:up:
+    desc: "Start minimal test stack (postgres, redis, registry)"
+    cmds:
+      - |
+        echo "Starting minimal test stack..."
+        if [ -f "{{.COMPOSE_TEST_FILE}}" ]; then
+          docker-compose -f {{.COMPOSE_TEST_FILE}} up -d
+          echo "✅ Test stack started"
+        else
+          echo "❌ Test compose file not found: {{.COMPOSE_TEST_FILE}}"
+          exit 1
+        fi
+
+  test:down:
+    desc: "Stop test stack and remove volumes"
+    cmds:
+      - |
+        echo "Stopping test stack..."
+        if [ -f "{{.COMPOSE_TEST_FILE}}" ]; then
+          docker-compose -f {{.COMPOSE_TEST_FILE}} down -v
+          echo "✅ Test stack stopped"
+        else
+          echo "⚠️  Test compose file not found: {{.COMPOSE_TEST_FILE}}"
+        fi
+
+  test:logs:
+    desc: "Show test stack logs"
+    cmds:
+      - |
+        if [ -f "{{.COMPOSE_TEST_FILE}}" ]; then
+          docker-compose -f {{.COMPOSE_TEST_FILE}} logs -f {{.CLI_ARGS}}
+        else
+          echo "❌ Test compose file not found: {{.COMPOSE_TEST_FILE}}"
+          exit 1
+        fi
+
+  health:
+    desc: "Check Harbor health endpoint"
+    cmds:
+      - |
+        echo "Checking Harbor health..."
+        for i in $(seq 1 {{.MAX_RETRIES}}); do
+          if curl -k -s {{.HEALTH_ENDPOINT}} &>/dev/null; then
+            echo "✅ Harbor is healthy (attempt $i/{{.MAX_RETRIES}})"
+            curl -k -s {{.HEALTH_ENDPOINT}} | jq '.' 2>/dev/null || curl -k -s {{.HEALTH_ENDPOINT}}
+            exit 0
+          fi
+          echo "⏳ Waiting for Harbor... ($i/{{.MAX_RETRIES}})"
+          sleep {{.RETRY_INTERVAL}}
+        done
+        echo "❌ Harbor health check failed after {{.MAX_RETRIES}} attempts"
+        exit 1
+
+  clean:
+    desc: "Clean up all Harbor data and volumes"
+    cmds:
+      - |
+        echo "⚠️  This will remove all Harbor data!"
+        read -p "Continue? (y/N): " confirm
+        if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+          docker-compose -f {{.COMPOSE_FILE}} down -v 2>/dev/null || true
+          docker-compose -f {{.COMPOSE_TEST_FILE}} down -v 2>/dev/null || true
+          sudo rm -rf /data/*
+          echo "✅ Harbor data cleaned"
+        else
+          echo "Cancelled"
+        fi
