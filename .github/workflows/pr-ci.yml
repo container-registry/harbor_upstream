@@ -126,6 +126,13 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      - name: Install Task
+        run: |
+          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+
+      - name: Generate API code
+        run: task build:gen-apis
+
       - name: Run govulncheck
         working-directory: src
         run: |
