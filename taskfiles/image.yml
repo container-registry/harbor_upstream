@@ -39,7 +39,7 @@ tasks:
       - image:nginx:linux-arm64
     cmds:
       - |
-        echo "✅ All images built successfully"
+        echo "✓ All images built successfully"
         echo ""
         docker images | grep goharbor
 
@@ -55,7 +55,7 @@ tasks:
       - image:trivy-adapter:linux-amd64
       - image:nginx:linux-amd64
     cmds:
-      - echo "✅ All AMD64 images built"
+      - echo "✓ All AMD64 images built"
 
   all-images:arm64:
     desc: "🐳 Build all images for linux/arm64"
@@ -69,7 +69,7 @@ tasks:
       - image:trivy-adapter:linux-arm64
       - image:nginx:linux-arm64
     cmds:
-      - echo "✅ All ARM64 images built"
+      - echo "✓ All ARM64 images built"
 
   # ============================================================================
   # Core Image (requires binary)
@@ -94,7 +94,7 @@ tasks:
           --load \
           .
       - |
-        echo "✅ Core image built: {{.TAG}}"
+        echo "✓ Core image built: {{.TAG}}"
         docker images | grep harbor-core | head -1
 
   # ============================================================================
@@ -120,7 +120,7 @@ tasks:
           --load \
           .
       - |
-        echo "✅ Jobservice image built: {{.TAG}}"
+        echo "✓ Jobservice image built: {{.TAG}}"
         docker images | grep harbor-jobservice | head -1
 
   # ============================================================================
@@ -146,7 +146,7 @@ tasks:
           --load \
           .
       - |
-        echo "✅ Registryctl image built: {{.TAG}}"
+        echo "✓ Registryctl image built: {{.TAG}}"
         docker images | grep harbor-registryctl | head -1
 
   # ============================================================================
@@ -172,7 +172,7 @@ tasks:
           --load \
           .
       - |
-        echo "✅ Exporter image built: {{.TAG}}"
+        echo "✓ Exporter image built: {{.TAG}}"
         docker images | grep harbor-exporter | head -1
 
   # ============================================================================
@@ -195,7 +195,7 @@ tasks:
           --load \
           .
       - |
-        echo "✅ Portal image built: {{.TAG}}"
+        echo "✓ Portal image built: {{.TAG}}"
         docker images | grep harbor-portal | head -1
 
   # ============================================================================
@@ -218,7 +218,7 @@ tasks:
           --load \
           .
       - |
-        echo "✅ Registry image built: {{.TAG}}"
+        echo "✓ Registry image built: {{.TAG}}"
         docker images | grep registry-photon | head -1
 
   # ============================================================================
@@ -241,7 +241,7 @@ tasks:
           --load \
           .
       - |
-        echo "✅ Trivy Adapter image built: {{.TAG}}"
+        echo "✓ Trivy Adapter image built: {{.TAG}}"
         docker images | grep trivy-adapter | head -1
 
   # ============================================================================
@@ -263,7 +263,7 @@ tasks:
           --load \
           .
       - |
-        echo "✅ Nginx image built: {{.TAG}}"
+        echo "✓ Nginx image built: {{.TAG}}"
         docker images | grep nginx-photon | head -1
 
   # ============================================================================
@@ -271,7 +271,7 @@ tasks:
   # ============================================================================
 
   all-images:push:
-    desc: "🚀 Build and push all Harbor images to registry"
+    desc: "Build and push all Harbor images to registry"
     deps:
       - image:core:linux-amd64:push
       - image:core:linux-arm64:push
@@ -290,10 +290,10 @@ tasks:
       - image:nginx:linux-amd64:push
       - image:nginx:linux-arm64:push
     cmds:
-      - echo "✅ All images pushed to {{.REGISTRY}}/{{.IMAGE_NAMESPACE}}"
+      - echo "✓ All images pushed to {{.REGISTRY}}/{{.IMAGE_NAMESPACE}}"
 
   all-images:amd64:push:
-    desc: "🚀 Build and push all images for linux/amd64"
+    desc: "Build and push all images for linux/amd64"
     deps:
       - image:core:linux-amd64:push
       - image:jobservice:linux-amd64:push
@@ -304,10 +304,10 @@ tasks:
       - image:trivy-adapter:linux-amd64:push
       - image:nginx:linux-amd64:push
     cmds:
-      - echo "✅ All amd64 images pushed"
+      - echo "✓ All amd64 images pushed"
 
   all-images:arm64:push:
-    desc: "🚀 Build and push all images for linux/arm64"
+    desc: "Build and push all images for linux/arm64"
     deps:
       - image:core:linux-arm64:push
       - image:jobservice:linux-arm64:push
@@ -318,11 +318,11 @@ tasks:
       - image:trivy-adapter:linux-arm64:push
       - image:nginx:linux-arm64:push
     cmds:
-      - echo "✅ All arm64 images pushed"
+      - echo "✓ All arm64 images pushed"
 
   # Core service push tasks
   image:core:*:push:
-    desc: "🚀 Build and push Core image"
+    desc: "Build and push Core image"
     vars:
       PLATFORM: '{{index .MATCH 0}}'
       ARCH: '{{if eq .PLATFORM "linux-amd64"}}amd64{{else}}arm64{{end}}'
@@ -330,22 +330,13 @@ tasks:
     deps:
       - build:binary:core:{{.PLATFORM}}
     cmds:
-      - |
-        echo "🚀 Building and pushing Core image for {{.PLATFORM}}..."
-        docker buildx build \
-          --platform linux/{{.ARCH}} \
-          --build-arg TARGETARCH={{.ARCH}} \
-          -t {{.TAG}} \
-          -f dockerfiles/core.dockerfile \
-          --push \
-          {{if eq .USE_CACHE "true"}}--cache-from type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-core:buildcache-{{.ARCH}}{{end}} \
-          {{if eq .USE_CACHE "true"}}--cache-to type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-core:buildcache-{{.ARCH}},mode=max{{end}} \
-          .
-      - echo "✅ Core image pushed: {{.TAG}}"
+      - echo "Building and pushing Core image for {{.PLATFORM}}..."
+      - docker buildx build --platform linux/{{.ARCH}} --build-arg TARGETARCH={{.ARCH}} -t {{.TAG}} -f dockerfiles/core.dockerfile --push .
+      - echo "Core image pushed - {{.TAG}}"
 
   # Jobservice push tasks
   image:jobservice:*:push:
-    desc: "🚀 Build and push Jobservice image"
+    desc: "Build and push Jobservice image"
     vars:
       PLATFORM: '{{index .MATCH 0}}'
       ARCH: '{{if eq .PLATFORM "linux-amd64"}}amd64{{else}}arm64{{end}}'
@@ -353,22 +344,13 @@ tasks:
     deps:
       - build:binary:jobservice:{{.PLATFORM}}
     cmds:
-      - |
-        echo "🚀 Building and pushing Jobservice image for {{.PLATFORM}}..."
-        docker buildx build \
-          --platform linux/{{.ARCH}} \
-          --build-arg TARGETARCH={{.ARCH}} \
-          -t {{.TAG}} \
-          -f dockerfiles/jobservice.dockerfile \
-          --push \
-          {{if eq .USE_CACHE "true"}}--cache-from type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-jobservice:buildcache-{{.ARCH}}{{end}} \
-          {{if eq .USE_CACHE "true"}}--cache-to type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-jobservice:buildcache-{{.ARCH}},mode=max{{end}} \
-          .
-      - echo "✅ Jobservice image pushed: {{.TAG}}"
+      - echo "Building and pushing Jobservice image for {{.PLATFORM}}..."
+      - docker buildx build --platform linux/{{.ARCH}} --build-arg TARGETARCH={{.ARCH}} -t {{.TAG}} -f dockerfiles/jobservice.dockerfile --push .
+      - echo "Jobservice image pushed - {{.TAG}}"
 
   # Registryctl push tasks
   image:registryctl:*:push:
-    desc: "🚀 Build and push Registryctl image"
+    desc: "Build and push Registryctl image"
     vars:
       PLATFORM: '{{index .MATCH 0}}'
       ARCH: '{{if eq .PLATFORM "linux-amd64"}}amd64{{else}}arm64{{end}}'
@@ -376,22 +358,13 @@ tasks:
     deps:
       - build:binary:registryctl:{{.PLATFORM}}
     cmds:
-      - |
-        echo "🚀 Building and pushing Registryctl image for {{.PLATFORM}}..."
-        docker buildx build \
-          --platform linux/{{.ARCH}} \
-          --build-arg TARGETARCH={{.ARCH}} \
-          -t {{.TAG}} \
-          -f dockerfiles/registryctl.dockerfile \
-          --push \
-          {{if eq .USE_CACHE "true"}}--cache-from type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-registryctl:buildcache-{{.ARCH}}{{end}} \
-          {{if eq .USE_CACHE "true"}}--cache-to type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-registryctl:buildcache-{{.ARCH}},mode=max{{end}} \
-          .
-      - echo "✅ Registryctl image pushed: {{.TAG}}"
+      - echo "Building and pushing Registryctl image for {{.PLATFORM}}..."
+      - docker buildx build --platform linux/{{.ARCH}} --build-arg TARGETARCH={{.ARCH}} -t {{.TAG}} -f dockerfiles/registryctl.dockerfile --push .
+      - echo "Registryctl image pushed - {{.TAG}}"
 
   # Exporter push tasks
   image:exporter:*:push:
-    desc: "🚀 Build and push Exporter image"
+    desc: "Build and push Exporter image"
     vars:
       PLATFORM: '{{index .MATCH 0}}'
       ARCH: '{{if eq .PLATFORM "linux-amd64"}}amd64{{else}}arm64{{end}}'
@@ -399,109 +372,64 @@ tasks:
     deps:
       - build:binary:exporter:{{.PLATFORM}}
     cmds:
-      - |
-        echo "🚀 Building and pushing Exporter image for {{.PLATFORM}}..."
-        docker buildx build \
-          --platform linux/{{.ARCH}} \
-          --build-arg TARGETARCH={{.ARCH}} \
-          -t {{.TAG}} \
-          -f dockerfiles/exporter.dockerfile \
-          --push \
-          {{if eq .USE_CACHE "true"}}--cache-from type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-exporter:buildcache-{{.ARCH}}{{end}} \
-          {{if eq .USE_CACHE "true"}}--cache-to type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-exporter:buildcache-{{.ARCH}},mode=max{{end}} \
-          .
-      - echo "✅ Exporter image pushed: {{.TAG}}"
+      - echo "Building and pushing Exporter image for {{.PLATFORM}}..."
+      - docker buildx build --platform linux/{{.ARCH}} --build-arg TARGETARCH={{.ARCH}} -t {{.TAG}} -f dockerfiles/exporter.dockerfile --push .
+      - echo "Exporter image pushed - {{.TAG}}"
 
   # Portal push tasks
   image:portal:*:push:
-    desc: "🚀 Build and push Portal image"
+    desc: "Build and push Portal image"
     vars:
       PLATFORM: '{{index .MATCH 0}}'
       ARCH: '{{if eq .PLATFORM "linux-amd64"}}amd64{{else}}arm64{{end}}'
       TAG: '{{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-portal:{{.IMAGE_TAG}}-{{.PLATFORM}}'
     cmds:
-      - |
-        echo "🚀 Building and pushing Portal image for {{.PLATFORM}}..."
-        docker buildx build \
-          --platform linux/{{.ARCH}} \
-          --build-arg TARGETARCH={{.ARCH}} \
-          -t {{.TAG}} \
-          -f dockerfiles/portal.dockerfile \
-          --push \
-          {{if eq .USE_CACHE "true"}}--cache-from type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-portal:buildcache-{{.ARCH}}{{end}} \
-          {{if eq .USE_CACHE "true"}}--cache-to type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-portal:buildcache-{{.ARCH}},mode=max{{end}} \
-          .
-      - echo "✅ Portal image pushed: {{.TAG}}"
+      - echo "Building and pushing Portal image for {{.PLATFORM}}..."
+      - docker buildx build --platform linux/{{.ARCH}} --build-arg TARGETARCH={{.ARCH}} -t {{.TAG}} -f dockerfiles/portal.dockerfile --push .
+      - echo "Portal image pushed - {{.TAG}}"
 
   # Registry push tasks
   image:registry:*:push:
-    desc: "🚀 Build and push Registry image"
+    desc: "Build and push Registry image"
     vars:
       PLATFORM: '{{index .MATCH 0}}'
       ARCH: '{{if eq .PLATFORM "linux-amd64"}}amd64{{else}}arm64{{end}}'
       TAG: '{{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/registry-photon:{{.IMAGE_TAG}}-{{.PLATFORM}}'
     cmds:
-      - |
-        echo "🚀 Building and pushing Registry image for {{.PLATFORM}}..."
-        docker buildx build \
-          --platform linux/{{.ARCH}} \
-          --build-arg TARGETARCH={{.ARCH}} \
-          -t {{.TAG}} \
-          -f dockerfiles/registry.dockerfile \
-          --push \
-          {{if eq .USE_CACHE "true"}}--cache-from type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/registry-photon:buildcache-{{.ARCH}}{{end}} \
-          {{if eq .USE_CACHE "true"}}--cache-to type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/registry-photon:buildcache-{{.ARCH}},mode=max{{end}} \
-          .
-      - echo "✅ Registry image pushed: {{.TAG}}"
+      - echo "Building and pushing Registry image for {{.PLATFORM}}..."
+      - docker buildx build --platform linux/{{.ARCH}} --build-arg TARGETARCH={{.ARCH}} -t {{.TAG}} -f dockerfiles/registry.dockerfile --push .
+      - echo "Registry image pushed - {{.TAG}}"
 
   # Trivy Adapter push tasks
   image:trivy-adapter:*:push:
-    desc: "🚀 Build and push Trivy Adapter image"
+    desc: "Build and push Trivy Adapter image"
     vars:
       PLATFORM: '{{index .MATCH 0}}'
       ARCH: '{{if eq .PLATFORM "linux-amd64"}}amd64{{else}}arm64{{end}}'
       TAG: '{{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/trivy-adapter-photon:{{.IMAGE_TAG}}-{{.PLATFORM}}'
     cmds:
-      - |
-        echo "🚀 Building and pushing Trivy Adapter image for {{.PLATFORM}}..."
-        docker buildx build \
-          --platform linux/{{.ARCH}} \
-          --build-arg TARGETARCH={{.ARCH}} \
-          -t {{.TAG}} \
-          -f dockerfiles/trivy-adapter.dockerfile \
-          --push \
-          {{if eq .USE_CACHE "true"}}--cache-from type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/trivy-adapter-photon:buildcache-{{.ARCH}}{{end}} \
-          {{if eq .USE_CACHE "true"}}--cache-to type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/trivy-adapter-photon:buildcache-{{.ARCH}},mode=max{{end}} \
-          .
-      - echo "✅ Trivy Adapter image pushed: {{.TAG}}"
+      - echo "Building and pushing Trivy Adapter image for {{.PLATFORM}}..."
+      - docker buildx build --platform linux/{{.ARCH}} --build-arg TARGETARCH={{.ARCH}} -t {{.TAG}} -f dockerfiles/trivy-adapter.dockerfile --push .
+      - echo "Trivy Adapter image pushed - {{.TAG}}"
 
   # Nginx push tasks
   image:nginx:*:push:
-    desc: "🚀 Build and push Nginx image"
+    desc: "Build and push Nginx image"
     vars:
       PLATFORM: '{{index .MATCH 0}}'
       ARCH: '{{if eq .PLATFORM "linux-amd64"}}amd64{{else}}arm64{{end}}'
       TAG: '{{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/nginx-photon:{{.IMAGE_TAG}}-{{.PLATFORM}}'
     cmds:
-      - |
-        echo "🚀 Building and pushing Nginx image for {{.PLATFORM}}..."
-        docker buildx build \
-          --platform linux/{{.ARCH}} \
-          --build-arg TARGETARCH={{.ARCH}} \
-          -t {{.TAG}} \
-          -f dockerfiles/nginx.dockerfile \
-          --push \
-          {{if eq .USE_CACHE "true"}}--cache-from type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/nginx-photon:buildcache-{{.ARCH}}{{end}} \
-          {{if eq .USE_CACHE "true"}}--cache-to type=registry,ref={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/nginx-photon:buildcache-{{.ARCH}},mode=max{{end}} \
-          .
-      - echo "✅ Nginx image pushed: {{.TAG}}"
+      - echo "Building and pushing Nginx image for {{.PLATFORM}}..."
+      - docker buildx build --platform linux/{{.ARCH}} --build-arg TARGETARCH={{.ARCH}} -t {{.TAG}} -f dockerfiles/nginx.dockerfile --push .
+      - echo "Nginx image pushed - {{.TAG}}"
 
   # ============================================================================
   # Multi-Arch Manifest Creation
   # ============================================================================
 
   all-manifests:
-    desc: "📦 Create multi-arch manifests for all images"
+    desc: "Create multi-arch manifests for all images"
     deps:
       - image:manifest:core
       - image:manifest:jobservice
@@ -512,127 +440,103 @@ tasks:
       - image:manifest:trivy-adapter
       - image:manifest:nginx
     cmds:
-      - echo "✅ All multi-arch manifests created"
+      - echo "✓ All multi-arch manifests created"
 
   image:manifest:core:
-    desc: "📦 Create multi-arch manifest for Core"
+    desc: "Create multi-arch manifest for Core"
     vars:
       TAG: '{{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-core:{{.IMAGE_TAG}}'
     deps:
       - image:core:linux-amd64:push
       - image:core:linux-arm64:push
     cmds:
-      - |
-        echo "📦 Creating multi-arch manifest for Core..."
-        docker buildx imagetools create -t {{.TAG}} \
-          {{.TAG}}-linux-amd64 \
-          {{.TAG}}-linux-arm64
-      - echo "✅ Core manifest created: {{.TAG}}"
+      - echo "Creating multi-arch manifest for Core..."
+      - docker buildx imagetools create -t {{.TAG}} {{.TAG}}-linux-amd64 {{.TAG}}-linux-arm64
+      - echo "Core manifest created - {{.TAG}}"
 
   image:manifest:jobservice:
-    desc: "📦 Create multi-arch manifest for Jobservice"
+    desc: "Create multi-arch manifest for Jobservice"
     vars:
       TAG: '{{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-jobservice:{{.IMAGE_TAG}}'
     deps:
       - image:jobservice:linux-amd64:push
       - image:jobservice:linux-arm64:push
     cmds:
-      - |
-        echo "📦 Creating multi-arch manifest for Jobservice..."
-        docker buildx imagetools create -t {{.TAG}} \
-          {{.TAG}}-linux-amd64 \
-          {{.TAG}}-linux-arm64
-      - echo "✅ Jobservice manifest created: {{.TAG}}"
+      - echo "Creating multi-arch manifest for Jobservice..."
+      - docker buildx imagetools create -t {{.TAG}} {{.TAG}}-linux-amd64 {{.TAG}}-linux-arm64
+      - echo "Jobservice manifest created - {{.TAG}}"
 
   image:manifest:registryctl:
-    desc: "📦 Create multi-arch manifest for Registryctl"
+    desc: "Create multi-arch manifest for Registryctl"
     vars:
       TAG: '{{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-registryctl:{{.IMAGE_TAG}}'
     deps:
       - image:registryctl:linux-amd64:push
       - image:registryctl:linux-arm64:push
     cmds:
-      - |
-        echo "📦 Creating multi-arch manifest for Registryctl..."
-        docker buildx imagetools create -t {{.TAG}} \
-          {{.TAG}}-linux-amd64 \
-          {{.TAG}}-linux-arm64
-      - echo "✅ Registryctl manifest created: {{.TAG}}"
+      - echo "Creating multi-arch manifest for Registryctl..."
+      - docker buildx imagetools create -t {{.TAG}} {{.TAG}}-linux-amd64 {{.TAG}}-linux-arm64
+      - echo "Registryctl manifest created - {{.TAG}}"
 
   image:manifest:exporter:
-    desc: "📦 Create multi-arch manifest for Exporter"
+    desc: "Create multi-arch manifest for Exporter"
     vars:
       TAG: '{{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-exporter:{{.IMAGE_TAG}}'
     deps:
       - image:exporter:linux-amd64:push
       - image:exporter:linux-arm64:push
     cmds:
-      - |
-        echo "📦 Creating multi-arch manifest for Exporter..."
-        docker buildx imagetools create -t {{.TAG}} \
-          {{.TAG}}-linux-amd64 \
-          {{.TAG}}-linux-arm64
-      - echo "✅ Exporter manifest created: {{.TAG}}"
+      - echo "Creating multi-arch manifest for Exporter..."
+      - docker buildx imagetools create -t {{.TAG}} {{.TAG}}-linux-amd64 {{.TAG}}-linux-arm64
+      - echo "Exporter manifest created - {{.TAG}}"
 
   image:manifest:portal:
-    desc: "📦 Create multi-arch manifest for Portal"
+    desc: "Create multi-arch manifest for Portal"
     vars:
       TAG: '{{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-portal:{{.IMAGE_TAG}}'
     deps:
       - image:portal:linux-amd64:push
       - image:portal:linux-arm64:push
     cmds:
-      - |
-        echo "📦 Creating multi-arch manifest for Portal..."
-        docker buildx imagetools create -t {{.TAG}} \
-          {{.TAG}}-linux-amd64 \
-          {{.TAG}}-linux-arm64
-      - echo "✅ Portal manifest created: {{.TAG}}"
+      - echo "Creating multi-arch manifest for Portal..."
+      - docker buildx imagetools create -t {{.TAG}} {{.TAG}}-linux-amd64 {{.TAG}}-linux-arm64
+      - echo "Portal manifest created - {{.TAG}}"
 
   image:manifest:registry:
-    desc: "📦 Create multi-arch manifest for Registry"
+    desc: "Create multi-arch manifest for Registry"
     vars:
       TAG: '{{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/registry-photon:{{.IMAGE_TAG}}'
     deps:
       - image:registry:linux-amd64:push
       - image:registry:linux-arm64:push
     cmds:
-      - |
-        echo "📦 Creating multi-arch manifest for Registry..."
-        docker buildx imagetools create -t {{.TAG}} \
-          {{.TAG}}-linux-amd64 \
-          {{.TAG}}-linux-arm64
-      - echo "✅ Registry manifest created: {{.TAG}}"
+      - echo "Creating multi-arch manifest for Registry..."
+      - docker buildx imagetools create -t {{.TAG}} {{.TAG}}-linux-amd64 {{.TAG}}-linux-arm64
+      - echo "Registry manifest created - {{.TAG}}"
 
   image:manifest:trivy-adapter:
-    desc: "📦 Create multi-arch manifest for Trivy Adapter"
+    desc: "Create multi-arch manifest for Trivy Adapter"
     vars:
       TAG: '{{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/trivy-adapter-photon:{{.IMAGE_TAG}}'
     deps:
       - image:trivy-adapter:linux-amd64:push
       - image:trivy-adapter:linux-arm64:push
     cmds:
-      - |
-        echo "📦 Creating multi-arch manifest for Trivy Adapter..."
-        docker buildx imagetools create -t {{.TAG}} \
-          {{.TAG}}-linux-amd64 \
-          {{.TAG}}-linux-arm64
-      - echo "✅ Trivy Adapter manifest created: {{.TAG}}"
+      - echo "Creating multi-arch manifest for Trivy Adapter..."
+      - docker buildx imagetools create -t {{.TAG}} {{.TAG}}-linux-amd64 {{.TAG}}-linux-arm64
+      - echo "Trivy Adapter manifest created - {{.TAG}}"
 
   image:manifest:nginx:
-    desc: "📦 Create multi-arch manifest for Nginx"
+    desc: "Create multi-arch manifest for Nginx"
     vars:
       TAG: '{{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/nginx-photon:{{.IMAGE_TAG}}'
     deps:
       - image:nginx:linux-amd64:push
       - image:nginx:linux-arm64:push
     cmds:
-      - |
-        echo "📦 Creating multi-arch manifest for Nginx..."
-        docker buildx imagetools create -t {{.TAG}} \
-          {{.TAG}}-linux-amd64 \
-          {{.TAG}}-linux-arm64
-      - echo "✅ Nginx manifest created: {{.TAG}}"
+      - echo "Creating multi-arch manifest for Nginx..."
+      - docker buildx imagetools create -t {{.TAG}} {{.TAG}}-linux-amd64 {{.TAG}}-linux-arm64
+      - echo "Nginx manifest created - {{.TAG}}"
 
   # ============================================================================
   # Utilities
@@ -644,13 +548,13 @@ tasks:
       - |
         echo "Removing Harbor images..."
         docker images | grep goharbor | awk '{print $3}' | xargs -r docker rmi -f || true
-        echo "✅ Images cleaned"
+        echo "✓ Images cleaned"
 
   prune:
     desc: "🧹 Prune Docker build cache"
     cmds:
       - docker builder prune -f
-      - echo "✅ Build cache pruned"
+      - echo "✓ Build cache pruned"
 
   list:
     desc: "📋 List all Harbor images"
