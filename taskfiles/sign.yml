@@ -17,7 +17,13 @@ tasks:
     cmds:
       - |
         echo "Installing cosign {{.COSIGN_VERSION}}..."
-        wget -q -O /tmp/cosign https://github.com/sigstore/cosign/releases/download/{{.COSIGN_VERSION}}/cosign-linux-amd64
+        ARCH=$(uname -m)
+        case "$ARCH" in
+          x86_64) COSIGN_ARCH="amd64" ;;
+          aarch64|arm64) COSIGN_ARCH="arm64" ;;
+          *) echo "Unsupported architecture: $ARCH" && exit 1 ;;
+        esac
+        wget -q -O /tmp/cosign https://github.com/sigstore/cosign/releases/download/{{.COSIGN_VERSION}}/cosign-linux-${COSIGN_ARCH}
         chmod +x /tmp/cosign
         sudo mv /tmp/cosign /usr/local/bin/cosign
         echo "✅ Cosign installed: $(cosign version)"
@@ -29,7 +35,13 @@ tasks:
     cmds:
       - |
         echo "Installing syft {{.SYFT_VERSION}}..."
-        wget -q -O /tmp/syft.tar.gz https://github.com/anchore/syft/releases/download/{{.SYFT_VERSION}}/syft_{{.SYFT_VERSION}}_linux_amd64.tar.gz
+        ARCH=$(uname -m)
+        case "$ARCH" in
+          x86_64) SYFT_ARCH="amd64" ;;
+          aarch64|arm64) SYFT_ARCH="arm64" ;;
+          *) echo "Unsupported architecture: $ARCH" && exit 1 ;;
+        esac
+        wget -q -O /tmp/syft.tar.gz https://github.com/anchore/syft/releases/download/{{.SYFT_VERSION}}/syft_{{.SYFT_VERSION}}_linux_${SYFT_ARCH}.tar.gz
         tar -xzf /tmp/syft.tar.gz -C /tmp
         chmod +x /tmp/syft
         sudo mv /tmp/syft /usr/local/bin/syft
