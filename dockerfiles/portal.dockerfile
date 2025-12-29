@@ -58,7 +58,7 @@ RUN npm install --unsafe-perm && \
 # Stage 4: Deploy with Nginx
 FROM nginx:alpine
 
-# Install CA certificates
+# Install latest CA certificates (intentionally not pinned for security updates)
 RUN apk add --no-cache ca-certificates
 
 # Copy built Angular app
