@@ -66,6 +66,10 @@ linters:
       - linters:
           - revive
         text: "var-naming: avoid meaningless package names"
+        path: registryctl/api/base\.go
+      - linters:
+          - revive
+        text: "var-naming: avoid meaningless package names"
         path: server/middleware/util/util\.go
       - linters:
           - revive
