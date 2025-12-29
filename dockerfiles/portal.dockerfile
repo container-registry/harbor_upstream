@@ -8,7 +8,7 @@ COPY api/v2.0/swagger.yaml /swagger.yaml
 COPY LICENSE /LICENSE
 
 # Stage 2: Build Angular application
-FROM node:16.18.0 AS builder
+FROM node:18-bullseye AS builder
 
 # Set npm registry
 ENV NPM_CONFIG_REGISTRY=https://registry.npmjs.org
@@ -43,7 +43,7 @@ RUN bun install js-yaml@4.1.0 --no-verify && \
 COPY --from=extractor /LICENSE ./dist/LICENSE
 
 # Stage 3: Build Swagger UI
-FROM node:16.18.0 AS swagger-builder
+FROM node:18-bullseye AS swagger-builder
 
 WORKDIR /harbor/src/portal/app-swagger-ui
 
