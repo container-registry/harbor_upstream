@@ -1,0 +1,103 @@
+version: '3'
+
+vars:
+  TEST_IP: '{{.TEST_IP | default "127.0.0.1"}}'
+
+tasks:
+  install:deps:
+    desc: "Install integration test dependencies"
+    cmds:
+      - |
+        echo "Installing integration test dependencies..."
+        pip install --quiet urllib3 chardet requests robotframework
+        echo "✅ Dependencies installed"
+
+  setup:db:
+    desc: "Setup Harbor for DB authentication tests"
+    cmds:
+      - |
+        echo "Setting up Harbor with DB authentication..."
+        bash ./tests/ci/api_common_install.sh {{.TEST_IP}} DB
+        echo "✅ Harbor setup complete (DB mode)"
+
+  setup:ldap:
+    desc: "Setup Harbor for LDAP authentication tests"
+    cmds:
+      - |
+        echo "Setting up Harbor with LDAP authentication..."
+        bash ./tests/ci/api_common_install.sh {{.TEST_IP}} LDAP
+        echo "✅ Harbor setup complete (LDAP mode)"
+
+  test:db:
+    desc: "Run API integration tests (DB authentication mode)"
+    deps:
+      - install:deps
+    cmds:
+      - |
+        echo "Running API tests (DB mode)..."
+        bash ./tests/ci/api_run.sh DB {{.TEST_IP}}
+        echo "✅ DB tests complete"
+
+  test:ldap:
+    desc: "Run API integration tests (LDAP authentication mode)"
+    deps:
+      - install:deps
+    cmds:
+      - |
+        echo "Running API tests (LDAP mode)..."
+        bash ./tests/ci/api_run.sh LDAP {{.TEST_IP}}
+        echo "✅ LDAP tests complete"
+
+  test:proxy-cache:
+    desc: "Run API integration tests (Proxy Cache mode)"
+    deps:
+      - install:deps
+    cmds:
+      - |
+        echo "Running API tests (Proxy Cache mode)..."
+        bash ./tests/ci/api_run.sh PROXY_CACHE {{.TEST_IP}}
+        echo "✅ Proxy Cache tests complete"
+
+  test:all:
+    desc: "Run all integration test suites"
+    cmds:
+      - task: test:db
+      - task: test:ldap
+      - task: test:proxy-cache
+
+  test:quick:
+    desc: "Run quick integration tests (DB mode only)"
+    cmds:
+      - task: test:db
+
+  logs:collect:
+    desc: "Collect integration test logs into tarball"
+    cmds:
+      - |
+        echo "Collecting integration test logs..."
+        if [ -d /var/log/harbor/ ]; then
+          tar -czf integration_logs.tar.gz /var/log/harbor/ 2>/dev/null || true
+          echo "✅ Logs collected: integration_logs.tar.gz"
+        else
+          echo "⚠️  No Harbor logs found at /var/log/harbor/"
+        fi
+
+  logs:show:
+    desc: "Show recent Harbor logs"
+    cmds:
+      - |
+        if [ -d /var/log/harbor/ ]; then
+          echo "=== Recent Harbor Logs ==="
+          tail -n 50 /var/log/harbor/*.log 2>/dev/null || echo "No log files found"
+        else
+          echo "⚠️  No Harbor logs found at /var/log/harbor/"
+        fi
+
+  clean:
+    desc: "Clean up integration test artifacts"
+    cmds:
+      - |
+        echo "Cleaning integration test artifacts..."
+        rm -f integration_logs.tar.gz
+        rm -f output.xml log.html report.html
+        echo "✅ Integration test artifacts cleaned"
