@@ -188,10 +188,9 @@ jobs:
           - jobservice
           - registryctl
           - portal
-          - db
-          - redis
           - registry
           - nginx
+          # Note: db and redis use standard images, no custom dockerfiles needed
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
@@ -235,10 +234,9 @@ jobs:
           - jobservice
           - registryctl
           - portal
-          - db
-          - redis
           - registry
           - nginx
+          # Note: db and redis use standard images, no custom dockerfiles needed
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
@@ -283,10 +281,9 @@ jobs:
           - jobservice
           - registryctl
           - portal
-          - db
-          - redis
           - registry
           - nginx
+          # Note: db and redis use standard images, no custom dockerfiles needed
     steps:
       - name: Login to GHCR
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
@@ -323,10 +320,9 @@ jobs:
           - jobservice
           - registryctl
           - portal
-          - db
-          - redis
           - registry
           - nginx
+          # Note: db and redis use standard images, no custom dockerfiles needed
     steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
@@ -362,10 +358,9 @@ jobs:
           - jobservice
           - registryctl
           - portal
-          - db
-          - redis
           - registry
           - nginx
+          # Note: db and redis use standard images, no custom dockerfiles needed
     steps:
       - name: Login to GHCR
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
@@ -416,10 +411,9 @@ jobs:
           - jobservice
           - registryctl
           - portal
-          - db
-          - redis
           - registry
           - nginx
+          # Note: db and redis use standard images, no custom dockerfiles needed
     steps:
       - name: Install Syft
         uses: anchore/sbom-action/download-syft@a930d0ac434e3182448fe678398ba5713717112a # v0.21.0
