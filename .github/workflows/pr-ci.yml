@@ -422,55 +422,57 @@ jobs:
       - name: Create image list
         env:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
-          GHCR_NS: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_NAMESPACE }}
-          HARBOR_NS: ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_NAMESPACE }}
+          GHCR_REGISTRY: ${{ env.GHCR_REGISTRY }}
+          GHCR_NAMESPACE: ${{ env.GHCR_NAMESPACE }}
+          HARBOR_REGISTRY: ${{ env.HARBOR_REGISTRY }}
+          HARBOR_NAMESPACE: ${{ env.HARBOR_NAMESPACE }}
           REPO_NAME: ${{ github.repository }}
         run: |
-          cat > image-list.txt <<EOF
-## Harbor PR Images
-
-**PR**: #${PR_NUMBER}
-**Multi-arch**: linux/amd64, linux/arm64
-
-### GitHub Container Registry (GHCR)
-\`\`\`
-${GHCR_NS}/harbor-core:pr-${PR_NUMBER}
-${GHCR_NS}/harbor-jobservice:pr-${PR_NUMBER}
-${GHCR_NS}/harbor-registryctl:pr-${PR_NUMBER}
-${GHCR_NS}/harbor-portal:pr-${PR_NUMBER}
-${GHCR_NS}/harbor-db:pr-${PR_NUMBER}
-${GHCR_NS}/harbor-redis:pr-${PR_NUMBER}
-${GHCR_NS}/harbor-registry:pr-${PR_NUMBER}
-${GHCR_NS}/harbor-nginx:pr-${PR_NUMBER}
-\`\`\`
-
-### Harbor Registry
-\`\`\`
-${HARBOR_NS}/harbor-core:pr-${PR_NUMBER}
-${HARBOR_NS}/harbor-jobservice:pr-${PR_NUMBER}
-${HARBOR_NS}/harbor-registryctl:pr-${PR_NUMBER}
-${HARBOR_NS}/harbor-portal:pr-${PR_NUMBER}
-${HARBOR_NS}/harbor-db:pr-${PR_NUMBER}
-${HARBOR_NS}/harbor-redis:pr-${PR_NUMBER}
-${HARBOR_NS}/harbor-registry:pr-${PR_NUMBER}
-${HARBOR_NS}/harbor-nginx:pr-${PR_NUMBER}
-\`\`\`
-
-### Verification
-
-All images are signed with Cosign (keyless) and include SBOMs.
-
-**Verify signature:**
-\`\`\`bash
-cosign verify \\
-  --certificate-identity-regexp="https://github.com/${REPO_NAME}" \\
-  --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \\
-  ${GHCR_NS}/harbor-core:pr-${PR_NUMBER}
-\`\`\`
-
-**Download SBOM:**
-Check the "Artifacts" section in the workflow run.
-EOF
+          {
+            echo "## Harbor PR Images"
+            echo ""
+            echo "PR: Number ${PR_NUMBER}"
+            echo "Multi-arch: linux/amd64, linux/arm64"
+            echo ""
+            echo "### GitHub Container Registry (GHCR)"
+            echo '```'
+            echo "${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-core:pr-${PR_NUMBER}"
+            echo "${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-jobservice:pr-${PR_NUMBER}"
+            echo "${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-registryctl:pr-${PR_NUMBER}"
+            echo "${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-portal:pr-${PR_NUMBER}"
+            echo "${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-db:pr-${PR_NUMBER}"
+            echo "${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-redis:pr-${PR_NUMBER}"
+            echo "${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-registry:pr-${PR_NUMBER}"
+            echo "${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-nginx:pr-${PR_NUMBER}"
+            echo '```'
+            echo ""
+            echo "### Harbor Registry"
+            echo '```'
+            echo "${HARBOR_REGISTRY}/${HARBOR_NAMESPACE}/harbor-core:pr-${PR_NUMBER}"
+            echo "${HARBOR_REGISTRY}/${HARBOR_NAMESPACE}/harbor-jobservice:pr-${PR_NUMBER}"
+            echo "${HARBOR_REGISTRY}/${HARBOR_NAMESPACE}/harbor-registryctl:pr-${PR_NUMBER}"
+            echo "${HARBOR_REGISTRY}/${HARBOR_NAMESPACE}/harbor-portal:pr-${PR_NUMBER}"
+            echo "${HARBOR_REGISTRY}/${HARBOR_NAMESPACE}/harbor-db:pr-${PR_NUMBER}"
+            echo "${HARBOR_REGISTRY}/${HARBOR_NAMESPACE}/harbor-redis:pr-${PR_NUMBER}"
+            echo "${HARBOR_REGISTRY}/${HARBOR_NAMESPACE}/harbor-registry:pr-${PR_NUMBER}"
+            echo "${HARBOR_REGISTRY}/${HARBOR_NAMESPACE}/harbor-nginx:pr-${PR_NUMBER}"
+            echo '```'
+            echo ""
+            echo "### Verification"
+            echo ""
+            echo "All images are signed with Cosign (keyless) and include SBOMs."
+            echo ""
+            echo "Verify signature:"
+            echo '```bash'
+            echo "cosign verify \\"
+            echo "  --certificate-identity-regexp=\"https://github.com/${REPO_NAME}\" \\"
+            echo "  --certificate-oidc-issuer=\"https://token.actions.githubusercontent.com\" \\"
+            echo "  ${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-core:pr-${PR_NUMBER}"
+            echo '```'
+            echo ""
+            echo "Download SBOM:"
+            echo "Check the \"Artifacts\" section in the workflow run."
+          } > image-list.txt
 
       - name: Upload image list artifact
         uses: actions/upload-artifact@v4
