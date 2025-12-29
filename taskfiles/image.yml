@@ -206,6 +206,7 @@ tasks:
     desc: "Build Docker Registry (Distribution) image"
     vars:
       PLATFORM: '{{index .MATCH 0}}'
+      ARCH: '{{if eq .PLATFORM "linux-amd64"}}amd64{{else}}arm64{{end}}'
       TAG: "goharbor/registry-photon:{{.VERSION}}-{{.PLATFORM}}"
     cmds:
       - |
@@ -229,6 +230,7 @@ tasks:
     desc: "Build Trivy Adapter Docker image"
     vars:
       PLATFORM: '{{index .MATCH 0}}'
+      ARCH: '{{if eq .PLATFORM "linux-amd64"}}amd64{{else}}arm64{{end}}'
       TAG: "goharbor/trivy-adapter-photon:{{.VERSION}}-{{.PLATFORM}}"
     cmds:
       - |
@@ -252,6 +254,7 @@ tasks:
     desc: "Build Harbor Nginx proxy image"
     vars:
       PLATFORM: '{{index .MATCH 0}}'
+      ARCH: '{{if eq .PLATFORM "linux-amd64"}}amd64{{else}}arm64{{end}}'
       TAG: "goharbor/nginx-photon:{{.VERSION}}-{{.PLATFORM}}"
     cmds:
       - |

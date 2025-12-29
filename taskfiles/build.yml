@@ -114,8 +114,8 @@ tasks:
         sh: echo {{.PLATFORM}} | cut -d- -f2
       OUTPUT: "bin/{{.PLATFORM}}/core"
     deps:
-    dir: src
       - gen-apis
+    dir: src
     env:
       GOOS: "{{.GOOS}}"
       GOARCH: "{{.GOARCH}}"

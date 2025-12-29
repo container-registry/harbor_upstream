@@ -34,6 +34,39 @@ linters:
       - .*test\.go
       - testing
       - src/jobservice/mgt/mock_manager.go
+    rules:
+      - linters:
+          - revive
+        text: "var-naming: avoid meaningless package names"
+        path: common/const\.go
+      - linters:
+          - revive
+        text: "var-naming: avoid meaningless package names"
+        path: pkg/permission/types/namespace\.go
+      - linters:
+          - revive
+        text: "var-naming: avoid meaningless package names"
+        path: pkg/quota/types/resources\.go
+      - linters:
+          - revive
+        text: "var-naming: avoid meaningless package names"
+        path: common/utils/encrypt\.go
+      - linters:
+          - revive
+        text: "var-naming: avoid meaningless package names"
+        path: jobservice/api/router\.go
+      - linters:
+          - revive
+        text: "var-naming: avoid meaningless package names"
+        path: pkg/reg/util/pattern\.go
+      - linters:
+          - revive
+        text: "var-naming: avoid meaningless package names"
+        path: common/api/base\.go
+      - linters:
+          - revive
+        text: "var-naming: avoid meaningless package names"
+        path: server/middleware/util/util\.go
 formatters:
   enable:
     - gofmt
