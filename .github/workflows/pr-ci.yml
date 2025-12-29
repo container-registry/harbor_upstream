@@ -242,7 +242,9 @@ jobs:
 
   build-push-github-arm64:
     name: Build & Push ARM64 to GHCR
-    runs-on: ubuntu-24.04-arm64
+    # TODO: ARM64 builds use QEMU emulation on AMD64 runners, causing ~7x slowdown
+    # Native ARM64 runners (ubuntu-24.04-arm64) require GitHub Team/Enterprise plan
+    runs-on: ubuntu-latest
     needs: [lint-api, lint-go, lint-frontend, test-go, test-frontend, vuln-check]
     strategy:
       fail-fast: false
