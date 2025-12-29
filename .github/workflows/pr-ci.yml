@@ -1,0 +1,512 @@
+name: PR CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - taskfile-actions
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'CLAUDE.md'
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+  id-token: write
+
+env:
+  GO_VERSION: '1.24.6'
+  NODE_VERSION: '18'
+  GHCR_REGISTRY: ghcr.io
+  GHCR_NAMESPACE: container-registry/harbor-next
+  HARBOR_REGISTRY: registry.goharbor.io
+  HARBOR_NAMESPACE: harbor-next
+
+jobs:
+  ## Phase 1: Tests (parallel)
+  lint-api:
+    name: Lint API Spec
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint OpenAPI Spec
+        run: |
+          npm install -g @stoplight/spectral-cli
+          spectral lint api/v2.0/swagger.yaml
+
+  lint-go:
+    name: Lint Go Code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: src
+          args: --timeout=10m
+
+  lint-frontend:
+    name: Lint Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/portal
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: src/portal/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+  test-go:
+    name: Test Go Code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run Go tests
+        working-directory: src
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./src/coverage.out
+          flags: unittests
+          fail_ci_if_error: false
+
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/portal
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: src/portal/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test:headless
+
+  vuln-check:
+    name: Vulnerability Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run govulncheck
+        working-directory: src
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+  ## Phase 2: Build & Push to GitHub (parallel, after tests pass)
+  build-push-github-amd64:
+    name: Build & Push AMD64 to GHCR
+    runs-on: ubuntu-latest
+    needs: [lint-api, lint-go, lint-frontend, test-go, test-frontend, vuln-check]
+    strategy:
+      matrix:
+        service:
+          - core
+          - jobservice
+          - registryctl
+          - portal
+          - db
+          - redis
+          - registry
+          - nginx
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract PR number
+        id: pr
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+
+      - name: Build and push AMD64 image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./dockerfiles/Dockerfile.${{ matrix.service }}
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_NAMESPACE }}/harbor-${{ matrix.service }}:pr-${{ steps.pr.outputs.number }}-amd64
+          cache-from: type=gha,scope=${{ matrix.service }}-amd64
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}-amd64
+          provenance: true
+          sbom: true
+
+  build-push-github-arm64:
+    name: Build & Push ARM64 to GHCR
+    runs-on: ubuntu-latest
+    needs: [lint-api, lint-go, lint-frontend, test-go, test-frontend, vuln-check]
+    strategy:
+      matrix:
+        service:
+          - core
+          - jobservice
+          - registryctl
+          - portal
+          - db
+          - redis
+          - registry
+          - nginx
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract PR number
+        id: pr
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+
+      - name: Build and push ARM64 image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./dockerfiles/Dockerfile.${{ matrix.service }}
+          platforms: linux/arm64
+          push: true
+          tags: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_NAMESPACE }}/harbor-${{ matrix.service }}:pr-${{ steps.pr.outputs.number }}-arm64
+          cache-from: type=gha,scope=${{ matrix.service }}-arm64
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}-arm64
+          provenance: true
+          sbom: true
+
+  ## Phase 3: Finalize on GitHub (sequential)
+  create-manifests-github:
+    name: Create Multi-arch Manifests on GHCR
+    runs-on: ubuntu-latest
+    needs: [build-push-github-amd64, build-push-github-arm64]
+    strategy:
+      matrix:
+        service:
+          - core
+          - jobservice
+          - registryctl
+          - portal
+          - db
+          - redis
+          - registry
+          - nginx
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract PR number
+        id: pr
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+
+      - name: Create and push manifest
+        env:
+          SERVICE: ${{ matrix.service }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          IMAGE_BASE: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_NAMESPACE }}/harbor-${{ matrix.service }}
+        run: |
+          docker buildx imagetools create -t \
+            "${IMAGE_BASE}:pr-${PR_NUMBER}" \
+            "${IMAGE_BASE}:pr-${PR_NUMBER}-amd64" \
+            "${IMAGE_BASE}:pr-${PR_NUMBER}-arm64"
+
+  sign-images-github:
+    name: Sign Images on GHCR
+    runs-on: ubuntu-latest
+    needs: create-manifests-github
+    strategy:
+      matrix:
+        service:
+          - core
+          - jobservice
+          - registryctl
+          - portal
+          - db
+          - redis
+          - registry
+          - nginx
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.7.0
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract PR number
+        id: pr
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+
+      - name: Sign image with keyless signing
+        env:
+          IMAGE: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_NAMESPACE }}/harbor-${{ matrix.service }}:pr-${{ steps.pr.outputs.number }}
+        run: |
+          cosign sign --yes "${IMAGE}"
+
+  ## Phase 4: Push to Harbor Registry (sequential)
+  push-to-harbor:
+    name: Push to Harbor Registry
+    runs-on: ubuntu-latest
+    needs: sign-images-github
+    strategy:
+      matrix:
+        service:
+          - core
+          - jobservice
+          - registryctl
+          - portal
+          - db
+          - redis
+          - registry
+          - nginx
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Harbor Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.HARBOR_REGISTRY }}
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Extract PR number
+        id: pr
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+
+      - name: Pull from GHCR and push to Harbor
+        env:
+          SERVICE: ${{ matrix.service }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          GHCR_IMAGE: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_NAMESPACE }}/harbor-${{ matrix.service }}:pr-${{ steps.pr.outputs.number }}
+          HARBOR_IMAGE: ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_NAMESPACE }}/harbor-${{ matrix.service }}:pr-${{ steps.pr.outputs.number }}
+        run: |
+          # Pull multi-arch manifest from GHCR
+          docker pull --platform linux/amd64 "${GHCR_IMAGE}"
+          docker pull --platform linux/arm64 "${GHCR_IMAGE}"
+
+          # Tag for Harbor
+          docker tag "${GHCR_IMAGE}" "${HARBOR_IMAGE}"
+
+          # Push to Harbor
+          docker push "${HARBOR_IMAGE}"
+
+  ## Phase 5: Reporting (sequential)
+  generate-sboms:
+    name: Generate SBOMs
+    runs-on: ubuntu-latest
+    needs: create-manifests-github
+    strategy:
+      matrix:
+        service:
+          - core
+          - jobservice
+          - registryctl
+          - portal
+          - db
+          - redis
+          - registry
+          - nginx
+    steps:
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0.17.10
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract PR number
+        id: pr
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+
+      - name: Generate SBOM
+        env:
+          IMAGE: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_NAMESPACE }}/harbor-${{ matrix.service }}:pr-${{ steps.pr.outputs.number }}
+          SERVICE: ${{ matrix.service }}
+        run: |
+          syft "${IMAGE}" -o spdx-json > "sbom-${SERVICE}.spdx.json"
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.service }}
+          path: sbom-${{ matrix.service }}.spdx.json
+          retention-days: 30
+
+  pr-comment:
+    name: Comment on PR
+    runs-on: ubuntu-latest
+    needs: [push-to-harbor, generate-sboms]
+    steps:
+      - name: Extract PR number
+        id: pr
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+
+      - name: Create image list
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          GHCR_NS: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_NAMESPACE }}
+          HARBOR_NS: ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_NAMESPACE }}
+          REPO_NAME: ${{ github.repository }}
+        run: |
+          cat > image-list.txt <<EOF
+## Harbor PR Images
+
+**PR**: #${PR_NUMBER}
+**Multi-arch**: linux/amd64, linux/arm64
+
+### GitHub Container Registry (GHCR)
+\`\`\`
+${GHCR_NS}/harbor-core:pr-${PR_NUMBER}
+${GHCR_NS}/harbor-jobservice:pr-${PR_NUMBER}
+${GHCR_NS}/harbor-registryctl:pr-${PR_NUMBER}
+${GHCR_NS}/harbor-portal:pr-${PR_NUMBER}
+${GHCR_NS}/harbor-db:pr-${PR_NUMBER}
+${GHCR_NS}/harbor-redis:pr-${PR_NUMBER}
+${GHCR_NS}/harbor-registry:pr-${PR_NUMBER}
+${GHCR_NS}/harbor-nginx:pr-${PR_NUMBER}
+\`\`\`
+
+### Harbor Registry
+\`\`\`
+${HARBOR_NS}/harbor-core:pr-${PR_NUMBER}
+${HARBOR_NS}/harbor-jobservice:pr-${PR_NUMBER}
+${HARBOR_NS}/harbor-registryctl:pr-${PR_NUMBER}
+${HARBOR_NS}/harbor-portal:pr-${PR_NUMBER}
+${HARBOR_NS}/harbor-db:pr-${PR_NUMBER}
+${HARBOR_NS}/harbor-redis:pr-${PR_NUMBER}
+${HARBOR_NS}/harbor-registry:pr-${PR_NUMBER}
+${HARBOR_NS}/harbor-nginx:pr-${PR_NUMBER}
+\`\`\`
+
+### Verification
+
+All images are signed with Cosign (keyless) and include SBOMs.
+
+**Verify signature:**
+\`\`\`bash
+cosign verify \\
+  --certificate-identity-regexp="https://github.com/${REPO_NAME}" \\
+  --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \\
+  ${GHCR_NS}/harbor-core:pr-${PR_NUMBER}
+\`\`\`
+
+**Download SBOM:**
+Check the "Artifacts" section in the workflow run.
+EOF
+
+      - name: Upload image list artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: harbor-images-pr-${{ steps.pr.outputs.number }}
+          path: image-list.txt
+          retention-days: 30
+
+      - name: Comment PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const imageList = fs.readFileSync('image-list.txt', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: imageList
+            });
+
+  ## Phase 6: Branch Protection
+  pr-ci-success:
+    name: PR CI Success
+    runs-on: ubuntu-latest
+    needs: [pr-comment]
+    if: always()
+    steps:
+      - name: Check all jobs
+        env:
+          RESULT: ${{ needs.pr-comment.result }}
+        run: |
+          if [ "${RESULT}" != "success" ]; then
+            echo "PR CI workflow failed"
+            exit 1
+          fi
+          echo "PR CI workflow completed successfully"
