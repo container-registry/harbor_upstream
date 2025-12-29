@@ -9,8 +9,8 @@ RUN apk add --no-cache git=2.48.1-r0 && \
     git clone -b v3.0.0 https://github.com/distribution/distribution.git
 
 WORKDIR /go/src/github.com/docker/distribution
-RUN git apply CVE-2025-22872 fix && \
-    go mod edit -require golang.org/x/net@v0.38.0 && \
+# Fix CVE-2025-22872 by updating golang.org/x/net to v0.38.0
+RUN go mod edit -require golang.org/x/net@v0.38.0 && \
     go mod tidy -e && \
     go mod vendor
 

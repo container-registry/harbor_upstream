@@ -3,6 +3,8 @@
 
 FROM golang:1.24.6 AS builder
 
+ARG TARGETARCH
+
 # Build trivy-adapter (lines 598-614)
 WORKDIR /go/src/github.com/goharbor/
 RUN git clone -b v0.33.2 https://github.com/goharbor/harbor-scanner-trivy.git
@@ -10,8 +12,13 @@ RUN git clone -b v0.33.2 https://github.com/goharbor/harbor-scanner-trivy.git
 WORKDIR /go/src/github.com/goharbor/harbor-scanner-trivy
 RUN CGO_ENABLED=0 go build -o ./binary/scanner-trivy cmd/scanner-trivy/main.go
 
-# Download trivy binary
-RUN wget --progress=dot:giga -O trivyDownload https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-64bit.tar.gz && \
+# Download trivy binary (multi-arch support)
+RUN case "${TARGETARCH}" in \
+      amd64) TRIVY_ARCH="64bit" ;; \
+      arm64) TRIVY_ARCH="ARM64" ;; \
+      *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+    esac && \
+    wget --progress=dot:giga -O trivyDownload https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-${TRIVY_ARCH}.tar.gz && \
     tar -zxvf trivyDownload && \
     cp trivy ./binary/trivy
 

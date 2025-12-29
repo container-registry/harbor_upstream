@@ -48,7 +48,7 @@ jobs:
 
       - name: Install Task
         run: |
-          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin v3.41.2
 
       - name: Generate API code
         run: task build:gen-apis
@@ -93,7 +93,7 @@ jobs:
 
       - name: Install Task
         run: |
-          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin v3.41.2
 
       - name: Generate API code
         run: task build:gen-apis
@@ -145,7 +145,7 @@ jobs:
 
       - name: Install Task
         run: |
-          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin v3.41.2
 
       - name: Generate API code
         run: task build:gen-apis
