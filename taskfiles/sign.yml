@@ -1,0 +1,178 @@
+version: '3'
+
+vars:
+  COSIGN_VERSION: v2.4.1
+  SYFT_VERSION: v1.20.0
+  COSIGN_YES: "true"
+
+  REGISTRY: '{{.REGISTRY | default "registry.goharbor.io"}}'
+  IMAGE_NAMESPACE: '{{.IMAGE_NAMESPACE | default "harbor-next"}}'
+  IMAGE_TAG: '{{.IMAGE_TAG | default .VERSION}}'
+
+tasks:
+  install:cosign:
+    desc: "Install cosign for image signing"
+    status:
+      - command -v cosign
+    cmds:
+      - |
+        echo "Installing cosign {{.COSIGN_VERSION}}..."
+        wget -q -O /tmp/cosign https://github.com/sigstore/cosign/releases/download/{{.COSIGN_VERSION}}/cosign-linux-amd64
+        chmod +x /tmp/cosign
+        sudo mv /tmp/cosign /usr/local/bin/cosign
+        echo "✅ Cosign installed: $(cosign version)"
+
+  install:syft:
+    desc: "Install syft for SBOM generation"
+    status:
+      - command -v syft
+    cmds:
+      - |
+        echo "Installing syft {{.SYFT_VERSION}}..."
+        wget -q -O /tmp/syft.tar.gz https://github.com/anchore/syft/releases/download/{{.SYFT_VERSION}}/syft_{{.SYFT_VERSION}}_linux_amd64.tar.gz
+        tar -xzf /tmp/syft.tar.gz -C /tmp
+        chmod +x /tmp/syft
+        sudo mv /tmp/syft /usr/local/bin/syft
+        rm -f /tmp/syft.tar.gz
+        echo "✅ Syft installed: $(syft version)"
+
+  install:
+    desc: "Install all signing tools (cosign + syft)"
+    cmds:
+      - task: install:cosign
+      - task: install:syft
+
+  sign:image:
+    desc: "Sign a specific image (usage: task sign:image -- IMAGE_REF)"
+    vars:
+      IMAGE_REF: '{{.CLI_ARGS}}'
+    requires:
+      vars: [IMAGE_REF]
+    deps:
+      - install:cosign
+    cmds:
+      - |
+        echo "Signing image: {{.IMAGE_REF}}"
+        cosign sign --yes {{.IMAGE_REF}}
+        echo "✅ Image signed: {{.IMAGE_REF}}"
+
+  sign:all:
+    desc: "Sign all Harbor images"
+    deps:
+      - install:cosign
+    cmds:
+      - for:
+          - core
+          - jobservice
+          - registryctl
+          - exporter
+          - portal
+          - registry
+          - trivy-adapter
+          - nginx
+        cmd: |
+          IMAGE={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-{{.ITEM}}:{{.IMAGE_TAG}}
+          echo "Signing: $IMAGE"
+          cosign sign --yes $IMAGE
+          echo "✅ Signed: $IMAGE"
+
+  verify:image:
+    desc: "Verify image signature (usage: task sign:verify:image -- IMAGE_REF)"
+    vars:
+      IMAGE_REF: '{{.CLI_ARGS}}'
+    requires:
+      vars: [IMAGE_REF]
+    deps:
+      - install:cosign
+    cmds:
+      - |
+        echo "Verifying signature: {{.IMAGE_REF}}"
+        cosign verify {{.IMAGE_REF}}
+        echo "✅ Signature verified: {{.IMAGE_REF}}"
+
+  verify:all:
+    desc: "Verify all Harbor image signatures"
+    deps:
+      - install:cosign
+    cmds:
+      - for:
+          - core
+          - jobservice
+          - registryctl
+          - exporter
+          - portal
+          - registry
+          - trivy-adapter
+          - nginx
+        cmd: |
+          IMAGE={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-{{.ITEM}}:{{.IMAGE_TAG}}
+          echo "Verifying: $IMAGE"
+          cosign verify $IMAGE
+          echo "✅ Verified: $IMAGE"
+
+  sbom:generate:
+    desc: "Generate SBOM for an image (usage: task sign:sbom:generate -- IMAGE_REF)"
+    vars:
+      IMAGE_REF: '{{.CLI_ARGS}}'
+      SBOM_FILE: 'sbom-{{.IMAGE_REF | replace "/" "-" | replace ":" "-"}}.spdx.json'
+    requires:
+      vars: [IMAGE_REF]
+    deps:
+      - install:syft
+    cmds:
+      - |
+        echo "Generating SBOM for: {{.IMAGE_REF}}"
+        syft {{.IMAGE_REF}} -o spdx-json > {{.SBOM_FILE}}
+        echo "✅ SBOM generated: {{.SBOM_FILE}}"
+
+  sbom:attach:
+    desc: "Attach SBOM to image and sign (usage: task sign:sbom:attach -- IMAGE_REF)"
+    vars:
+      IMAGE_REF: '{{.CLI_ARGS}}'
+      SBOM_FILE: 'sbom-{{.IMAGE_REF | replace "/" "-" | replace ":" "-"}}.spdx.json'
+    requires:
+      vars: [IMAGE_REF]
+    deps:
+      - install:cosign
+      - install:syft
+    cmds:
+      - |
+        echo "Generating SBOM for: {{.IMAGE_REF}}"
+        syft {{.IMAGE_REF}} -o spdx-json > {{.SBOM_FILE}}
+        echo "Attaching SBOM to: {{.IMAGE_REF}}"
+        cosign attach sbom --sbom {{.SBOM_FILE}} {{.IMAGE_REF}}
+        echo "Signing SBOM attestation..."
+        cosign sign --yes {{.IMAGE_REF}}
+        echo "✅ SBOM attached and signed: {{.IMAGE_REF}}"
+        rm -f {{.SBOM_FILE}}
+
+  sbom:all:
+    desc: "Generate and attach SBOMs for all Harbor images"
+    deps:
+      - install:cosign
+      - install:syft
+    cmds:
+      - for:
+          - core
+          - jobservice
+          - registryctl
+          - exporter
+          - portal
+          - registry
+          - trivy-adapter
+          - nginx
+        cmd: |
+          IMAGE={{.REGISTRY}}/{{.IMAGE_NAMESPACE}}/harbor-{{.ITEM}}:{{.IMAGE_TAG}}
+          echo "Processing SBOM for: $IMAGE"
+          SBOM_FILE="sbom-harbor-{{.ITEM}}-{{.IMAGE_TAG}}.spdx.json"
+          syft $IMAGE -o spdx-json > $SBOM_FILE
+          cosign attach sbom --sbom $SBOM_FILE $IMAGE
+          cosign sign --yes $IMAGE
+          rm -f $SBOM_FILE
+          echo "✅ SBOM attached and signed: $IMAGE"
+
+  clean:
+    desc: "Clean up generated SBOM files"
+    cmds:
+      - rm -f sbom-*.spdx.json
+      - echo "✅ SBOM files cleaned"
