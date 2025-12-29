@@ -389,6 +389,9 @@ jobs:
     name: Push to Harbor Registry
     runs-on: ubuntu-latest
     needs: sign-images-github
+    permissions:
+      id-token: write   # For Cosign keyless signing
+      packages: read    # For reading from GHCR
     strategy:
       fail-fast: false
       matrix:
@@ -401,6 +404,9 @@ jobs:
           - nginx
           # Note: db and redis use standard images, no custom dockerfiles needed
     steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+
       - name: Login to GHCR
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
@@ -428,15 +434,20 @@ jobs:
           GHCR_IMAGE: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_NAMESPACE }}/harbor-${{ matrix.service }}:pr-${{ steps.pr.outputs.number }}
           HARBOR_IMAGE: ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_NAMESPACE }}/harbor-${{ matrix.service }}:pr-${{ steps.pr.outputs.number }}
         run: |
-          # Pull multi-arch manifest from GHCR
-          docker pull --platform linux/amd64 "${GHCR_IMAGE}"
-          docker pull --platform linux/arm64 "${GHCR_IMAGE}"
+          # Create and push multi-arch manifest to Harbor (preserves amd64 + arm64)
+          # This also copies signatures and SBOMs from GHCR to Harbor
+          docker buildx imagetools create \
+            --tag "${HARBOR_IMAGE}" \
+            "${GHCR_IMAGE}"
 
-          # Tag for Harbor
-          docker tag "${GHCR_IMAGE}" "${HARBOR_IMAGE}"
+          echo "✓ Multi-arch manifest pushed to Harbor: ${HARBOR_IMAGE}"
 
-          # Push to Harbor
-          docker push "${HARBOR_IMAGE}"
+      - name: Sign Harbor Registry image
+        env:
+          HARBOR_IMAGE: ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_NAMESPACE }}/harbor-${{ matrix.service }}:pr-${{ steps.pr.outputs.number }}
+        run: |
+          cosign sign --yes "${HARBOR_IMAGE}"
+          echo "✓ Image signed on Harbor: ${HARBOR_IMAGE}"
 
   ## Phase 5: Reporting (sequential)
   generate-sboms:
