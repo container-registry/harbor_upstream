@@ -183,6 +183,7 @@ tasks:
     desc: "Build Harbor Portal Docker image (Angular frontend)"
     vars:
       PLATFORM: '{{index .MATCH 0}}'
+      ARCH: '{{if eq .PLATFORM "linux-amd64"}}amd64{{else}}arm64{{end}}'
       TAG: "goharbor/harbor-portal:{{.VERSION}}-{{.PLATFORM}}"
     cmds:
       - |
