@@ -15,7 +15,7 @@ ENV NPM_CONFIG_REGISTRY=https://registry.npmjs.org
 
 # Install Bun
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends unzip=6.0-28 && \
+    apt-get install -y --no-install-recommends unzip && \
     rm -rf /var/lib/apt/lists/* && \
     npm install -g bun@1.2.13
 
