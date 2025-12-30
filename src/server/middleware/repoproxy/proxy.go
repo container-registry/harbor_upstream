@@ -268,7 +268,12 @@ func handleManifest(w http.ResponseWriter, r *http.Request, next http.Handler) e
 		err = proxyManifestHead(ctx, w, proxyCtl, p, art, remote)
 	} else if r.Method == http.MethodGet {
 		log.Warningf("Artifact: %v:%v, digest:%v is not found in proxy cache, fetch it from remote repo", art.Repository, art.Tag, art.Digest)
-		err = proxyManifestGet(ctx, w, proxyCtl, p, art, remote)
+		// Check if vulnerability prevention is enabled for synchronous caching
+		if p.VulPrevented() {
+			err = cacheThenServeManifest(ctx, w, proxyCtl, p, art, remote)
+		} else {
+			err = proxyManifestGet(ctx, w, proxyCtl, p, art, remote)
+		}
 	}
 	if err != nil {
 		if errors.IsNotFoundErr(err) || errors.IsRateLimitError(err) {
@@ -294,6 +299,24 @@ func proxyManifestGet(ctx context.Context, w http.ResponseWriter, ctl proxy.Cont
 		return err
 	}
 	return nil
+}
+
+// cacheThenServeManifest triggers manifest caching but does NOT serve immediately.
+// This ensures the artifact is cached and scanned before being served when vulnerability prevention is enabled.
+// The client will receive an error on first request and must retry after caching/scanning completes.
+func cacheThenServeManifest(ctx context.Context, w http.ResponseWriter, ctl proxy.Controller, _ *proModels.Project, art lib.ArtifactInfo, remote proxy.RemoteInterface) error {
+	// Trigger caching by calling ProxyManifest
+	// This fetches from remote and caches in background
+	_, err := ctl.ProxyManifest(ctx, art, remote)
+	if err != nil {
+		return err
+	}
+
+	// Don't serve the manifest immediately
+	// Instead, return an error indicating the artifact is being cached and scanned
+	// The client should retry the request after a short delay
+	msg := fmt.Sprintf("Artifact %s:%s is being cached and scanned. Please retry in a moment.", art.Repository, art.Reference)
+	return errors.New(nil).WithCode(errors.PreconditionCode).WithMessage(msg)
 }
 
 func canProxy(ctx context.Context, p *proModels.Project) bool {
