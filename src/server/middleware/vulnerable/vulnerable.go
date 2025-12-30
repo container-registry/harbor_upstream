@@ -115,8 +115,16 @@ func Middleware() func(http.Handler) http.Handler {
 		}
 
 		if !vulnerable.IsScanSuccess() {
-			msg := fmt.Sprintf(`current image with "%s" status of vulnerability scanning cannot be pulled due to configured policy in 'Prevent images with vulnerability severity of "%s" or higher from running.' `+
-				`To continue with pull, please contact your project administrator for help.`, vulnerable.ScanStatus, projectSeverity)
+			var msg string
+			// Check if scan is in progress (Pending, Running, Scheduled)
+			if vulnerable.ScanStatus == "Pending" || vulnerable.ScanStatus == "Running" || vulnerable.ScanStatus == "Scheduled" {
+				msg = fmt.Sprintf(`current image with "%s" status of vulnerability scanning cannot be pulled due to configured policy in 'Prevent images with vulnerability severity of "%s" or higher from running.' `+
+					`The image is being scanned, please retry later.`, vulnerable.ScanStatus, projectSeverity)
+			} else {
+				// Scan failed (Error, Stopped, etc.)
+				msg = fmt.Sprintf(`current image with scan %s status cannot be pulled due to configured policy in 'Prevent images with vulnerability severity of "%s" or higher from running.' `+
+					`To continue with pull, please contact your project administrator for help.`, vulnerable.ScanStatus, projectSeverity)
+			}
 			return errors.New(nil).WithCode(errors.PROJECTPOLICYVIOLATION).WithMessage(msg)
 		}
 
