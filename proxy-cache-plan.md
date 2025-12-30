@@ -7,16 +7,19 @@ Currently, Harbor proxy cache serves images immediately and scans them in the ba
 ## Solution
 
 Change proxy cache flow when `prevent_vul=true`:
+
 - **Before:** Stream to client → Cache in background → Scan in background
 - **After:** Cache synchronously → Scan triggered → Check status → Serve or block
 
 ## Scope
 
 **What changes:**
+
 - Proxy manifest middleware: Add synchronous caching path
 - Vulnerable middleware: Better error messages for scan states
 
 **What stays the same:**
+
 - Blob handling (no changes)
 - Webhook system (no changes)
 - Manifest list handling (skip checking)
@@ -40,6 +43,7 @@ Change proxy cache flow when `prevent_vul=true`:
 **Purpose:** Test enhanced scan status blocking
 
 **Tests:**
+
 - No scan report + prevent_vul=true → Block
 - Scan pending/running → Block with "scanning" error
 - Scan failed → Block with "scan failed" error
@@ -54,6 +58,7 @@ Change proxy cache flow when `prevent_vul=true`:
 **Purpose:** Test synchronous caching logic
 
 **Tests:**
+
 - prevent_vul=false → Stream immediately (current behavior)
 - prevent_vul=true + not cached → Cache synchronously first
 - Manifest already cached → Use local
@@ -69,6 +74,7 @@ Change proxy cache flow when `prevent_vul=true`:
 **Change 1: Handle missing scan report**
 
 When no scan report exists:
+
 - Check if artifact is scannable
 - If not scannable → Block with "scanner unavailable" error
 - If scannable but auto-scan off → "Auto-scan disabled, enable it or scan manually"
@@ -77,6 +83,7 @@ When no scan report exists:
 **Change 2: Check scan status**
 
 Before checking vulnerabilities:
+
 - If scan Pending/Running/Scheduled → "Image is being scanned, retry later"
 - If scan Failed/Error/Stopped → "Image scan [status], cannot pull"
 - If scan Success → Continue to vulnerability check (existing code)
@@ -92,6 +99,7 @@ Before checking vulnerabilities:
 In `handleManifest`, after checking `UseLocalManifest`:
 
 **If manifest NOT cached:**
+
 - Check if `p.VulPrevented()` is true
 - If YES → Call new function `cacheThenServeManifest()`
 - If NO → Current behavior (proxyManifestGet/Head)
@@ -99,6 +107,7 @@ In `handleManifest`, after checking `UseLocalManifest`:
 **New function: `cacheThenServeManifest()`**
 
 Add after line 297:
+
 1. Fetch manifest from remote
 2. Push to local registry (synchronous) - this triggers PUSH event
 3. PUSH event handler triggers scan (if auto-scan enabled)
@@ -141,29 +150,27 @@ Add `cacheThenServeManifest` and modify `handleManifest` → Run tests → PASS
 
 ## Edge Cases Handled
 
-| Scenario | Behavior | Location |
-|----------|----------|----------|
-| Auto-scan off + prevent_vul on | Block with "enable auto-scan" error | vulnerable.go |
-| Scanner offline/unavailable | Block new images, allow scanned images | vulnerable.go IsScannable() |
-| Cached but not scanned | Block, trigger scan if auto-scan on | vulnerable.go |
-| Manifest list (multi-arch) | Skip (existing behavior) | vulnerable.go lines 107-115 |
-| Scanner/Cosign pulls | Skip check (existing behavior) | vulnerable.go lines 72-79 |
-| Blob pulls | No changes (not checked) | No changes |
-| Race: scan completes mid-check | No issue, middleware sees result | No special handling |
-| Concurrent pulls | Deduplicated by inflightChecker | Existing code |
+| Scenario                       | Behavior                               | Location                    |
+| ------------------------------ | -------------------------------------- | --------------------------- |
+| Auto-scan off + prevent_vul on | Block with "enable auto-scan" error    | vulnerable.go               |
+| Scanner offline/unavailable    | Block new images, allow scanned images | vulnerable.go IsScannable() |
+| Cached but not scanned         | Block, trigger scan if auto-scan on    | vulnerable.go               |
+| Manifest list (multi-arch)     | Skip (existing behavior)               | vulnerable.go lines 107-115 |
+| Scanner/Cosign pulls           | Skip check (existing behavior)         | vulnerable.go lines 72-79   |
+| Blob pulls                     | No changes (not checked)               | No changes                  |
+| Race: scan completes mid-check | No issue, middleware sees result       | No special handling         |
+| Concurrent pulls               | Deduplicated by inflightChecker        | Existing code               |
 
 ## Files Summary
 
 **Create (tests first):**
+
 1. `src/server/middleware/vulnerable/vulnerable_tdd_test.go`
 2. `src/server/middleware/repoproxy/proxy_tdd_test.go`
 
-**Modify (implementation):**
-3. `src/server/middleware/vulnerable/vulnerable.go` (lines 84-121)
-4. `src/server/middleware/repoproxy/proxy.go` (lines 205-281 + new function)
+**Modify (implementation):** 3. `src/server/middleware/vulnerable/vulnerable.go` (lines 84-121) 4. `src/server/middleware/repoproxy/proxy.go` (lines 205-281 + new function)
 
-**Update (additional tests):**
-5. `src/server/middleware/vulnerable/vulnerable_test.go`
+**Update (additional tests):** 5. `src/server/middleware/vulnerable/vulnerable_test.go`
 
 ## Success Criteria
 
