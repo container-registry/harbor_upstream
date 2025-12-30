@@ -9,10 +9,12 @@ This release introduces the **scan-before-serve** feature for proxy cache projec
 ### New Behavior for Proxy Cache Projects
 
 When **both** of the following conditions are met:
+
 1. Project is a **proxy cache project** (has upstream registry configured)
 2. Project has **"Prevent vulnerable images from running"** enabled (`prevent_vul=true`)
 
 Harbor now implements scan-before-serve:
+
 - **First Pull Request**: Image is fetched from upstream and cached, but **NOT served immediately**
   - Client receives HTTP 412 Precondition Failed error
   - Error message: "Artifact {name}:{tag} is being cached and scanned. Please retry in a moment."
@@ -28,26 +30,29 @@ Harbor now implements scan-before-serve:
 
 Vulnerability prevention now provides more actionable error messages based on scan status:
 
-| Scan Status | Error Message | Action Required |
-|-------------|---------------|-----------------|
-| **No scan report** | "Current image without vulnerability scanning cannot be pulled" | Enable auto-scan or manually trigger scan |
-| **Pending/Running/Scheduled** | "Image is being scanned, please retry later" | Wait for scan to complete (typically 10-60 seconds) |
-| **Error/Stopped** | "Image scan {status}, cannot be pulled" | Check scanner configuration, retry scan manually |
-| **Success (vulnerable)** | "Current image with N vulnerabilities cannot be pulled" | Review CVE allowlist or use different image version |
-| **Success (safe)** | Image is served | - |
+| Scan Status                   | Error Message                                                   | Action Required                                     |
+| ----------------------------- | --------------------------------------------------------------- | --------------------------------------------------- |
+| **No scan report**            | "Current image without vulnerability scanning cannot be pulled" | Enable auto-scan or manually trigger scan           |
+| **Pending/Running/Scheduled** | "Image is being scanned, please retry later"                    | Wait for scan to complete (typically 10-60 seconds) |
+| **Error/Stopped**             | "Image scan {status}, cannot be pulled"                         | Check scanner configuration, retry scan manually    |
+| **Success (vulnerable)**      | "Current image with N vulnerabilities cannot be pulled"         | Review CVE allowlist or use different image version |
+| **Success (safe)**            | Image is served                                                 | -                                                   |
 
 ## Impact on User Workflows
 
 ### Breaking Changes
 
 #### Proxy Cache with Vulnerability Prevention
+
 **Before**: Images pulled immediately on first request, potential security gap
+
 ```bash
 $ docker pull harbor.example.com/proxy-cache/library/nginx:latest
 # ✓ Image pulled successfully (even if vulnerable, scan happens later)
 ```
 
 **After**: First pull is blocked, retry required
+
 ```bash
 $ docker pull harbor.example.com/proxy-cache/library/nginx:latest
 # ✗ Error: Artifact proxy-cache/library/nginx:latest is being cached and scanned. Please retry in a moment.
@@ -62,6 +67,7 @@ $ docker pull harbor.example.com/proxy-cache/library/nginx:latest
 ### Non-Breaking Scenarios
 
 The following scenarios are **NOT affected** and work exactly as before:
+
 - Regular (non-proxy) projects with vulnerability prevention
 - Proxy cache projects **without** vulnerability prevention enabled
 - Proxy cache with vulnerability prevention **disabled** (`prevent_vul=false`)
@@ -79,6 +85,7 @@ The following scenarios are **NOT affected** and work exactly as before:
    - Recommended retry: 2-3 attempts with 15-30 second delays
 
    Example with Docker:
+
    ```bash
    #!/bin/bash
    IMAGE="harbor.example.com/proxy-cache/library/nginx:latest"
@@ -116,6 +123,7 @@ The following scenarios are **NOT affected** and work exactly as before:
 ### For New Deployments
 
 1. **Recommended Setup for Proxy Cache with Security**:
+
    ```
    Project Settings:
    ├── Proxy Cache: Enabled
@@ -131,6 +139,7 @@ The following scenarios are **NOT affected** and work exactly as before:
    - Subsequent pulls will be immediate
 
 3. **Testing**:
+
    ```bash
    # Test the scan-before-serve flow:
    docker pull harbor.example.com/proxy-cache/library/alpine:latest
@@ -148,25 +157,26 @@ The following scenarios are **NOT affected** and work exactly as before:
 
 ### Project-Level Settings
 
-| Setting | Location | Effect |
-|---------|----------|--------|
-| **Prevent vulnerable images** | Project → Configuration | Enable/disable scan-before-serve |
-| **Vulnerability severity** | Project → Configuration | Minimum severity to block (None/Low/Medium/High/Critical) |
+| Setting                       | Location                | Effect                                                       |
+| ----------------------------- | ----------------------- | ------------------------------------------------------------ |
+| **Prevent vulnerable images** | Project → Configuration | Enable/disable scan-before-serve                             |
+| **Vulnerability severity**    | Project → Configuration | Minimum severity to block (None/Low/Medium/High/Critical)    |
 | **Automatically scan images** | Project → Configuration | Auto-trigger scans on cache (required for scan-before-serve) |
-| **CVE allowlist** | Project → Configuration | Exempt specific CVEs from blocking |
+| **CVE allowlist**             | Project → Configuration | Exempt specific CVEs from blocking                           |
 
 ### System-Level Settings
 
-| Setting | Location | Effect |
-|---------|----------|--------|
+| Setting                   | Location                                | Effect                        |
+| ------------------------- | --------------------------------------- | ----------------------------- |
 | **Scanner configuration** | Administration → Interrogation Services | Configure Trivy/Clair scanner |
-| **Scanner health** | Administration → Interrogation Services | Monitor scanner status |
+| **Scanner health**        | Administration → Interrogation Services | Monitor scanner status        |
 
 ## Technical Details
 
 ### Middleware Execution Order
 
 For manifest GET requests:
+
 1. **Proxy Middleware**: Checks if manifest cached, triggers caching if needed
 2. **Content Trust Middleware**: Verifies signatures (if enabled)
 3. **Vulnerable Middleware**: Checks scan status and vulnerabilities
@@ -181,12 +191,12 @@ For manifest GET requests:
 
 ### Error Codes
 
-| HTTP Status | Scenario |
-|-------------|----------|
-| **412 Precondition Failed** | Image being cached/scanned, or fails vulnerability check |
-| **404 Not Found** | Image not found in upstream registry |
-| **429 Too Many Requests** | Exceeded max upstream registry connections |
-| **500 Internal Server Error** | Scanner error or internal failure |
+| HTTP Status                   | Scenario                                                 |
+| ----------------------------- | -------------------------------------------------------- |
+| **412 Precondition Failed**   | Image being cached/scanned, or fails vulnerability check |
+| **404 Not Found**             | Image not found in upstream registry                     |
+| **429 Too Many Requests**     | Exceeded max upstream registry connections               |
+| **500 Internal Server Error** | Scanner error or internal failure                        |
 
 ## Known Limitations
 
@@ -199,23 +209,28 @@ For manifest GET requests:
 ## Troubleshooting
 
 ### "Artifact is being cached and scanned. Please retry in a moment."
+
 - **Cause**: First pull of new image
 - **Solution**: Wait 15-30 seconds and retry pull
 
 ### "Image is being scanned, please retry later"
+
 - **Cause**: Scan in progress
 - **Solution**: Wait for scan to complete (check Harbor UI → Artifacts → Scan status)
 
 ### "Image scan Error, cannot be pulled"
+
 - **Cause**: Scanner failure or configuration issue
 - **Solution**: Check Administration → Interrogation Services, verify scanner is healthy
 
 ### Images never become pullable
+
 - **Check 1**: Is auto-scan enabled? (Project → Configuration)
 - **Check 2**: Is scanner healthy? (Administration → Interrogation Services)
 - **Check 3**: Check artifact scan status in Harbor UI
 
 ### CI/CD pipeline failures
+
 - **Solution**: Add retry logic with delays (see migration guide above)
 - **Alternative**: Disable vulnerability prevention during testing, enable in production
 
@@ -233,12 +248,14 @@ To revert to previous behavior:
 ## Security Implications
 
 ### Improved Security
+
 - ✅ Proxy cache projects now respect vulnerability prevention policy
 - ✅ Vulnerable images cannot be pulled before scanning completes
 - ✅ Closes security gap where vulnerable images could bypass policy
 - ✅ Better error messages help users understand security blocks
 
 ### Trade-offs
+
 - ⚠️ First pull requires retry (operational overhead)
 - ⚠️ Scanner downtime impacts image availability
 - ⚠️ Increased reliance on scanner health
@@ -272,6 +289,7 @@ A: Yes, manually pull images before production use to trigger caching and scanni
 ## Support
 
 For issues or questions:
+
 - GitHub Issues: https://github.com/goharbor/harbor/issues
 - Slack: #harbor-users on CNCF Slack
 

@@ -31,11 +31,9 @@ import (
 	"github.com/goharbor/harbor/src/server/middleware/util"
 )
 
-var (
-	scanChecker = func() scan.Checker {
-		return scan.NewChecker()
-	}
-)
+var scanChecker = func() scan.Checker {
+	return scan.NewChecker()
+}
 
 // Middleware middleware which does the vulnerability prevention checking for the artifact in GET /v2/<name>/manifests/<reference> API
 func Middleware() func(http.Handler) http.Handler {
