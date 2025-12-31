@@ -56,10 +56,10 @@ RUN npm install --unsafe-perm && \
     npm run build
 
 # Stage 4: Deploy with Nginx
-FROM nginx:alpine
+# Security: Uses hardened nginx image from dhi.io
+FROM dhi.io/nginx:1-alpine3.21
 
-# Install latest CA certificates (intentionally not pinned for security updates)
-RUN apk add --no-cache ca-certificates
+# CA certificates are included in the hardened image
 
 # Copy built Angular app
 COPY --from=builder /harbor/src/portal/dist /usr/share/nginx/html
