@@ -580,9 +580,28 @@ tasks:
     desc: "🧪 Test if an image runs"
     vars:
       IMAGE: '{{index .MATCH 0}}'
+      IMAGE_NAME: "goharbor/harbor-{{.IMAGE}}:{{.VERSION}}-linux-amd64"
     cmds:
       - |
         echo "Testing {{.IMAGE}} image..."
-        docker run --rm --entrypoint /bin/sh \
-          goharbor/harbor-{{.IMAGE}}:{{.VERSION}}-linux-amd64 \
-          -c "echo 'Image OK'" || echo "⚠️  Image test failed (may need specific entrypoint)"
+
+        # Check if image is scratch-based (no shell)
+        case "{{.IMAGE}}" in
+          core|jobservice|registryctl|exporter|registry)
+            echo "Scratch-based image - testing with docker inspect only"
+            if docker inspect {{.IMAGE_NAME}} >/dev/null 2>&1; then
+              echo "✅ Image {{.IMAGE}} exists and is valid"
+            else
+              echo "❌ Image {{.IMAGE}} test failed"
+              exit 1
+            fi
+            ;;
+          *)
+            # Images with shell (portal, nginx, trivy-adapter)
+            docker run --rm --entrypoint /bin/sh {{.IMAGE_NAME}} \
+              -c "echo '✅ Image {{.IMAGE}} OK'" || {
+              echo "❌ Image test failed"
+              exit 1
+            }
+            ;;
+        esac

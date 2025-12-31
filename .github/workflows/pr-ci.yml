@@ -13,7 +13,6 @@ permissions:
   contents: read
   packages: write
   pull-requests: write
-  id-token: write
 
 env:
   GO_VERSION: '1.24.6'
@@ -106,7 +105,14 @@ jobs:
         run: |
           # Run tests package-by-package, excluding integration tests
           echo "mode: atomic" > coverage.out
-          for pkg in $(go list ./... | grep -v -E '/tests/|/testing/'); do
+
+          # Get package list (fail if go list fails)
+          packages=$(go list ./... | grep -v -E '/tests/|/testing/') || {
+            echo "Error: go list command failed"
+            exit 1
+          }
+
+          for pkg in $packages; do
             go test -race -short -coverprofile=profile.tmp -covermode=atomic "$pkg" || exit 1
             if [ -f profile.tmp ]; then
               tail -n +2 profile.tmp >> coverage.out
@@ -435,7 +441,7 @@ jobs:
           HARBOR_IMAGE: ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_NAMESPACE }}/harbor-${{ matrix.service }}:pr-${{ steps.pr.outputs.number }}
         run: |
           # Create and push multi-arch manifest to Harbor (preserves amd64 + arm64)
-          # This also copies signatures and SBOMs from GHCR to Harbor
+          # Note: Cosign signatures are NOT copied - image will be re-signed in the next step
           docker buildx imagetools create \
             --tag "${HARBOR_IMAGE}" \
             "${GHCR_IMAGE}"
