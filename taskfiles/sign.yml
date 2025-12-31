@@ -92,6 +92,10 @@ tasks:
     desc: "Verify image signature (usage: task sign:verify:image -- IMAGE_REF)"
     vars:
       IMAGE_REF: '{{.CLI_ARGS}}'
+      # Default to GitHub Actions identity for this repo
+      # Override with: COSIGN_IDENTITY_REGEXP=... task sign:verify:image -- IMAGE_REF
+      IDENTITY_REGEXP: '{{.COSIGN_IDENTITY_REGEXP | default "https://github.com/container-registry/harbor-next/.*"}}'
+      OIDC_ISSUER: '{{.COSIGN_OIDC_ISSUER | default "https://token.actions.githubusercontent.com"}}'
     requires:
       vars: [IMAGE_REF]
     deps:
@@ -99,7 +103,12 @@ tasks:
     cmds:
       - |
         echo "Verifying signature: {{.IMAGE_REF}}"
-        cosign verify {{.IMAGE_REF}}
+        echo "  Identity pattern: {{.IDENTITY_REGEXP}}"
+        echo "  OIDC issuer: {{.OIDC_ISSUER}}"
+        cosign verify \
+          --certificate-identity-regexp="{{.IDENTITY_REGEXP}}" \
+          --certificate-oidc-issuer="{{.OIDC_ISSUER}}" \
+          {{.IMAGE_REF}}
         echo "✅ Signature verified: {{.IMAGE_REF}}"
 
   verify:all:
