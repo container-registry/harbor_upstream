@@ -88,6 +88,42 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: root123
+          POSTGRES_DB: registry
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    env:
+      POSTGRESQL_HOST: localhost
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_USR: postgres
+      POSTGRESQL_PWD: root123
+      POSTGRESQL_DATABASE: registry
+      POSTGRES_MIGRATION_SCRIPTS_PATH: ${{ github.workspace }}/make/migrations/postgresql/
+      REDIS_HOST: localhost
+      CORE_SECRET: tempString
+      HARBOR_ADMIN: admin
+      HARBOR_ADMIN_PASSWD: Harbor12345
+      KEY_PATH: /data/secret/keys/secretkey
+      TOKEN_PRIVATE_KEY_PATH: ${{ github.workspace }}/tests/private_key.pem
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
@@ -107,9 +143,9 @@ jobs:
 
       - name: Run Go tests
         working-directory: src
-        timeout-minutes: 5
+        timeout-minutes: 30
         run: |
-          go test -short -race -timeout 4m -coverprofile=coverage.out -covermode=atomic $(go list ./... | grep -v -E '/tests/|/testing/')
+          go test -race -timeout 25m -coverprofile=coverage.out -covermode=atomic $(go list ./... | grep -v -E '/tests/|/testing/')
 
       - name: Upload coverage
         uses: codecov/codecov-action@0561704f0f02c16a585d4c7555e57fa2e44cf909 # v5.5.2
