@@ -369,12 +369,13 @@ jobs:
         run: |
           cosign sign --yes "${HARBOR_IMAGE}"
 
-  generate-sboms:
-    name: Generate SBOMs
+  generate-attach-sboms:
+    name: Generate & Attach SBOMs
     runs-on: container-registry
-    needs: build-push-github
+    needs: push-to-harbor
     permissions:
-      packages: read
+      id-token: write
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -389,6 +390,9 @@ jobs:
       - name: Install Syft
         uses: anchore/sbom-action/download-syft@a930d0ac434e3182448fe678398ba5713717112a # v0.21.0
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+
       - name: Login to GHCR
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
@@ -396,30 +400,46 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Login to Harbor Registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ${{ env.HARBOR_REGISTRY }}
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
       - name: Extract PR number
         id: pr
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
 
-      - name: Generate SBOM
+      - name: Generate and attach SBOM to GHCR
         env:
           IMAGE: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_NAMESPACE }}/harbor-${{ matrix.service }}:pr-${{ steps.pr.outputs.number }}
           SERVICE: ${{ matrix.service }}
         run: |
           syft "${IMAGE}" -o spdx-json > "sbom-${SERVICE}.spdx.json"
+          cosign attach sbom --sbom "sbom-${SERVICE}.spdx.json" "${IMAGE}"
 
-      - name: Upload SBOM artifact
+      - name: Generate and attach SBOM to Harbor
+        env:
+          IMAGE: ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_NAMESPACE }}/harbor-${{ matrix.service }}:pr-${{ steps.pr.outputs.number }}
+          SERVICE: ${{ matrix.service }}
+        run: |
+          syft "${IMAGE}" -o spdx-json > "sbom-harbor-${SERVICE}.spdx.json"
+          cosign attach sbom --sbom "sbom-harbor-${SERVICE}.spdx.json" "${IMAGE}"
+
+      - name: Upload SBOM artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: sbom-${{ matrix.service }}
-          path: sbom-${{ matrix.service }}.spdx.json
+          path: sbom-*.spdx.json
           retention-days: 30
 
   pr-comment:
     name: Comment on PR
     runs-on: container-registry
-    needs: [push-to-harbor, generate-sboms]
+    needs: [generate-attach-sboms]
     permissions:
       pull-requests: write
     steps:
