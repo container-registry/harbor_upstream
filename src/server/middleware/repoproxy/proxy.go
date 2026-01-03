@@ -151,7 +151,7 @@ func preCheck(ctx context.Context, withProjectMetadata bool) (art lib.ArtifactIn
 func ManifestMiddleware() func(http.Handler) http.Handler {
 	return middleware.New(func(w http.ResponseWriter, r *http.Request, next http.Handler) {
 		if err := handleManifest(w, r, next); err != nil {
-			if errors.IsNotFoundErr(err) {
+			if errors.IsNotFoundErr(err) || errors.IsErr(err, errors.PreconditionCode) {
 				httpLib.SendError(w, err)
 				return
 			}
@@ -276,7 +276,7 @@ func handleManifest(w http.ResponseWriter, r *http.Request, next http.Handler) e
 		}
 	}
 	if err != nil {
-		if errors.IsNotFoundErr(err) || errors.IsRateLimitError(err) {
+		if errors.IsNotFoundErr(err) || errors.IsRateLimitError(err) || errors.IsErr(err, errors.PreconditionCode) {
 			return err
 		}
 		log.Warningf("Proxy to remote failed, fallback to local repo, error: %v", err)
@@ -304,7 +304,7 @@ func proxyManifestGet(ctx context.Context, w http.ResponseWriter, ctl proxy.Cont
 // cacheThenServeManifest triggers manifest caching but does NOT serve immediately.
 // This ensures the artifact is cached and scanned before being served when vulnerability prevention is enabled.
 // The client will receive an error on first request and must retry after caching/scanning completes.
-func cacheThenServeManifest(ctx context.Context, w http.ResponseWriter, ctl proxy.Controller, _ *proModels.Project, art lib.ArtifactInfo, remote proxy.RemoteInterface) error {
+func cacheThenServeManifest(ctx context.Context, _ http.ResponseWriter, ctl proxy.Controller, _ *proModels.Project, art lib.ArtifactInfo, remote proxy.RemoteInterface) error {
 	// Trigger caching by calling ProxyManifest
 	// This fetches from remote and caches in background
 	_, err := ctl.ProxyManifest(ctx, art, remote)
