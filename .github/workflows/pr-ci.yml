@@ -173,8 +173,10 @@ jobs:
 
       - name: Install Chromium for Karma tests
         run: |
-          npx @puppeteer/browsers install chromium@stable
-          echo "CHROME_BIN=$(find $HOME/.cache/puppeteer -name chromium -o -name chrome | grep -E 'chromium$|chrome$' | head -1)" >> $GITHUB_ENV
+          npx @puppeteer/browsers install chromium@latest --path $HOME/.cache/puppeteer
+          CHROME_PATH=$(find $HOME/.cache/puppeteer -type f -name 'chrome' 2>/dev/null | head -1)
+          echo "CHROME_BIN=${CHROME_PATH}" >> $GITHUB_ENV
+          echo "Found Chrome at: ${CHROME_PATH}"
 
       - name: Run tests
         run: npm run test
