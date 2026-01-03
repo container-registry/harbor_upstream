@@ -56,8 +56,8 @@ RUN npm install --unsafe-perm && \
     npm run build
 
 # Stage 4: Deploy with Nginx
-# Security: Uses hardened nginx image from dhi.io
-FROM dhi.io/nginx:1-alpine3.21
+# Security: Uses hardened nginx image from docker.io
+FROM docker.io/nginx:1-alpine3.21
 
 # CA certificates are included in the hardened image
 
