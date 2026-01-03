@@ -23,7 +23,7 @@ jobs:
   ## Phase 1: Tests (parallel)
   lint-api:
     name: Lint API Spec
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     permissions:
       contents: read
     steps:
@@ -36,7 +36,7 @@ jobs:
 
   lint-go:
     name: Lint Go Code
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     permissions:
       contents: read
     steps:
@@ -62,7 +62,7 @@ jobs:
 
   lint-frontend:
     name: Lint Frontend
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     permissions:
       contents: read
     defaults:
@@ -86,7 +86,7 @@ jobs:
   # TODO: Re-enable once Go test infrastructure is stable
   # test-go:
   #   name: Test Go Code
-  #   runs-on: ubuntu-latest
+  #   runs-on: container-registry
   #   permissions:
   #     contents: read
   #   env:
@@ -141,7 +141,7 @@ jobs:
 
   test-frontend:
     name: Test Frontend
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     permissions:
       contents: read
     defaults:
@@ -164,7 +164,7 @@ jobs:
 
   vuln-check:
     name: Vulnerability Check
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     permissions:
       contents: read
     steps:
@@ -200,7 +200,7 @@ jobs:
   ## Phase 2: Build & Push to GitHub (parallel, after tests pass)
   build-push-github-amd64:
     name: Build & Push AMD64 to GHCR
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     needs: [lint-api, lint-go, lint-frontend, test-frontend, vuln-check]
     permissions:
       contents: read
@@ -268,7 +268,7 @@ jobs:
     name: Build & Push ARM64 to GHCR
     # TODO: ARM64 builds use QEMU emulation on AMD64 runners, causing ~7x slowdown
     # Native ARM64 runners (ubuntu-24.04-arm64) require GitHub Team/Enterprise plan
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     needs: [lint-api, lint-go, lint-frontend, test-frontend, vuln-check]
     permissions:
       contents: read
@@ -335,7 +335,7 @@ jobs:
   ## Phase 3: Finalize on GitHub (sequential)
   create-manifests-github:
     name: Create Multi-arch Manifests on GHCR
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     needs: [build-push-github-amd64, build-push-github-arm64]
     permissions:
       packages: write
@@ -377,7 +377,7 @@ jobs:
 
   sign-images-github:
     name: Sign Images on GHCR
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     needs: create-manifests-github
     permissions:
       id-token: write   # For Cosign keyless signing
@@ -419,7 +419,7 @@ jobs:
   ## Phase 4: Push to Harbor Registry (sequential)
   push-to-harbor:
     name: Push to Harbor Registry
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     needs: sign-images-github
     permissions:
       id-token: write   # For Cosign keyless signing
@@ -484,7 +484,7 @@ jobs:
   ## Phase 5: Reporting (sequential)
   generate-sboms:
     name: Generate SBOMs
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     needs: create-manifests-github
     permissions:
       packages: read
@@ -532,7 +532,7 @@ jobs:
 
   pr-comment:
     name: Comment on PR
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     needs: [push-to-harbor, generate-sboms]
     permissions:
       pull-requests: write
@@ -619,7 +619,7 @@ jobs:
   ## Phase 6: Branch Protection
   pr-ci-success:
     name: PR CI Success
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     needs: [pr-comment]
     if: always()
     steps:
