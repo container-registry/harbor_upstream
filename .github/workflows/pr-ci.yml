@@ -121,9 +121,6 @@ jobs:
       - name: Generate API code
         run: task build:gen-apis
 
-      - name: Generate mocks
-        run: task test:generate-mocks
-
       - name: Run Go tests
         working-directory: src
         timeout-minutes: 30
