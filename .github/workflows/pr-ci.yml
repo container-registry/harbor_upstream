@@ -108,6 +108,7 @@ jobs:
       POSTGRESQL_USR: postgres
       POSTGRESQL_PWD: root123
       POSTGRESQL_DATABASE: registry
+      POSTGRES_MIGRATION_SCRIPTS_PATH: ${{ github.workspace }}/make/migrations/postgresql/
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
