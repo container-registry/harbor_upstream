@@ -20,7 +20,6 @@ env:
   HARBOR_NAMESPACE: harbor-next
 
 jobs:
-  ## Phase 1: Tests (parallel)
   lint-api:
     name: Lint API Spec
     runs-on: ubuntu-latest
@@ -240,7 +239,7 @@ jobs:
 
       - name: Set up buildx with remote BuildKit
         run: |
-          docker buildx create --name remote --driver remote "${BUILDKIT_ADDR}"
+          docker buildx create --name remote --driver remote "${BUILDKIT_ADDR}" || true
           docker buildx use remote
 
       - name: Login to GHCR
@@ -324,9 +323,16 @@ jobs:
           - portal
           - registry
           - nginx
+    env:
+      BUILDKIT_ADDR: tcp://buildkitd.github-runners.svc:1234
     steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+
+      - name: Set up buildx with remote BuildKit
+        run: |
+          docker buildx create --name remote --driver remote "${BUILDKIT_ADDR}" || true
+          docker buildx use remote
 
       - name: Login to GHCR
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
@@ -348,27 +354,20 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: echo "number=${PR_NUMBER}" >> $GITHUB_OUTPUT
 
-      - name: Pull from GHCR and push to Harbor
+      - name: Push to Harbor
         env:
-          SERVICE: ${{ matrix.service }}
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
           GHCR_IMAGE: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_NAMESPACE }}/harbor-${{ matrix.service }}:pr-${{ steps.pr.outputs.number }}
           HARBOR_IMAGE: ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_NAMESPACE }}/harbor-${{ matrix.service }}:pr-${{ steps.pr.outputs.number }}
         run: |
-          # Create and push multi-arch manifest to Harbor (preserves amd64 + arm64)
-          # Note: Cosign signatures are NOT copied - image will be re-signed in the next step
           docker buildx imagetools create \
             --tag "${HARBOR_IMAGE}" \
             "${GHCR_IMAGE}"
-
-          echo "✓ Multi-arch manifest pushed to Harbor: ${HARBOR_IMAGE}"
 
       - name: Sign Harbor Registry image
         env:
           HARBOR_IMAGE: ${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_NAMESPACE }}/harbor-${{ matrix.service }}:pr-${{ steps.pr.outputs.number }}
         run: |
           cosign sign --yes "${HARBOR_IMAGE}"
-          echo "✓ Image signed on Harbor: ${HARBOR_IMAGE}"
 
   generate-sboms:
     name: Generate SBOMs
