@@ -40,9 +40,9 @@ import (
 
 const (
 	// wait more time than manifest (maxManifestWait) because manifest list depends on manifest ready
-	maxManifestListWait = 20
-	maxManifestWait     = 10
-	sleepIntervalSec    = 20
+	maxManifestListWait = 6
+	maxManifestWait     = 3
+	sleepIntervalSec    = 2
 	// keep manifest list in cache for one week
 	manifestListCacheInterval = 7 * 24 * 60 * 60 * time.Second
 )
