@@ -99,6 +99,10 @@ const password string = "Abc12345"
 const projectName string = "test_project"
 
 func TestMain(m *testing.M) {
+	if testing.Short() {
+		os.Exit(0)
+	}
+
 	databases := []string{"postgresql"}
 	for _, database := range databases {
 		log.Infof("run test cases for database: %s", database)
