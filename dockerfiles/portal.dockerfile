@@ -57,7 +57,7 @@ RUN npm install --unsafe-perm && \
 
 # Stage 4: Deploy with Nginx
 # Uses official nginx Alpine image from docker.io
-FROM docker.io/nginx:1-alpine3.21
+FROM docker.io/nginx:1.28-alpine3.21
 
 # CA certificates are included in the hardened image
 
