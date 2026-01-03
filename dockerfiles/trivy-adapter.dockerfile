@@ -18,7 +18,7 @@ RUN case "${TARGETARCH}" in \
       arm64) TRIVY_ARCH="ARM64" ;; \
       *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
     esac && \
-    wget --progress=dot:giga -O trivyDownload https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-${TRIVY_ARCH}.tar.gz && \
+    wget --progress=dot:giga -O trivyDownload "https://github.com/aquasecurity/trivy/releases/download/v0.64.1/trivy_0.64.1_Linux-${TRIVY_ARCH}.tar.gz" && \
     tar -zxvf trivyDownload && \
     cp trivy ./binary/trivy
 

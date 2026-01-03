@@ -13,9 +13,9 @@ FROM node:18-bullseye AS builder
 # Set npm registry
 ENV NPM_CONFIG_REGISTRY=https://registry.npmjs.org
 
-# Install Bun
+# Install Bun and unzip (pinned version for reproducibility)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends unzip && \
+    apt-get install -y --no-install-recommends unzip=6.0-26+deb11u1 && \
     rm -rf /var/lib/apt/lists/* && \
     npm install -g bun@1.2.13
 
