@@ -88,29 +88,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    services:
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: root123
-          POSTGRES_DB: registry
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      redis:
-        image: redis:7
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
     env:
       POSTGRESQL_HOST: localhost
       POSTGRESQL_PORT: 5432
@@ -135,6 +112,12 @@ jobs:
         run: |
           sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
 
+      - name: Start test services
+        run: |
+          task dev:infra:up
+          sleep 10
+          docker ps
+
       - name: Generate API code
         run: task build:gen-apis
 
@@ -146,6 +129,10 @@ jobs:
         timeout-minutes: 30
         run: |
           go test -race -timeout 25m -coverprofile=coverage.out -covermode=atomic $(go list ./... | grep -v -E '/tests/|/testing/')
+
+      - name: Stop test services
+        if: always()
+        run: task dev:infra:down
 
       - name: Upload coverage
         uses: codecov/codecov-action@0561704f0f02c16a585d4c7555e57fa2e44cf909 # v5.5.2
