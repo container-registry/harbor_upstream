@@ -146,7 +146,7 @@ tasks:
       - |
         if ! command -v mockery &> /dev/null; then
           echo "Installing mockery..."
-          go install github.com/vektra/mockery/v2@latest
+          go install github.com/vektra/mockery/v2@v2.53.5
         fi
       - |
         echo "🔧 Generating mocks..."
