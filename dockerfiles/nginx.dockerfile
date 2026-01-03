@@ -1,6 +1,6 @@
 # Dockerfile for Harbor Nginx Proxy
 # Based on .dagger/main.go buildNginx logic (lines 566-574)
-# Security: Uses hardened nginx image from docker.io
+# Note: Uses standard nginx image from docker.io (runs as root by default)
 
 FROM docker.io/nginx:1-alpine3.21
 
