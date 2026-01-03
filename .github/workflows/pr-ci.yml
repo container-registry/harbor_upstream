@@ -211,6 +211,7 @@ jobs:
       packages: write
     strategy:
       fail-fast: false
+      max-parallel: 5
       matrix:
         service:
           - core
@@ -281,6 +282,7 @@ jobs:
       packages: write   # For reading/writing to GHCR
     strategy:
       fail-fast: false
+      max-parallel: 5
       matrix:
         service:
           - core
@@ -321,6 +323,7 @@ jobs:
       packages: read    # For reading from GHCR
     strategy:
       fail-fast: false
+      max-parallel: 5
       matrix:
         service:
           - core
@@ -384,6 +387,7 @@ jobs:
       packages: write
     strategy:
       fail-fast: false
+      max-parallel: 5
       matrix:
         service:
           - core
