@@ -277,7 +277,8 @@ func (_m *Manager) UpdateRole(ctx context.Context, projectID int64, pmID int, ro
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

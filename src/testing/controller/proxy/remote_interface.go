@@ -161,7 +161,8 @@ func (_m *RemoteInterface) ManifestExist(repo string, ref string) (bool, *distri
 func NewRemoteInterface(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *RemoteInterface {
+},
+) *RemoteInterface {
 	mock := &RemoteInterface{}
 	mock.Mock.Test(t)
 

@@ -168,7 +168,8 @@ func (_m *MetaManager) Update(ctx context.Context, oidcUser *models.OIDCUser, co
 func NewMetaManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *MetaManager {
+},
+) *MetaManager {
 	mock := &MetaManager{}
 	mock.Mock.Test(t)
 

@@ -184,7 +184,8 @@ func (_m *SchedulerController) Paused(ctx context.Context) (bool, error) {
 func NewSchedulerController(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *SchedulerController {
+},
+) *SchedulerController {
 	mock := &SchedulerController{}
 	mock.Mock.Test(t)
 

@@ -107,7 +107,8 @@ func (_m *Accessory) Kind() string {
 func NewAccessory(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Accessory {
+},
+) *Accessory {
 	mock := &Accessory{}
 	mock.Mock.Test(t)
 

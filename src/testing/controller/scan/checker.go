@@ -48,7 +48,8 @@ func (_m *Checker) IsScannable(ctx context.Context, _a1 *artifact.Artifact) (boo
 func NewChecker(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Checker {
+},
+) *Checker {
 	mock := &Checker{}
 	mock.Mock.Test(t)
 

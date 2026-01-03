@@ -49,7 +49,8 @@ func (_m *WorkerManager) List(ctx context.Context, monitClient jobmonitor.JobSer
 func NewWorkerManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *WorkerManager {
+},
+) *WorkerManager {
 	mock := &WorkerManager{}
 	mock.Mock.Test(t)
 

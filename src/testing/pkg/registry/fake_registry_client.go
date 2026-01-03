@@ -466,7 +466,8 @@ func (_m *Client) PushManifest(repository string, reference string, mediaType st
 func NewClient(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Client {
+},
+) *Client {
 	mock := &Client{}
 	mock.Mock.Test(t)
 

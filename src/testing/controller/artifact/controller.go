@@ -385,7 +385,8 @@ func (_m *Controller) Walk(ctx context.Context, root *artifact.Artifact, walkFn 
 func NewController(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Controller {
+},
+) *Controller {
 	mock := &Controller{}
 	mock.Mock.Test(t)
 

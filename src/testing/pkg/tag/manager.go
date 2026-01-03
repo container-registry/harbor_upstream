@@ -198,7 +198,8 @@ func (_m *Manager) Update(ctx context.Context, _a1 *modeltag.Tag, props ...strin
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

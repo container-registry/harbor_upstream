@@ -114,7 +114,8 @@ func (_m *RedisClient) UnpauseJob(ctx context.Context, jobName string) error {
 func NewRedisClient(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *RedisClient {
+},
+) *RedisClient {
 	mock := &RedisClient{}
 	mock.Mock.Test(t)
 

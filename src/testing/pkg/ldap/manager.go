@@ -141,7 +141,8 @@ func (_m *Manager) SearchUser(ctx context.Context, sess *ldap.Session, username 
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

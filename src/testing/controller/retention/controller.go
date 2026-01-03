@@ -387,7 +387,8 @@ func (_m *Controller) UpdateRetention(ctx context.Context, p *policy.Metadata) e
 func NewController(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Controller {
+},
+) *Controller {
 	mock := &Controller{}
 	mock.Mock.Test(t)
 

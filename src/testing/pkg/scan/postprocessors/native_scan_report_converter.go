@@ -81,7 +81,8 @@ func (_m *NativeScanReportConverter) ToRelationalSchema(ctx context.Context, rep
 func NewNativeScanReportConverter(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *NativeScanReportConverter {
+},
+) *NativeScanReportConverter {
 	mock := &NativeScanReportConverter{}
 	mock.Mock.Test(t)
 

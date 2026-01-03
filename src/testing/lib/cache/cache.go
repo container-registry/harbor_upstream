@@ -149,7 +149,8 @@ func (_m *Cache) Scan(ctx context.Context, match string) (cache.Iterator, error)
 func NewCache(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Cache {
+},
+) *Cache {
 	mock := &Cache{}
 	mock.Mock.Test(t)
 

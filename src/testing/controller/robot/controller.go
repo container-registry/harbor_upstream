@@ -187,7 +187,8 @@ func (_m *Controller) Update(ctx context.Context, r *robot.Robot, option *robot.
 func NewController(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Controller {
+},
+) *Controller {
 	mock := &Controller{}
 	mock.Mock.Test(t)
 

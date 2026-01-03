@@ -79,7 +79,8 @@ func (_m *Operator) GetDetails(content []byte) (*pkgchart.VersionDetails, error)
 func NewOperator(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Operator {
+},
+) *Operator {
 	mock := &Operator{}
 	mock.Mock.Test(t)
 

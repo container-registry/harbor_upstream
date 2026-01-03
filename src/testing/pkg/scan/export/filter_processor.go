@@ -110,7 +110,8 @@ func (_m *FilterProcessor) ProcessTagFilter(ctx context.Context, filter string, 
 func NewFilterProcessor(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *FilterProcessor {
+},
+) *FilterProcessor {
 	mock := &FilterProcessor{}
 	mock.Mock.Test(t)
 

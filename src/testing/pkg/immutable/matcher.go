@@ -48,7 +48,8 @@ func (_m *FakeMatcher) Match(ctx context.Context, pid int64, c selector.Candidat
 func NewFakeMatcher(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *FakeMatcher {
+},
+) *FakeMatcher {
 	mock := &FakeMatcher{}
 	mock.Mock.Test(t)
 

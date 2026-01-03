@@ -49,7 +49,8 @@ func (_m *Manager) Fetch(ctx context.Context, params export.Params) ([]export.Da
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

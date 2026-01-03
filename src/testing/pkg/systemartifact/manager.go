@@ -235,7 +235,8 @@ func (_m *Manager) RegisterCleanupCriteria(vendor string, artifactType string, c
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

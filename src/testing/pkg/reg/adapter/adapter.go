@@ -93,7 +93,8 @@ func (_m *Adapter) PrepareForPush(_a0 []*model.Resource) error {
 func NewAdapter(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Adapter {
+},
+) *Adapter {
 	mock := &Adapter{}
 	mock.Mock.Test(t)
 

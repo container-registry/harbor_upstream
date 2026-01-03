@@ -221,7 +221,8 @@ func (_m *Manager) UpdateName(ctx context.Context, id int, groupName string) err
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

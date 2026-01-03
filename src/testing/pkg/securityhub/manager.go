@@ -227,7 +227,8 @@ func (_m *Manager) TotalVuls(ctx context.Context, scannerUUID string, projectID 
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

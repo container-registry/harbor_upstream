@@ -148,7 +148,8 @@ func (_m *Manager) Update(ctx context.Context, projectID int64, meta map[string]
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

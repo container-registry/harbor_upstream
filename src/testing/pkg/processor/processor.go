@@ -108,7 +108,8 @@ func (_m *Processor) ListAdditionTypes(ctx context.Context, _a1 *artifact.Artifa
 func NewProcessor(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Processor {
+},
+) *Processor {
 	mock := &Processor{}
 	mock.Mock.Test(t)
 

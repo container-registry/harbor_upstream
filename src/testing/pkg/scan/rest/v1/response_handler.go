@@ -48,7 +48,8 @@ func (_m *responseHandler) Execute(code int, resp *http.Response) ([]byte, error
 func newResponseHandler(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *responseHandler {
+},
+) *responseHandler {
 	mock := &responseHandler{}
 	mock.Mock.Test(t)
 

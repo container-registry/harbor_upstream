@@ -201,7 +201,8 @@ func (_m *DAO) Update(ctx context.Context, accessory *dao.Accessory) error {
 func NewDAO(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *DAO {
+},
+) *DAO {
 	mock := &DAO{}
 	mock.Mock.Test(t)
 

@@ -211,7 +211,8 @@ func (_m *Manager) Update(ctx context.Context, inst *provider.Instance, props ..
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

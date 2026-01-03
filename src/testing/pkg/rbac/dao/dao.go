@@ -222,7 +222,8 @@ func (_m *DAO) ListRbacPolicies(ctx context.Context, query *q.Query) ([]*model.P
 func NewDAO(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *DAO {
+},
+) *DAO {
 	mock := &DAO{}
 	mock.Mock.Test(t)
 

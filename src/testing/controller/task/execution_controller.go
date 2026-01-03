@@ -145,7 +145,8 @@ func (_m *ExecutionController) Stop(ctx context.Context, id int64) error {
 func NewExecutionController(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *ExecutionController {
+},
+) *ExecutionController {
 	mock := &ExecutionController{}
 	mock.Mock.Test(t)
 

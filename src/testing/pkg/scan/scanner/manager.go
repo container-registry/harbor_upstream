@@ -249,7 +249,8 @@ func (_m *Manager) Update(ctx context.Context, registration *daoscanner.Registra
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

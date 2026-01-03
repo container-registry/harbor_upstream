@@ -153,7 +153,8 @@ func (_m *MetaDAO) Update(ctx context.Context, oidcUser *models.OIDCUser, props 
 func NewMetaDAO(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *MetaDAO {
+},
+) *MetaDAO {
 	mock := &MetaDAO{}
 	mock.Mock.Test(t)
 

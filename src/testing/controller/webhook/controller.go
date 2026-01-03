@@ -411,7 +411,8 @@ func (_m *Controller) UpdatePolicy(ctx context.Context, policy *model.Policy) er
 func NewController(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Controller {
+},
+) *Controller {
 	mock := &Controller{}
 	mock.Mock.Test(t)
 

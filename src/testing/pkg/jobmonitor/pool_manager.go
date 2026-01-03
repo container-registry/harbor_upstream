@@ -49,7 +49,8 @@ func (_m *PoolManager) List(ctx context.Context, monitorClient jobmonitor.JobSer
 func NewPoolManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *PoolManager {
+},
+) *PoolManager {
 	mock := &PoolManager{}
 	mock.Mock.Test(t)
 

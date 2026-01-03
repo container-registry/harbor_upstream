@@ -180,7 +180,8 @@ func (_m *Manager) Update(ctx context.Context, policy *model.Policy, props ...st
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

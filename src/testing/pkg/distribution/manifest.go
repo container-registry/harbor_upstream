@@ -74,7 +74,8 @@ func (_m *Manifest) References() []distribution.Descriptor {
 func NewManifest(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manifest {
+},
+) *Manifest {
 	mock := &Manifest{}
 	mock.Mock.Test(t)
 

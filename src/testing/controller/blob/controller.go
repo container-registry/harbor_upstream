@@ -432,7 +432,8 @@ func (_m *Controller) Update(ctx context.Context, _a1 *models.Blob) error {
 func NewController(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Controller {
+},
+) *Controller {
 	mock := &Controller{}
 	mock.Mock.Test(t)
 

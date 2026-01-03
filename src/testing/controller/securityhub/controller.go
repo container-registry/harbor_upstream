@@ -118,7 +118,8 @@ func (_m *Controller) SecuritySummary(ctx context.Context, projectID int64, opti
 func NewController(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Controller {
+},
+) *Controller {
 	mock := &Controller{}
 	mock.Mock.Test(t)
 

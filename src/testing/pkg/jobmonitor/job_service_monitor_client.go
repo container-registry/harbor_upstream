@@ -107,7 +107,8 @@ func (_m *JobServiceMonitorClient) WorkerPoolHeartbeats() ([]*work.WorkerPoolHea
 func NewJobServiceMonitorClient(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *JobServiceMonitorClient {
+},
+) *JobServiceMonitorClient {
 	mock := &JobServiceMonitorClient{}
 	mock.Mock.Test(t)
 

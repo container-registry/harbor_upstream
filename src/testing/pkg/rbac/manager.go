@@ -221,7 +221,8 @@ func (_m *Manager) ListRbacPolicies(ctx context.Context, query *q.Query) ([]*mod
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

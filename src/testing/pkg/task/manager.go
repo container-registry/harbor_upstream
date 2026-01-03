@@ -379,7 +379,8 @@ func (_m *Manager) UpdateStatusInBatch(ctx context.Context, jobIDs []string, sta
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

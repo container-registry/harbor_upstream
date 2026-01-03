@@ -213,7 +213,8 @@ func (_m *Manager) UpdateReportData(ctx context.Context, uuid string, _a2 string
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

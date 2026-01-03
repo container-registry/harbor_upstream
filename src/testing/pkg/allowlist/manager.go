@@ -133,7 +133,8 @@ func (_m *Manager) SetSys(ctx context.Context, list models.CVEAllowlist) error {
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

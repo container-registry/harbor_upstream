@@ -145,7 +145,8 @@ func (_m *Controller) UserConfigs(ctx context.Context) (map[string]*models.Value
 func NewController(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Controller {
+},
+) *Controller {
 	mock := &Controller{}
 	mock.Mock.Test(t)
 

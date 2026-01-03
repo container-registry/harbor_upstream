@@ -358,7 +358,8 @@ func (_m *Controller) UpdateRegistration(ctx context.Context, registration *scan
 func NewController(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Controller {
+},
+) *Controller {
 	mock := &Controller{}
 	mock.Mock.Test(t)
 

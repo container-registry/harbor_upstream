@@ -37,7 +37,8 @@ func (_m *Creator) Create() orm.Ormer {
 func NewCreator(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Creator {
+},
+) *Creator {
 	mock := &Creator{}
 	mock.Mock.Test(t)
 

@@ -157,7 +157,8 @@ func (_m *Controller) Start(ctx context.Context, criteria export.Request) (int64
 func NewController(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Controller {
+},
+) *Controller {
 	mock := &Controller{}
 	mock.Mock.Test(t)
 

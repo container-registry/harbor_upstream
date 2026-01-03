@@ -81,7 +81,8 @@ func (_m *Selector) ListWithFilters(ctx context.Context, query *q.Query) ([]*mod
 func NewSelector(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Selector {
+},
+) *Selector {
 	mock := &Selector{}
 	mock.Mock.Test(t)
 

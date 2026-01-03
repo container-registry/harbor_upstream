@@ -202,7 +202,8 @@ func (_m *DAO) UpdateUsername(ctx context.Context, username string, usernameRepl
 func NewDAO(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *DAO {
+},
+) *DAO {
 	mock := &DAO{}
 	mock.Mock.Test(t)
 

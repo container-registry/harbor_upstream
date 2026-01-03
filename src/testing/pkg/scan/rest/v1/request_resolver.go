@@ -23,7 +23,8 @@ func (_m *RequestResolver) Execute(req *http.Request) {
 func NewRequestResolver(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *RequestResolver {
+},
+) *RequestResolver {
 	mock := &RequestResolver{}
 	mock.Mock.Test(t)
 

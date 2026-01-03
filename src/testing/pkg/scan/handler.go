@@ -276,7 +276,8 @@ func (_m *Handler) Update(ctx context.Context, uuid string, report string) error
 func NewHandler(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Handler {
+},
+) *Handler {
 	mock := &Handler{}
 	mock.Mock.Test(t)
 

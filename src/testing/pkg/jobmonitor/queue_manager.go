@@ -49,7 +49,8 @@ func (_m *QueueManager) List(ctx context.Context, monitClient jobmonitor.JobServ
 func NewQueueManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *QueueManager {
+},
+) *QueueManager {
 	mock := &QueueManager{}
 	mock.Mock.Test(t)
 

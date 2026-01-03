@@ -156,7 +156,8 @@ func (_m *DAO) Size(ctx context.Context) (int64, error) {
 func NewDAO(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *DAO {
+},
+) *DAO {
 	mock := &DAO{}
 	mock.Mock.Test(t)
 

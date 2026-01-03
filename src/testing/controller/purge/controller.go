@@ -65,7 +65,8 @@ func (_m *Controller) Stop(ctx context.Context, id int64) error {
 func NewController(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Controller {
+},
+) *Controller {
 	mock := &Controller{}
 	mock.Mock.Test(t)
 

@@ -155,7 +155,8 @@ func (_m *Manager) UpdateStatus(ctx context.Context, jobType string, paused bool
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

@@ -173,7 +173,8 @@ func (_m *Scheduler) UnScheduleByVendor(ctx context.Context, vendorType string, 
 func NewScheduler(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Scheduler {
+},
+) *Scheduler {
 	mock := &Scheduler{}
 	mock.Mock.Test(t)
 

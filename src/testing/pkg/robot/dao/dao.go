@@ -199,7 +199,8 @@ func (_m *DAO) Update(ctx context.Context, r *model.Robot, props ...string) erro
 func NewDAO(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *DAO {
+},
+) *DAO {
 	mock := &DAO{}
 	mock.Mock.Test(t)
 

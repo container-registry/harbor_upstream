@@ -54,7 +54,8 @@ func (_m *Iterator) Val() string {
 func NewIterator(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Iterator {
+},
+) *Iterator {
 	mock := &Iterator{}
 	mock.Mock.Test(t)
 

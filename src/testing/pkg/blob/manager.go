@@ -411,7 +411,8 @@ func (_m *Manager) UselessBlobs(ctx context.Context, timeWindowHours int64) ([]*
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

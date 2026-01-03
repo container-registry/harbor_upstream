@@ -113,7 +113,8 @@ func (_m *Manager) Flush(ctx context.Context, timeWindow int64) error {
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

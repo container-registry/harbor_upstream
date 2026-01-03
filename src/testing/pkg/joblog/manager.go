@@ -108,7 +108,8 @@ func (_m *Manager) Get(ctx context.Context, uuid string) (*models.JobLog, error)
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

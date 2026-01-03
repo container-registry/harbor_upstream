@@ -225,7 +225,8 @@ func (_m *Manager) ListRoles(ctx context.Context, projectID int64, userID int, g
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

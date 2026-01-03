@@ -201,7 +201,8 @@ func (_m *Manager) UpdateUsername(ctx context.Context, username string, replaceW
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 

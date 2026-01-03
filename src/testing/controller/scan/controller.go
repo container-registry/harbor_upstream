@@ -235,7 +235,8 @@ func (_m *Controller) StopScanAll(ctx context.Context, executionID int64, async 
 func NewController(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Controller {
+},
+) *Controller {
 	mock := &Controller{}
 	mock.Mock.Test(t)
 

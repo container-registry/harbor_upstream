@@ -47,7 +47,8 @@ func (_m *ClientPool) Get(url string, authType string, accessCredential string, 
 func NewClientPool(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *ClientPool {
+},
+) *ClientPool {
 	mock := &ClientPool{}
 	mock.Mock.Test(t)
 

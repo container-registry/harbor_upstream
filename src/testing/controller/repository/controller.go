@@ -235,7 +235,8 @@ func (_m *Controller) Update(ctx context.Context, _a1 *model.RepoRecord, propert
 func NewController(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Controller {
+},
+) *Controller {
 	mock := &Controller{}
 	mock.Mock.Test(t)
 

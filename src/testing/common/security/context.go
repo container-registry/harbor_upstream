@@ -128,7 +128,8 @@ func (_m *Context) Name() string {
 func NewContext(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Context {
+},
+) *Context {
 	mock := &Context{}
 	mock.Mock.Test(t)
 

@@ -290,7 +290,8 @@ func (_m *ExecutionManager) UpdateExtraAttrs(ctx context.Context, id int64, extr
 func NewExecutionManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *ExecutionManager {
+},
+) *ExecutionManager {
 	mock := &ExecutionManager{}
 	mock.Mock.Test(t)
 

@@ -36,7 +36,8 @@ func (_m *Controller) Start(ctx context.Context, async bool, trigger string) err
 func NewController(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Controller {
+},
+) *Controller {
 	mock := &Controller{}
 	mock.Mock.Test(t)
 

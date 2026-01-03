@@ -188,7 +188,8 @@ func (_m *CachedManager) Save(ctx context.Context, digest string, manifest []byt
 func NewCachedManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *CachedManager {
+},
+) *CachedManager {
 	mock := &CachedManager{}
 	mock.Mock.Test(t)
 

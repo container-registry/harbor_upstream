@@ -147,7 +147,8 @@ func (_m *Driver) Validate(hardLimits types.ResourceList) error {
 func NewDriver(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Driver {
+},
+) *Driver {
 	mock := &Driver{}
 	mock.Mock.Test(t)
 

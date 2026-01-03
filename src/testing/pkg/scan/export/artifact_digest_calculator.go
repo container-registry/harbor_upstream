@@ -46,7 +46,8 @@ func (_m *ArtifactDigestCalculator) Calculate(fileName string) (digest.Digest, e
 func NewArtifactDigestCalculator(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *ArtifactDigestCalculator {
+},
+) *ArtifactDigestCalculator {
 	mock := &ArtifactDigestCalculator{}
 	mock.Mock.Test(t)
 

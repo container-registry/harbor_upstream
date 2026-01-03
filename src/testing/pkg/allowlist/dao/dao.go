@@ -78,7 +78,8 @@ func (_m *DAO) Set(ctx context.Context, l models.CVEAllowlist) (int64, error) {
 func NewDAO(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *DAO {
+},
+) *DAO {
 	mock := &DAO{}
 	mock.Mock.Test(t)
 

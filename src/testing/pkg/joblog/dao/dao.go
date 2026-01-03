@@ -108,7 +108,8 @@ func (_m *DAO) Get(ctx context.Context, uuid string) (*models.JobLog, error) {
 func NewDAO(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *DAO {
+},
+) *DAO {
 	mock := &DAO{}
 	mock.Mock.Test(t)
 

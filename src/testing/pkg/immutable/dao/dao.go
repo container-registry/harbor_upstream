@@ -192,7 +192,8 @@ func (_m *DAO) UpdateImmutableRule(ctx context.Context, projectID int64, ir *mod
 func NewDAO(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *DAO {
+},
+) *DAO {
 	mock := &DAO{}
 	mock.Mock.Test(t)
 

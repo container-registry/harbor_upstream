@@ -38,7 +38,8 @@ func (_m *Parser) Parse(ctx context.Context, _a1 *artifact.Artifact, manifest []
 func NewParser(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Parser {
+},
+) *Parser {
 	mock := &Parser{}
 	mock.Mock.Test(t)
 
