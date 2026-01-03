@@ -22,7 +22,7 @@ env:
 jobs:
   lint-api:
     name: Lint API Spec
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     permissions:
       contents: read
     steps:
@@ -35,7 +35,7 @@ jobs:
 
   lint-go:
     name: Lint Go Code
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     permissions:
       contents: read
     steps:
@@ -61,7 +61,7 @@ jobs:
 
   lint-frontend:
     name: Lint Frontend
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     permissions:
       contents: read
     defaults:
@@ -140,7 +140,7 @@ jobs:
 
   test-frontend:
     name: Test Frontend
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     permissions:
       contents: read
     defaults:
@@ -163,7 +163,7 @@ jobs:
 
   vuln-check:
     name: Vulnerability Check
-    runs-on: ubuntu-latest
+    runs-on: container-registry
     permissions:
       contents: read
     steps:
