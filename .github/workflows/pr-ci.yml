@@ -543,8 +543,6 @@ jobs:
             echo "${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-jobservice:pr-${PR_NUMBER}"
             echo "${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-registryctl:pr-${PR_NUMBER}"
             echo "${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-portal:pr-${PR_NUMBER}"
-            echo "${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-db:pr-${PR_NUMBER}"
-            echo "${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-redis:pr-${PR_NUMBER}"
             echo "${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-registry:pr-${PR_NUMBER}"
             echo "${GHCR_REGISTRY}/${GHCR_NAMESPACE}/harbor-nginx:pr-${PR_NUMBER}"
             echo '```'
@@ -555,8 +553,6 @@ jobs:
             echo "${HARBOR_REGISTRY}/${HARBOR_NAMESPACE}/harbor-jobservice:pr-${PR_NUMBER}"
             echo "${HARBOR_REGISTRY}/${HARBOR_NAMESPACE}/harbor-registryctl:pr-${PR_NUMBER}"
             echo "${HARBOR_REGISTRY}/${HARBOR_NAMESPACE}/harbor-portal:pr-${PR_NUMBER}"
-            echo "${HARBOR_REGISTRY}/${HARBOR_NAMESPACE}/harbor-db:pr-${PR_NUMBER}"
-            echo "${HARBOR_REGISTRY}/${HARBOR_NAMESPACE}/harbor-redis:pr-${PR_NUMBER}"
             echo "${HARBOR_REGISTRY}/${HARBOR_NAMESPACE}/harbor-registry:pr-${PR_NUMBER}"
             echo "${HARBOR_REGISTRY}/${HARBOR_NAMESPACE}/harbor-nginx:pr-${PR_NUMBER}"
             echo '```'
