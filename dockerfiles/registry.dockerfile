@@ -5,7 +5,8 @@ FROM golang:1.24.6-alpine AS versioner
 
 # Clone distribution repository
 WORKDIR /go/src/github.com/docker
-RUN apk add --no-cache git && \
+# Pin git version to Alpine 3.22 package
+RUN apk add --no-cache git=2.49.1-r0 && \
     git clone -b v3.0.0 https://github.com/distribution/distribution.git
 
 WORKDIR /go/src/github.com/docker/distribution
