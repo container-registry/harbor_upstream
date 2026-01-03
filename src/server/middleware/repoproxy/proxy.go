@@ -304,7 +304,7 @@ func proxyManifestGet(ctx context.Context, w http.ResponseWriter, ctl proxy.Cont
 // cacheThenServeManifest triggers manifest caching but does NOT serve immediately.
 // This ensures the artifact is cached and scanned before being served when vulnerability prevention is enabled.
 // The client will receive an error on first request and must retry after caching/scanning completes.
-func cacheThenServeManifest(ctx context.Context, w http.ResponseWriter, ctl proxy.Controller, _ *proModels.Project, art lib.ArtifactInfo, remote proxy.RemoteInterface) error {
+func cacheThenServeManifest(ctx context.Context, _ http.ResponseWriter, ctl proxy.Controller, _ *proModels.Project, art lib.ArtifactInfo, remote proxy.RemoteInterface) error {
 	// Trigger caching by calling ProxyManifest
 	// This fetches from remote and caches in background
 	_, err := ctl.ProxyManifest(ctx, art, remote)
