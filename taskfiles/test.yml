@@ -141,7 +141,7 @@ tasks:
         echo "✅ All mock files are up to date"
 
   generate-mocks:
-    desc: "🔧 Generate mock files"
+    desc: "🔧 Generate mock files using .mockery.yaml config"
     cmds:
       - |
         if ! command -v mockery &> /dev/null; then
@@ -150,7 +150,7 @@ tasks:
         fi
       - |
         echo "🔧 Generating mocks..."
-        cd src && mockery --all --dir . --output ./testing/mocks
+        cd src && mockery
       - echo "✅ Mocks generated"
 
   # ============================================================================
