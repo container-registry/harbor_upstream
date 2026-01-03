@@ -1,0 +1,67 @@
+# Docker Compose - Local DevEnv
+# 3rd party services for Harbor development environment
+# Harbor services run natively for fast iteration
+
+services:
+  postgresql:
+    image: postgres:16-alpine
+    container_name: harbor-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root123
+      POSTGRES_DB: registry
+    ports:
+      - "5432:5432"
+    volumes:
+      - harbor-postgres-dat:/var/lib/postgresql/data
+      - ../make/migrations:/migrations
+
+  redis:
+    image: valkey/valkey:latest
+    container_name: harbor-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - harbor-redis-data:/data
+
+  registry:
+    image: distribution/distribution:latest
+    container_name: harbor-registry
+    environment:
+      OTEL_TRACES_EXPORTER: none
+      OTEL_SDK_DISABLED: "true"
+    ports:
+      - "50000:5000"
+    volumes:
+      - harbor-registry-data:/var/lib/registry
+      - ../devenv/registry.config.yml:/etc/registry/config.yml:ro
+
+  trivy-adapter:
+    image: goharbor/trivy-adapter-photon:v2.14.1-dev
+    container_name: harbor-trivy-adapter
+    network_mode: host
+    environment:
+      SCANNER_LOG_LEVEL: debug
+      SCANNER_API_SERVER_ADDR: ":8081"
+      SCANNER_REDIS_URL: redis://localhost:6379
+      SCANNER_STORE_REDIS_URL: redis://localhost:6379
+      SCANNER_STORE_REDIS_NAMESPACE: harbor.scanner.trivy:store
+      SCANNER_JOB_QUEUE_REDIS_URL: redis://localhost:6379
+      SCANNER_JOB_QUEUE_REDIS_NAMESPACE: harbor.scanner.trivy:job-queue
+      SCANNER_TRIVY_CACHE_DIR: /home/scanner/.cache/trivy
+      SCANNER_TRIVY_REPORTS_DIR: /home/scanner/.cache/reports
+      SCANNER_TRIVY_VULN_TYPE: os,library
+      SCANNER_TRIVY_SEVERITY: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+      SCANNER_TRIVY_IGNORE_UNFIXED: "false"
+      SCANNER_TRIVY_SKIP_UPDATE: "false"
+      SCANNER_TRIVY_OFFLINE_SCAN: "false"
+      SCANNER_TRIVY_INSECURE: "true"
+      SCANNER_TRIVY_TIMEOUT: 5m0s
+    volumes:
+      - trivy-cache:/home/scanner/.cache
+
+volumes:
+  harbor-postgres-dat:
+  harbor-redis-data:
+  harbor-registry-data:
+  trivy-cache:

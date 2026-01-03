@@ -1,0 +1,32 @@
+---
+# JobService config for local development
+protocol: "http"
+
+# Server listening port
+port: 8888
+
+# Worker pool
+worker_pool:
+  workers: 10
+  backend: "redis"
+  redis_pool:
+    redis_url: "redis://localhost:6379/2"
+    namespace: "harbor_job_service_namespace"
+
+# Loggers for running jobs
+job_loggers:
+  - name: "STD_OUTPUT"
+    level: "DEBUG"
+  - name: "FILE"
+    level: "DEBUG"
+    settings:
+      base_dir: "tmp/job_logs"
+    sweeper:
+      duration: 1
+      settings:
+        work_dir: "tmp/job_logs"
+
+# Loggers for job service itself
+loggers:
+  - name: "STD_OUTPUT"
+    level: "DEBUG"
