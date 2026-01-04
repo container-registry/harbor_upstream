@@ -36,6 +36,7 @@ task dev:frontend        # Angular frontend with HMR
 ## Infrastructure Services
 
 The `docker-compose.yml` file provides:
+
 - **PostgreSQL 16** - Database on `localhost:5432`
 - **Valkey** (Redis) - Cache/queue on `localhost:6379`
 - **Distribution** (Registry) - Registry on `localhost:50000`
@@ -43,11 +44,14 @@ The `docker-compose.yml` file provides:
 ## Configuration Files
 
 ### Air Configs
+
 - **air.core.toml** - Watches `src/` and rebuilds Core in ~3 seconds
 - **air.jobservice.toml** - Watches `src/` and rebuilds Jobservice
 
 ### Service Configs
+
 All configs use `localhost` for local development:
+
 - **jobservice.config.yml** - Redis at `redis://localhost:6379/2`
 - **registry.config.yml** - Redis at `localhost:6379`, storage in Docker volume
 
