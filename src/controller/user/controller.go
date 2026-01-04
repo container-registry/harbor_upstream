@@ -34,10 +34,8 @@ import (
 	"github.com/goharbor/harbor/src/pkg/user/models"
 )
 
-var (
-	// Ctl is a global user controller instance
-	Ctl = NewController()
-)
+// Ctl is a global user controller instance
+var Ctl = NewController()
 
 // Controller provides functions to support API/middleware for user management and query
 type Controller interface {
