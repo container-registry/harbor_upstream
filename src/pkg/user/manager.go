@@ -29,10 +29,8 @@ import (
 	"github.com/goharbor/harbor/src/pkg/user/models"
 )
 
-var (
-	// Mgr is the global project manager
-	Mgr = New()
-)
+// Mgr is the global project manager
+var Mgr = New()
 
 // Manager is used for user management
 type Manager interface {
