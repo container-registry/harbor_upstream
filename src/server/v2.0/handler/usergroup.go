@@ -141,6 +141,7 @@ func (u *userGroupAPI) ListUserGroups(ctx context.Context, params operation.List
 		WithPayload(getUserGroupResp(ug)).
 		WithLink(u.Links(ctx, params.HTTPRequest.URL, total, query.PageNumber, query.PageSize).String())
 }
+
 func getUserGroupResp(ug []*model.UserGroup) []*models.UserGroup {
 	result := make([]*models.UserGroup, 0)
 	for _, u := range ug {
@@ -154,6 +155,7 @@ func getUserGroupResp(ug []*model.UserGroup) []*models.UserGroup {
 	}
 	return result
 }
+
 func getUserGroupSearchItem(ug []*model.UserGroup) []*models.UserGroupSearchItem {
 	result := make([]*models.UserGroupSearchItem, 0)
 	for _, u := range ug {
@@ -166,6 +168,7 @@ func getUserGroupSearchItem(ug []*model.UserGroup) []*models.UserGroupSearchItem
 	}
 	return result
 }
+
 func (u *userGroupAPI) UpdateUserGroup(ctx context.Context, params operation.UpdateUserGroupParams) middleware.Responder {
 	if err := u.RequireSystemAccess(ctx, rbac.ActionUpdate, rbac.ResourceUserGroup); err != nil {
 		return u.SendError(ctx, err)
