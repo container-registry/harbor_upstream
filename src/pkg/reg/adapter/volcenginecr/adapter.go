@@ -94,7 +94,7 @@ func newAdapter(registry *model.Registry) (a *adapter, err error) {
 		return nil, err
 	}
 	cred := NewAuth(client, registryName)
-	var transport = util.GetHTTPTransport(registry.Insecure, registry.CACertificate)
+	transport := util.GetHTTPTransport(registry.Insecure, registry.CACertificate)
 	authorizer := bearer.NewAuthorizer(bearRealm, bearService, cred, transport)
 
 	return &adapter{
@@ -143,12 +143,12 @@ func (a *adapter) PrepareForPush(resources []*model.Resource) (err error) {
 		if len(resource.Metadata.Repository.Name) == 0 {
 			return errors.New("[volcengine-cr.PrepareForPush] the name of the namespace cannot be null")
 		}
-		var paths = strings.Split(resource.Metadata.Repository.Name, "/")
+		paths := strings.Split(resource.Metadata.Repository.Name, "/")
 		if len(paths) < 2 {
 			return errors.New("[volcengine-cr.PrepareForPush] the name of the repository and namespace cannot be null")
 		}
-		var namespace = paths[0]
-		var repository = path.Join(paths[1:]...)
+		namespace := paths[0]
+		repository := path.Join(paths[1:]...)
 
 		log.Debugf("namespace=%s", namespace)
 		err = a.createNamespace(namespace)
