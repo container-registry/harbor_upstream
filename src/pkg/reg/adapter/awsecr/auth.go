@@ -63,7 +63,6 @@ func (a *awsAuthCredential) Modify(req *http.Request) error {
 	}
 	if !a.isTokenValid() {
 		endpoint, user, pass, expiresAt, err := a.getAuthorization(req.URL.String())
-
 		if err != nil {
 			return err
 		}

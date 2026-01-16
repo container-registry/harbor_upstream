@@ -32,9 +32,7 @@ const (
 	ecrPattern = "https://(?:api|(\\d+)\\.dkr)\\.ecr(\\-fips)?\\.([\\w\\-]+)\\.(amazonaws\\.com(\\.cn)?|sc2s\\.sgov\\.gov|c2s\\.ic\\.gov)"
 )
 
-var (
-	ecrRegexp = regexp.MustCompile(ecrPattern)
-)
+var ecrRegexp = regexp.MustCompile(ecrPattern)
 
 func init() {
 	if err := adp.RegisterFactory(model.RegistryTypeAwsEcr, new(factory)); err != nil {
@@ -70,8 +68,7 @@ func parseAccountRegion(url string) (string, string, error) {
 	return rs[1], rs[3], nil
 }
 
-type factory struct {
-}
+type factory struct{}
 
 // Create ...
 func (f *factory) Create(r *model.Registry) (adp.Adapter, error) {
