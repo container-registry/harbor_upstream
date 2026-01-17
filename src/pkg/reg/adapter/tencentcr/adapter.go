@@ -45,7 +45,7 @@ var (
 )
 
 func init() {
-	var envTcrQPSLimit, _ = strconv.Atoi(os.Getenv("REG_ADAPTER_TCR_QPS_LIMIT"))
+	envTcrQPSLimit, _ := strconv.Atoi(os.Getenv("REG_ADAPTER_TCR_QPS_LIMIT"))
 	if envTcrQPSLimit > tcrQPSLimit || envTcrQPSLimit < 1 {
 		envTcrQPSLimit = tcrQPSLimit
 	}
@@ -121,8 +121,8 @@ func newAdapter(registry *model.Registry) (a *adapter, err error) {
 	}
 
 	// Create TCR API client
-	var tcrCredential = common.NewCredential(registry.Credential.AccessKey, registry.Credential.AccessSecret)
-	var cfp = profile.NewClientProfile()
+	tcrCredential := common.NewCredential(registry.Credential.AccessKey, registry.Credential.AccessSecret)
+	cfp := profile.NewClientProfile()
 	var client *tcr.Client
 	// temp client used to get TCR instance info
 	client, err = tcr.NewClient(tcrCredential, regions.Guangzhou, cfp)
@@ -130,7 +130,7 @@ func newAdapter(registry *model.Registry) (a *adapter, err error) {
 		return
 	}
 
-	var req = tcr.NewDescribeInstancesRequest()
+	req := tcr.NewDescribeInstancesRequest()
 	req.AllRegion = common.BoolPtr(true)
 	req.Filters = []*tcr.Filter{
 		{
@@ -148,7 +148,7 @@ func newAdapter(registry *model.Registry) (a *adapter, err error) {
 		err = fmt.Errorf("[tencent-tcr.newAdapter] Can not get TCR instance info. RequestId=%s", *resp.Response.RequestId)
 		return
 	}
-	var instanceInfo = resp.Response.Registries[0]
+	instanceInfo := resp.Response.Registries[0]
 	log.Debugf("[tencent-tcr.InstanceInfo] registry.URL=%s, host=%s, PublicDomain=%s, RegionName=%s, RegistryId=%s",
 		registry.URL, registryURL.Host, *instanceInfo.PublicDomain, *instanceInfo.RegionName, *instanceInfo.RegistryId)
 
@@ -159,12 +159,12 @@ func newAdapter(registry *model.Registry) (a *adapter, err error) {
 		WithProfile(cfp).
 		WithHttpTransport(rateLimiterTransport)
 
-	var credential = NewAuth(instanceInfo.RegistryId, client)
-	var transport = commonhttp.GetHTTPTransport(
+	credential := NewAuth(instanceInfo.RegistryId, client)
+	transport := commonhttp.GetHTTPTransport(
 		commonhttp.WithInsecure(registry.Insecure),
 		commonhttp.WithCACert(registry.CACertificate),
 	)
-	var authorizer = bearer.NewAuthorizer(realm, service, credential, transport)
+	authorizer := bearer.NewAuthorizer(realm, service, credential, transport)
 
 	return &adapter{
 		registry:   registry,
@@ -221,9 +221,9 @@ func (a *adapter) PrepareForPush(resources []*model.Resource) (err error) {
 		if len(resource.Metadata.Repository.Name) == 0 {
 			return errors.New("[tencent-tcr.PrepareForPush] the name of the namespace cannot be null")
 		}
-		var paths = strings.Split(resource.Metadata.Repository.Name, "/")
-		var namespace = paths[0]
-		var repository = path.Join(paths[1:]...)
+		paths := strings.Split(resource.Metadata.Repository.Name, "/")
+		namespace := paths[0]
+		repository := path.Join(paths[1:]...)
 
 		log.Debugf("[tencent-tcr.PrepareForPush.createPrivateNamespace] namespace=%s", namespace)
 		err = a.createPrivateNamespace(namespace)

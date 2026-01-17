@@ -41,7 +41,7 @@ var rateLimiterTransport http.RoundTripper
 const acrQPSLimit = 15
 
 func init() {
-	var envAcrQPSLimit, _ = strconv.Atoi(os.Getenv("REG_ADAPTER_ACR_QPS_LIMIT"))
+	envAcrQPSLimit, _ := strconv.Atoi(os.Getenv("REG_ADAPTER_ACR_QPS_LIMIT"))
 	if envAcrQPSLimit > acrQPSLimit || envAcrQPSLimit < 1 {
 		envAcrQPSLimit = acrQPSLimit
 	}
@@ -136,8 +136,7 @@ func newAdapter(registry *model.Registry) (*adapter, error) {
 	}, nil
 }
 
-type factory struct {
-}
+type factory struct{}
 
 // Create ...
 func (f *factory) Create(r *model.Registry) (adp.Adapter, error) {
@@ -284,7 +283,7 @@ func (a *adapter) FetchArtifacts(filters []*model.Filter) ([]*model.Resource, er
 			repoPattern = f.Value.(string)
 		}
 	}
-	var namespacePattern = strings.Split(repoPattern, "/")[0]
+	namespacePattern := strings.Split(repoPattern, "/")[0]
 
 	log.Debugf("\nrepoPattern=%s tagsPattern=%s\n\n", repoPattern, tagsPattern)
 
@@ -307,7 +306,7 @@ func (a *adapter) FetchArtifacts(filters []*model.Filter) ([]*model.Resource, er
 
 		for _, repo := range repos {
 			var ok bool
-			var repoName = filepath.Join(repo.Namespace, repo.Name)
+			repoName := filepath.Join(repo.Namespace, repo.Name)
 			ok, err = util.Match(repoPattern, repoName)
 			log.Debugf("\n Repository: %s\t repoPattern: %s\t Match: %v\n", repoName, repoPattern, ok)
 			if err != nil {
@@ -320,7 +319,7 @@ func (a *adapter) FetchArtifacts(filters []*model.Filter) ([]*model.Resource, er
 	}
 	log.Debugf("FetchArtifacts.repositories: %#v\n", repositories)
 
-	var rawResources = make([]*model.Resource, len(repositories))
+	rawResources := make([]*model.Resource, len(repositories))
 	runner := utils.NewLimitedConcurrentRunner(adp.MaxConcurrency)
 
 	for i, r := range repositories {
