@@ -53,8 +53,7 @@ type DAO interface {
 	SearchByName(ctx context.Context, name string, limitSize int) ([]*model.UserGroup, error)
 }
 
-type dao struct {
-}
+type dao struct{}
 
 // New create user group DAO
 func New() DAO {

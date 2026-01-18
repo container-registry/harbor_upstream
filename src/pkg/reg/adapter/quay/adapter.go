@@ -95,8 +95,7 @@ func newAdapter(registry *model.Registry) (*adapter, error) {
 	}, nil
 }
 
-type factory struct {
-}
+type factory struct{}
 
 // Create ...
 func (f *factory) Create(r *model.Registry) (adp.Adapter, error) {

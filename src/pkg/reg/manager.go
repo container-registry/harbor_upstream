@@ -57,10 +57,8 @@ import (
 	_ "github.com/goharbor/harbor/src/pkg/reg/adapter/volcenginecr"
 )
 
-var (
-	// Mgr is the global registry manager instance
-	Mgr = NewManager()
-)
+// Mgr is the global registry manager instance
+var Mgr = NewManager()
 
 // Manager defines the registry related operations
 type Manager interface {
