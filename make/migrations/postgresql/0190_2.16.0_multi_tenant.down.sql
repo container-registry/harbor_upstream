@@ -113,7 +113,8 @@ ALTER TABLE project DROP CONSTRAINT IF EXISTS unique_project_name_per_tenant;
 ALTER TABLE project ADD CONSTRAINT project_name_key UNIQUE (name);
 
 -- =============================================================================
--- DROP TENANT TABLE
+-- DROP TENANT TABLES
 -- =============================================================================
 
+DROP TABLE IF EXISTS tenant_domain;
 DROP TABLE IF EXISTS tenant;

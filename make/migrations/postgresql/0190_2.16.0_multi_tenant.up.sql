@@ -33,6 +33,33 @@ CREATE TRIGGER tenant_update_time_at_modtime
 INSERT INTO tenant (id, name, slug, status) VALUES (1, 'default', 'default', 'active');
 
 -- =============================================================================
+-- TENANT DOMAIN MAPPING TABLE
+-- =============================================================================
+
+CREATE TABLE tenant_domain (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL REFERENCES tenant(id) ON DELETE CASCADE,
+    domain VARCHAR(255) NOT NULL,  -- e.g., "acme" (subdomain) or "registry.acme.com" (custom)
+    domain_type VARCHAR(20) NOT NULL DEFAULT 'subdomain',  -- "subdomain" or "custom"
+    is_primary BOOLEAN NOT NULL DEFAULT false,
+    verified BOOLEAN NOT NULL DEFAULT false,  -- DNS verification for custom domains
+    creation_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (domain)
+);
+
+CREATE INDEX idx_tenant_domain_tenant_id ON tenant_domain(tenant_id);
+CREATE INDEX idx_tenant_domain_domain ON tenant_domain(domain);
+
+CREATE TRIGGER tenant_domain_update_time_at_modtime
+    BEFORE UPDATE ON tenant_domain
+    FOR EACH ROW EXECUTE PROCEDURE update_update_time_at_column();
+
+-- Create default domain for default tenant
+INSERT INTO tenant_domain (tenant_id, domain, domain_type, is_primary, verified)
+VALUES (1, 'default', 'subdomain', true, true);
+
+-- =============================================================================
 -- ADD tenant_id TO ALL TENANT-SCOPED TABLES
 -- =============================================================================
 
