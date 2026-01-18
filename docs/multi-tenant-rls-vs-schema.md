@@ -1,159 +1,236 @@
 # RLS vs Schema-per-Tenant: Code Change Analysis
 
-## Tables Requiring Tenant Isolation
+## Multi-Tenancy Model
 
-Based on schema analysis, these tables have `project_id` and need tenant isolation:
+```
+┌─────────────────────────────────────────────────────────┐
+│  Shared Harbor Instance                                  │
+│                                                          │
+│  ┌─────────────────────┐  ┌─────────────────────┐       │
+│  │ Tenant A (Acme)     │  │ Tenant B (Globex)   │       │
+│  │ tenant_id = 1       │  │ tenant_id = 2       │       │
+│  │                     │  │                     │       │
+│  │  ┌───────┐ ┌──────┐ │  │  ┌───────┐         │       │
+│  │  │Proj 1 │ │Proj 2│ │  │  │Proj 3 │         │       │
+│  │  └───────┘ └──────┘ │  │  └───────┘         │       │
+│  └─────────────────────┘  └─────────────────────┘       │
+└─────────────────────────────────────────────────────────┘
+```
 
-| Table | project_id Column | Current Filtering | Raw SQL Usage |
-|-------|-------------------|-------------------|---------------|
-| `repository` | ✅ | ORM query | Minimal |
-| `artifact` | ✅ | ORM query | Some complex joins |
-| `project_member` | ✅ | Raw SQL | Heavy |
-| `project_metadata` | ✅ | ORM query | Minimal |
-| `audit_log` | ✅ | ORM query | Minimal |
-| `audit_log_ext` | ✅ | ORM query | Minimal |
-| `robot` | ✅ | Raw SQL | DELETE |
-| `blob` (via project_blob) | ✅ | Raw SQL | Complex joins |
-| `notification_policy` | ✅ | ORM query | Minimal |
-| `cve_allowlist` | ✅ | ORM query | Minimal |
-| `immutable_tag_rule` | ✅ | ORM query | Minimal |
-| `harbor_label` | ✅ (optional) | ORM query | Minimal |
+**Key insight**: `project_id` is NOT the tenant. A tenant can have multiple projects.
 
 ---
 
-## Approach 1: Row-Level Security (RLS)
+## Schema Changes Required
+
+### New Tenant Table
+
+```sql
+CREATE TABLE tenant (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    slug VARCHAR(63) NOT NULL UNIQUE,  -- for subdomain routing
+    status VARCHAR(20) DEFAULT 'active',
+    metadata JSONB DEFAULT '{}'
+);
+```
+
+### Tables Requiring tenant_id Column
+
+| Category | Tables | Notes |
+|----------|--------|-------|
+| **Core** | `harbor_user`, `user_group`, `project` | Top-level tenant resources |
+| **Project children** | `project_member`, `project_metadata`, `repository` | Denormalized for RLS performance |
+| **Artifacts** | `artifact`, `blob`, `project_blob`, `tag` | Container image data |
+| **Security** | `robot`, `cve_allowlist`, `scan_report` | Access and vulnerability |
+| **Audit** | `audit_log`, `access_log` | Logging |
+| **Policies** | `notification_policy`, `replication_policy`, `retention_policy`, `immutable_tag_rule` | Configuration |
+| **Jobs** | `admin_job`, `execution`, `task`, `job_log`, `schedule` | Background processing |
+| **Other** | `registry`, `quota`, `harbor_label` | Various features |
+
+### System Tables (NO tenant_id)
+
+| Table | Reason |
+|-------|--------|
+| `access` | System constants |
+| `role` | System constants |
+| `properties` | Global configuration |
+| `schema_migrations` | Migration tracking |
+| `oidc_user` | Identity federation (cross-tenant) |
+
+---
+
+## Approach 1: RLS with tenant_id (Recommended)
 
 ### How It Works
 
 ```sql
 -- Set tenant context per transaction
+BEGIN;
 SET LOCAL app.tenant_id = 123;
 
--- All queries automatically filtered
-SELECT * FROM repository;  -- Only returns tenant 123's repos
+-- All queries automatically filtered by RLS policy
+SELECT * FROM project;       -- Only tenant 123's projects
+SELECT * FROM repository;    -- Only tenant 123's repos
+COMMIT;
+-- SET LOCAL automatically resets
 ```
 
-### Database Migration
+### Migration Required
 
 ```sql
--- 0200_rls_multi_tenant.up.sql
+-- Add tenant_id to ALL tenant-scoped tables
+ALTER TABLE project ADD COLUMN tenant_id BIGINT REFERENCES tenant(id);
+ALTER TABLE repository ADD COLUMN tenant_id BIGINT REFERENCES tenant(id);
+-- ... (20+ tables)
 
--- Tenant context function
-CREATE OR REPLACE FUNCTION current_tenant_id() RETURNS INTEGER AS $$
-BEGIN
-    RETURN NULLIF(current_setting('app.tenant_id', true), '')::INTEGER;
-END;
-$$ LANGUAGE plpgsql STABLE;
-
--- Enable RLS on tenant-scoped tables
-ALTER TABLE repository ENABLE ROW LEVEL SECURITY;
-ALTER TABLE artifact ENABLE ROW LEVEL SECURITY;
-ALTER TABLE project_member ENABLE ROW LEVEL SECURITY;
-ALTER TABLE project_metadata ENABLE ROW LEVEL SECURITY;
-ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
-ALTER TABLE robot ENABLE ROW LEVEL SECURITY;
-ALTER TABLE project_blob ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notification_policy ENABLE ROW LEVEL SECURITY;
-ALTER TABLE cve_allowlist ENABLE ROW LEVEL SECURITY;
-ALTER TABLE immutable_tag_rule ENABLE ROW LEVEL SECURITY;
-
--- Create policies (example for repository)
-CREATE POLICY tenant_isolation ON repository
-    USING (project_id = current_tenant_id() OR current_tenant_id() IS NULL);
-
--- Force RLS for app user
-ALTER TABLE repository FORCE ROW LEVEL SECURITY;
+-- Create RLS policies
+CREATE POLICY tenant_isolation ON project
+    USING (tenant_id = current_tenant_id() OR current_tenant_id() IS NULL);
 ```
 
 ### Go Code Changes
 
-**1. Tenant Middleware (NEW FILE)**
+**1. New Tenant Model**
 
 ```go
-// src/lib/orm/tenant.go
-package orm
-
-import "context"
-
-type tenantKey struct{}
-
-func WithTenantID(ctx context.Context, projectID int64) context.Context {
-    return context.WithValue(ctx, tenantKey{}, projectID)
-}
-
-func TenantIDFromContext(ctx context.Context) (int64, bool) {
-    id, ok := ctx.Value(tenantKey{}).(int64)
-    return id, ok
+// src/pkg/tenant/model/model.go (NEW)
+type Tenant struct {
+    ID        int64     `orm:"pk;auto;column(id)"`
+    Name      string    `orm:"column(name)"`
+    Slug      string    `orm:"column(slug)"`
+    Status    string    `orm:"column(status)"`
+    CreatedAt time.Time `orm:"column(creation_time)"`
 }
 ```
 
-**2. Transaction Wrapper (MODIFY src/lib/orm/orm.go)**
+**2. Update ALL Models with tenant_id**
 
 ```go
-// Add to existing WithTransaction function
+// src/pkg/project/models/project.go (MODIFY)
+type Project struct {
+    ProjectID   int64  `orm:"pk;auto;column(project_id)"`
+    TenantID    int64  `orm:"column(tenant_id)"`  // ADD THIS
+    OwnerID     int    `orm:"column(owner_id)"`
+    Name        string `orm:"column(name)"`
+    // ...
+}
+
+// src/pkg/repository/model/model.go (MODIFY)
+type RepoRecord struct {
+    RepositoryID int64  `orm:"pk;auto;column(repository_id)"`
+    TenantID     int64  `orm:"column(tenant_id)"`  // ADD THIS
+    Name         string `orm:"column(name)"`
+    ProjectID    int64  `orm:"column(project_id)"`
+    // ...
+}
+
+// ... repeat for 20+ models
+```
+
+**3. Tenant Context Middleware**
+
+```go
+// src/server/middleware/tenant.go (NEW)
+func TenantMiddleware() func(http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            // Extract tenant from subdomain, header, or JWT
+            tenantID := extractTenantID(r)
+
+            ctx := context.WithValue(r.Context(), TenantKey, tenantID)
+            next.ServeHTTP(w, r.WithContext(ctx))
+        })
+    }
+}
+
+func extractTenantID(r *http.Request) int64 {
+    // Option 1: Subdomain (acme.harbor.example.com)
+    host := r.Host
+    if strings.Contains(host, ".") {
+        slug := strings.Split(host, ".")[0]
+        tenant, _ := tenantDAO.GetBySlug(slug)
+        return tenant.ID
+    }
+
+    // Option 2: Header (X-Tenant-ID: 123)
+    if id := r.Header.Get("X-Tenant-ID"); id != "" {
+        return parseID(id)
+    }
+
+    // Option 3: JWT claim
+    if claims := jwt.FromContext(r.Context()); claims != nil {
+        return claims.TenantID
+    }
+
+    return 0
+}
+```
+
+**4. Transaction Wrapper (MODIFY)**
+
+```go
+// src/lib/orm/orm.go (MODIFY)
 func WithTransaction(ctx context.Context, f func(ctx context.Context) error) error {
-    ormer, err := FromContext(ctx)
+    o, err := FromContext(ctx)
     if err != nil {
         return err
     }
 
-    tx, err := ormer.Begin()
+    tx, err := o.Begin()
     if err != nil {
         return err
     }
 
-    // NEW: Set tenant context if present
-    if tenantID, ok := TenantIDFromContext(ctx); ok {
-        _, err = tx.Raw("SET LOCAL app.tenant_id = ?", tenantID).Exec()
-        if err != nil {
+    // Set tenant context for RLS
+    if tenantID := TenantFromContext(ctx); tenantID > 0 {
+        if _, err := tx.Raw("SET LOCAL app.tenant_id = ?", tenantID).Exec(); err != nil {
             tx.Rollback()
             return err
         }
     }
 
-    // ... rest of transaction logic
+    // ... rest of transaction
 }
 ```
 
-**3. DAO Changes: NONE Required**
-
-Existing DAOs continue to work unchanged:
+**5. DAO Changes - Add tenant_id to Creates**
 
 ```go
-// src/pkg/repository/dao/dao.go - NO CHANGES
-func (d *dao) List(ctx context.Context, query *q.Query) ([]*model.RepoRecord, error) {
-    repositories := []*model.RepoRecord{}
-    qs, err := orm.QuerySetter(ctx, &model.RepoRecord{}, query)
-    // RLS automatically filters by project_id
-    if _, err = qs.All(&repositories); err != nil {
-        return nil, err
+// src/pkg/project/dao/dao.go (MODIFY)
+func (d *dao) Create(ctx context.Context, project *models.Project) (int64, error) {
+    // Must set tenant_id on create
+    if project.TenantID == 0 {
+        project.TenantID = TenantFromContext(ctx)
     }
-    return repositories, nil
+
+    o, err := orm.FromContext(ctx)
+    if err != nil {
+        return 0, err
+    }
+    return o.Insert(project)
 }
-```
 
-**4. Raw SQL: Minimal Changes**
-
-```go
-// Before (src/pkg/member/dao/dao.go:120)
-sql := "SELECT COUNT(1) FROM project_member WHERE project_id = ?"
-
-// After - RLS handles filtering, but explicit is fine
-sql := "SELECT COUNT(1) FROM project_member WHERE project_id = ?"
-// Works the same - RLS is additive protection
+// Queries don't need changes - RLS handles filtering
+func (d *dao) List(ctx context.Context, query *q.Query) ([]*models.Project, error) {
+    // RLS automatically filters by tenant_id
+    // No code change needed here!
+}
 ```
 
 ### Files to Modify for RLS
 
-| File | Change Type | Effort |
-|------|-------------|--------|
-| `src/lib/orm/tenant.go` | NEW | Low |
-| `src/lib/orm/orm.go` | Modify transaction | Low |
-| `src/server/middleware/tenant.go` | NEW - extract tenant from request | Medium |
-| `make/migrations/postgresql/0200_*.sql` | NEW - RLS policies | Medium |
-| DAOs | **NONE** | None |
+| Category | Files | Change |
+|----------|-------|--------|
+| **New** | `src/pkg/tenant/model/model.go` | Tenant model |
+| **New** | `src/pkg/tenant/dao/dao.go` | Tenant DAO |
+| **New** | `src/server/middleware/tenant.go` | Extract tenant from request |
+| **Modify** | `src/lib/orm/orm.go` | Set tenant in transactions |
+| **Modify** | `src/pkg/*/model/*.go` (20+ files) | Add TenantID field |
+| **Modify** | `src/pkg/*/dao/*.go` (20+ files) | Set TenantID on create |
+| **Migration** | `0190_multi_tenant.up.sql` | Add columns, RLS policies |
 
-**Total: ~5 files, low-medium effort**
+**Queries (SELECT) - NO changes needed** (RLS handles filtering)
 
 ---
 
@@ -164,258 +241,129 @@ sql := "SELECT COUNT(1) FROM project_member WHERE project_id = ?"
 ```sql
 -- Each tenant has own schema
 CREATE SCHEMA tenant_123;
-CREATE TABLE tenant_123.repository (...);
+CREATE TABLE tenant_123.project (...);
 
 -- Set search_path per connection
 SET search_path TO tenant_123, public;
-
--- Queries use tenant's tables
-SELECT * FROM repository;  -- Uses tenant_123.repository
+SELECT * FROM project;  -- Uses tenant_123.project
 ```
 
-### Database Migration
+### Problems
 
-```sql
--- For EACH new tenant:
-CREATE SCHEMA tenant_${TENANT_ID};
+| Issue | Impact |
+|-------|--------|
+| **Prepared statement cache** | Statements compiled for one schema don't work for another |
+| **Connection reuse** | Must track which schema each connection is configured for |
+| **100 tenants = 100 schemas** | Schema proliferation |
+| **Migrations** | Must run on every schema |
+| **Cross-tenant queries** | Admin queries need dynamic SQL |
 
--- Copy all table definitions to new schema
-CREATE TABLE tenant_${TENANT_ID}.repository (LIKE public.repository INCLUDING ALL);
-CREATE TABLE tenant_${TENANT_ID}.artifact (LIKE public.artifact INCLUDING ALL);
--- ... 15+ more tables
+### From pgx Discussion #2384
 
--- Copy all indexes, constraints, triggers
--- This is complex and error-prone
-```
-
-### Go Code Changes
-
-**1. Schema Manager (NEW FILE)**
-
-```go
-// src/lib/orm/schema.go
-package orm
-
-import (
-    "context"
-    "fmt"
-)
-
-func SetTenantSchema(ctx context.Context, tenantID int64) error {
-    ormer, err := FromContext(ctx)
-    if err != nil {
-        return err
-    }
-
-    schema := fmt.Sprintf("tenant_%d", tenantID)
-    _, err = ormer.Raw("SET search_path TO ?, public", schema).Exec()
-    return err
-}
-
-func ResetSchema(ctx context.Context) error {
-    ormer, err := FromContext(ctx)
-    if err != nil {
-        return err
-    }
-    _, err = ormer.Raw("SET search_path TO public").Exec()
-    return err
-}
-```
-
-**2. Connection Acquire/Release Hooks**
-
-```go
-// Must set schema on every connection acquire
-// Must reset schema on every connection release
-// Problem: Beego ORM doesn't expose these hooks easily
-```
-
-**3. Model Changes - REMOVE project_id**
-
-```go
-// src/pkg/repository/model/model.go - MUST MODIFY
-type RepoRecord struct {
-    RepositoryID int64     `orm:"pk;auto;column(repository_id)"`
-    Name         string    `orm:"column(name)"`
-    // ProjectID    int64  // REMOVED - schema provides isolation
-    Description  string    `orm:"column(description)"`
-    // ...
-}
-```
-
-**4. DAO Changes - REMOVE project_id filtering**
-
-```go
-// src/pkg/repository/dao/dao.go - MUST MODIFY
-func (d *dao) List(ctx context.Context, query *q.Query) ([]*model.RepoRecord, error) {
-    // Must ensure search_path is set before query
-    if err := orm.SetTenantSchema(ctx, tenantID); err != nil {
-        return nil, err
-    }
-    defer orm.ResetSchema(ctx)
-
-    // Query no longer needs project_id filter
-    // But how do we get tenantID here? Context propagation needed
-}
-```
-
-**5. All Raw SQL - MUST MODIFY**
-
-```go
-// src/pkg/member/dao/dao.go - MUST MODIFY ALL RAW SQL
-
-// Before
-sql := "SELECT COUNT(1) FROM project_member WHERE project_id = ?"
-
-// After - remove project_id, but table is now in tenant schema
-sql := "SELECT COUNT(1) FROM project_member"
-// Must ensure search_path is set before this runs
-```
-
-**6. Cross-Tenant Queries - BROKEN**
-
-```go
-// Admin queries across tenants become complex
-// Before (single schema):
-sql := "SELECT COUNT(*) FROM repository"  // All repos
-
-// After (schema per tenant):
-sql := `
-    SELECT SUM(cnt) FROM (
-        SELECT COUNT(*) as cnt FROM tenant_1.repository
-        UNION ALL
-        SELECT COUNT(*) as cnt FROM tenant_2.repository
-        -- ... repeat for all 100 tenants
-    ) t
-`
-// Or: Dynamic SQL iterating over all schemas
-```
-
-### Files to Modify for Schema-per-Tenant
-
-| File | Change Type | Effort |
-|------|-------------|--------|
-| `src/lib/orm/schema.go` | NEW | Medium |
-| `src/lib/orm/orm.go` | Major changes for schema handling | High |
-| `src/pkg/repository/model/model.go` | Remove project_id | Medium |
-| `src/pkg/artifact/model/model.go` | Remove project_id | Medium |
-| `src/pkg/*/dao/dao.go` (15+ files) | Remove project_id filters | High |
-| `src/pkg/member/dao/dao.go` | Rewrite all raw SQL | High |
-| `src/pkg/blob/dao/dao.go` | Rewrite complex joins | High |
-| `src/server/middleware/*.go` | Schema switching | High |
-| Migration tooling | Per-schema migrations | Very High |
-
-**Total: 30+ files, very high effort**
-
-### Schema-per-Tenant: Connection Pool Problem
-
-From pgx discussions, the critical issue:
-
-```go
-// Prepared statements are schema-specific
-conn.Prepare("get_repos", "SELECT * FROM repository")
-
-// Tenant A uses schema tenant_1
-SET search_path TO tenant_1;
-conn.Query("get_repos")  // Works
-
-// Tenant B acquires same connection, uses schema tenant_2
-SET search_path TO tenant_2;
-conn.Query("get_repos")  // FAILS or returns wrong data!
-// Prepared statement was compiled for tenant_1.repository
-```
-
-**Solutions (all have downsides):**
-
-1. **Disable prepared statements** - Lose performance benefit
-2. **Pool per tenant** - 100 tenants = 100 pools = connection explosion
-3. **Re-prepare on schema change** - Complex, error-prone
-4. **Always use explicit schema** - `SELECT * FROM tenant_1.repository` defeats the purpose
+> "Prepared statements don't automatically recompile across tenant schema changes... RLS might be superior to schema-per-tenant for connection reuse efficiency."
 
 ---
 
 ## Comparison Summary
 
-| Aspect | RLS | Schema-per-Tenant |
-|--------|-----|-------------------|
-| **Code changes** | ~5 files | 30+ files |
-| **DAO changes** | None | All DAOs |
-| **Raw SQL changes** | None | All raw SQL |
-| **Model changes** | None | Remove project_id |
-| **Prepared statements** | Work across tenants | Break on schema switch |
-| **Connection reuse** | Full reuse | Limited/complex |
-| **Cross-tenant queries** | Simple | Very complex |
-| **Migrations** | Single schema | Per-tenant schemas |
-| **New tenant setup** | INSERT row | CREATE SCHEMA + tables |
-| **Backup/restore** | Standard | Per-schema complexity |
-| **pgxpool compatibility** | Native | Requires workarounds |
+| Aspect | RLS (tenant_id) | Schema-per-Tenant |
+|--------|-----------------|-------------------|
+| **New column** | Yes (tenant_id on all tables) | No |
+| **Model changes** | Add TenantID field (20+ files) | No model changes |
+| **DAO create changes** | Set TenantID (20+ files) | Set search_path |
+| **DAO query changes** | **NONE** (RLS filters) | Schema context needed |
+| **Prepared statements** | Shared across tenants | Per-schema (no reuse) |
+| **Connection pool** | Standard pgxpool | Complex schema tracking |
+| **New tenant setup** | INSERT INTO tenant | CREATE SCHEMA + all tables |
+| **Migrations** | Single schema | Per-tenant schema |
+| **Cross-tenant admin** | `SET LOCAL app.tenant_id = NULL` | Dynamic SQL |
 
 ---
 
-## Connection Pool Behavior
+## Tenant Selection at Query Time
 
-### RLS with pgxpool
+### HTTP Request Flow
 
-```go
-// Connection acquired from pool
-conn := pool.Acquire(ctx)
+```
+Request: GET https://acme.harbor.example.com/api/v2/projects
+         X-Tenant-ID: 123 (optional header)
+         Authorization: Bearer <jwt with tenant_id claim>
 
-// Tenant A's request
-tx1, _ := conn.Begin(ctx)
-tx1.Exec(ctx, "SET LOCAL app.tenant_id = $1", 1)
-tx1.Query(ctx, "SELECT * FROM repository")  // Filtered to tenant 1
-tx1.Commit(ctx)
-// SET LOCAL automatically resets after transaction
-
-// Same connection, Tenant B's request
-tx2, _ := conn.Begin(ctx)
-tx2.Exec(ctx, "SET LOCAL app.tenant_id = $1", 2)
-tx2.Query(ctx, "SELECT * FROM repository")  // Filtered to tenant 2
-tx2.Commit(ctx)
-
-conn.Release()  // Connection clean, reusable by any tenant
+┌─────────────────────────────────────────────────────────────┐
+│  1. TenantMiddleware extracts tenant_id                     │
+│     - From subdomain: acme → lookup tenant by slug          │
+│     - From header: X-Tenant-ID                              │
+│     - From JWT: tenant_id claim                             │
+│                                                             │
+│  2. Add to context: ctx = WithTenant(ctx, 123)              │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  3. DAO operation                                           │
+│     tx.Begin()                                              │
+│     tx.Exec("SET LOCAL app.tenant_id = 123")                │
+│                                                             │
+│  4. Query executes with RLS                                 │
+│     SELECT * FROM project                                   │
+│     -- RLS policy: WHERE tenant_id = 123                    │
+│                                                             │
+│  5. Commit releases connection (SET LOCAL auto-resets)      │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Schema-per-Tenant with pgxpool
+### Code Example
 
 ```go
-// Connection acquired from pool
-conn := pool.Acquire(ctx)
+// Handler
+func (h *ProjectHandler) List(w http.ResponseWriter, r *http.Request) {
+    ctx := r.Context()
+    // tenant_id already in context from middleware
 
-// Tenant A's request
-conn.Exec(ctx, "SET search_path TO tenant_1, public")
-conn.Query(ctx, "SELECT * FROM repository")  // tenant_1.repository
-// search_path persists on connection!
+    projects, err := h.projectCtl.List(ctx, query)
+    // Returns only this tenant's projects
+}
 
-// Same connection, Tenant B's request
-// PROBLEM: search_path still tenant_1 unless explicitly changed
-conn.Exec(ctx, "SET search_path TO tenant_2, public")  // Must do this
-// Any prepared statements from tenant_1 are now invalid
+// Controller - no tenant logic needed
+func (c *controller) List(ctx context.Context, query *q.Query) ([]*models.Project, error) {
+    return c.projectMgr.List(ctx, query)
+}
 
-conn.Release()
-// Connection has tenant_2 search_path - next acquire may be tenant_3
-// Must reset or track which tenant connection is configured for
+// Manager - no tenant logic needed
+func (m *manager) List(ctx context.Context, query *q.Query) ([]*models.Project, error) {
+    return m.dao.List(ctx, query)
+}
+
+// DAO - no tenant logic needed (RLS handles it)
+func (d *dao) List(ctx context.Context, query *q.Query) ([]*models.Project, error) {
+    qs, _ := orm.QuerySetter(ctx, &models.Project{}, query)
+    var projects []*models.Project
+    _, err := qs.All(&projects)  // RLS filters automatically
+    return projects, err
+}
 ```
 
 ---
 
 ## Recommendation
 
-**Use RLS** for Harbor multi-tenancy because:
+**Use RLS with tenant_id column** because:
 
-1. **Minimal code changes** - DAOs unchanged, ORM queries unchanged
-2. **Full connection reuse** - `SET LOCAL` is transaction-scoped, auto-resets
-3. **Prepared statements work** - Same schema, same query plans
-4. **Existing project_id** - Already used for filtering, RLS adds enforcement
-5. **Simple operations** - Backup, migrate, add tenant = standard operations
-6. **Defense in depth** - RLS enforces at DB level even if app has bugs
+1. **Queries unchanged** - RLS is transparent to existing query logic
+2. **Connection reuse** - `SET LOCAL` is transaction-scoped, auto-resets
+3. **Prepared statements shared** - Same schema, same query plans
+4. **Simple operations** - Standard backup, migration, admin
+5. **Defense in depth** - Database enforces isolation even if app has bugs
 
-Schema-per-tenant would require:
-- Rewriting 30+ files
-- Removing project_id from all models
-- Complex connection pool management
-- Breaking prepared statement caching
-- Complex cross-tenant admin queries
-- Per-schema migration tooling
+### Effort Estimate
 
-**The effort difference is roughly 10x, with RLS being simpler and more compatible with pgxpool.**
+| Task | Files | Complexity |
+|------|-------|------------|
+| Add tenant_id to models | ~25 | Low (mechanical) |
+| Add tenant_id to creates | ~25 | Low (mechanical) |
+| Tenant middleware | 1 | Medium |
+| Transaction wrapper | 1 | Low |
+| Migration SQL | 1 | Medium |
+| **Total** | ~53 files | **Medium overall** |
+
+Most changes are mechanical "add TenantID field" - the query logic stays the same.
