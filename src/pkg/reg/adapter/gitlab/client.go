@@ -92,6 +92,7 @@ func (c *Client) getProjectsByName(name string) ([]*Project, error) {
 	}
 	return projects, nil
 }
+
 func (c *Client) getRepositories(projectID int64) ([]*Repository, error) {
 	var repositories []*Repository
 	urlAPI := fmt.Sprintf("%s/api/v4/projects/%d/registry/repositories?per_page=50", c.url, projectID)

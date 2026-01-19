@@ -26,10 +26,8 @@ import (
 	"github.com/goharbor/harbor/src/pkg/usergroup/model"
 )
 
-var (
-	// Ctl Global instance of the UserGroup controller
-	Ctl = newController()
-)
+// Ctl Global instance of the UserGroup controller
+var Ctl = newController()
 
 // Controller manages the user group
 type Controller interface {
