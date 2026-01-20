@@ -91,7 +91,7 @@ func newAdapter(registry *model.Registry) *adapter {
 			registry.Credential.AccessSecret)
 	}
 
-	var transport = common_http.GetHTTPTransport(
+	transport := common_http.GetHTTPTransport(
 		common_http.WithInsecure(registry.Insecure),
 		common_http.WithCACert(registry.CACertificate),
 	)
@@ -155,7 +155,7 @@ func (a *adapter) FetchArtifacts(filters []*model.Filter) (resources []*model.Re
 		return nil, nil
 	}
 
-	var rawResources = make([]*model.Resource, len(repositories))
+	rawResources := make([]*model.Resource, len(repositories))
 	runner := utils.NewLimitedConcurrentRunner(adp.MaxConcurrency)
 
 	for i, r := range repositories {

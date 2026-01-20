@@ -140,7 +140,7 @@ func (a *Adapter) FetchArtifacts(filters []*model.Filter) ([]*model.Resource, er
 		return nil, nil
 	}
 
-	var rawResources = make([]*model.Resource, len(repositories))
+	rawResources := make([]*model.Resource, len(repositories))
 	runner := utils.NewLimitedConcurrentRunner(adp.MaxConcurrency)
 
 	for i, r := range repositories {
