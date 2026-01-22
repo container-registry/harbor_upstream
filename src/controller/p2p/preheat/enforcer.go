@@ -111,10 +111,8 @@ type matchedPolicy struct {
 	filtered []*selector.Candidate
 }
 
-var (
-	// Enf default enforcer
-	Enf = NewEnforcer()
-)
+// Enf default enforcer
+var Enf = NewEnforcer()
 
 // defaultEnforcer is default implementation of Enforcer.
 type defaultEnforcer struct {
