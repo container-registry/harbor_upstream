@@ -50,8 +50,7 @@ func init() {
 	}
 }
 
-type factory struct {
-}
+type factory struct{}
 
 // Create ...
 func (f *factory) Create(r *model.Registry) (adp.Adapter, error) {
@@ -168,7 +167,7 @@ func (a *adapter) FetchArtifacts(filters []*model.Filter) ([]*model.Resource, er
 		return nil, nil
 	}
 
-	var rawResources = make([]*model.Resource, len(repositories))
+	rawResources := make([]*model.Resource, len(repositories))
 	runner := utils.NewLimitedConcurrentRunner(adp.MaxConcurrency)
 
 	for i, r := range repositories {

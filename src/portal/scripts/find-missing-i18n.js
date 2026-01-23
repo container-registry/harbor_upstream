@@ -113,7 +113,7 @@ function findUsedKeys() {
  */
 function getOtherLangFiles() {
     const files = fs.readdirSync(LANG_DIR);
-    return files.filter(function(f) {
+    return files.filter(function (f) {
         return f.endsWith('-lang.json') && f !== 'en-us-lang.json';
     });
 }
@@ -176,7 +176,9 @@ function main() {
 
     const usedKeys = findUsedKeys();
     const usedKeysList = Object.keys(usedKeys);
-    console.log('Unique keys used in source code: ' + usedKeysList.length + '\n');
+    console.log(
+        'Unique keys used in source code: ' + usedKeysList.length + '\n'
+    );
 
     let hasErrors = false;
 
@@ -195,7 +197,9 @@ function main() {
         console.log('No missing keys found!\n');
     } else {
         hasErrors = true;
-        missingKeys.sort(function(a, b) { return a.key.localeCompare(b.key); });
+        missingKeys.sort(function (a, b) {
+            return a.key.localeCompare(b.key);
+        });
         for (let i = 0; i < missingKeys.length; i++) {
             var item = missingKeys[i];
             console.log('MISSING: ' + item.key);
@@ -204,7 +208,9 @@ function main() {
                 console.log('    -> ' + item.files[j]);
             }
             if (item.files.length > 3) {
-                console.log('    -> ... and ' + (item.files.length - 3) + ' more files');
+                console.log(
+                    '    -> ... and ' + (item.files.length - 3) + ' more files'
+                );
             }
         }
         console.log('\nTotal missing from en-us: ' + missingKeys.length + '\n');
@@ -233,7 +239,10 @@ function main() {
                 console.log('    - ... and ' + (missing.length - 5) + ' more');
             }
         }
-        console.log('\nTotal keys missing across all language files: ' + syncResult.totalMissing);
+        console.log(
+            '\nTotal keys missing across all language files: ' +
+                syncResult.totalMissing
+        );
     }
 
     if (hasErrors) {
