@@ -96,7 +96,8 @@ func (e *executionManager) Count(ctx context.Context, query *q.Query) (int64, er
 }
 
 func (e *executionManager) Create(ctx context.Context, vendorType string, vendorID int64, trigger string,
-	extraAttrs ...map[string]any) (int64, error) {
+	extraAttrs ...map[string]any,
+) (int64, error) {
 	extras := map[string]any{}
 	if len(extraAttrs) > 0 && extraAttrs[0] != nil {
 		extras = extraAttrs[0]
@@ -297,7 +298,8 @@ func (e *executionManager) DeleteByVendor(ctx context.Context, vendorType string
 		Keywords: map[string]any{
 			"VendorType": vendorType,
 			"VendorID":   vendorID,
-		}})
+		},
+	})
 	if err != nil {
 		return err
 	}

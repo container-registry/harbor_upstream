@@ -31,15 +31,13 @@ const (
 	sysInfoURL              = "/api/v2.0/systeminfo"
 )
 
-var (
-	harborSysInfo = typedDesc{
-		desc: newDescWithLables("", "system_info", "Information of Harbor system",
-			"auth_mode",
-			"harbor_version",
-			"self_registration"),
-		valueType: prometheus.GaugeValue,
-	}
-)
+var harborSysInfo = typedDesc{
+	desc: newDescWithLables("", "system_info", "Information of Harbor system",
+		"auth_mode",
+		"harbor_version",
+		"self_registration"),
+	valueType: prometheus.GaugeValue,
+}
 
 // NewSystemInfoCollector ...
 func NewSystemInfoCollector(hbrCli *HarborClient) *SystemInfoCollector {

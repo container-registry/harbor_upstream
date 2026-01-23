@@ -377,7 +377,8 @@ func (_m *Manager) UpdateProfile(ctx context.Context, _a1 *commonmodels.User, co
 func NewManager(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *Manager {
+},
+) *Manager {
 	mock := &Manager{}
 	mock.Mock.Test(t)
 
