@@ -28,8 +28,10 @@ import (
 	"github.com/goharbor/harbor/src/lib/log"
 )
 
-var knownPool sync.Map
-var m sync.Mutex
+var (
+	knownPool sync.Map
+	m         sync.Mutex
+)
 
 // PoolParam ...
 type PoolParam struct {

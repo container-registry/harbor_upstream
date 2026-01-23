@@ -36,8 +36,10 @@ import (
 	"github.com/goharbor/harbor/src/server/v2.0/handler"
 )
 
-const ReferrersSchemaVersion = 2
-const ReferrersMediaType = "application/vnd.oci.image.index.v1+json"
+const (
+	ReferrersSchemaVersion = 2
+	ReferrersMediaType     = "application/vnd.oci.image.index.v1+json"
+)
 
 func newReferrersHandler() http.Handler {
 	return &referrersHandler{
