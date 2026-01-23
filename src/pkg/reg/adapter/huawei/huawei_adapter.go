@@ -40,8 +40,7 @@ func init() {
 	log.Infof("the factory of Huawei adapter was registered")
 }
 
-type factory struct {
-}
+type factory struct{}
 
 // Create ...
 func (f *factory) Create(r *model.Registry) (adp.Adapter, error) {
@@ -210,7 +209,7 @@ func (a *adapter) PrepareForPush(resources []*model.Resource) error {
 
 // GetNamespace gets a namespace from Huawei SWR
 func (a *adapter) GetNamespace(namespaceStr string) (*model.Namespace, error) {
-	var namespace = &model.Namespace{
+	namespace := &model.Namespace{
 		Name:     "",
 		Metadata: make(map[string]any),
 	}
@@ -303,7 +302,7 @@ type hwNamespace struct {
 }
 
 func (ns hwNamespace) metadata() map[string]any {
-	var metadata = make(map[string]any)
+	metadata := make(map[string]any)
 	metadata["id"] = ns.ID
 	metadata["creator_name"] = ns.CreatorName
 	metadata["domain_public"] = ns.DomainPublic
