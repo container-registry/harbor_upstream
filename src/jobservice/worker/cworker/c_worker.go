@@ -36,9 +36,7 @@ import (
 	"github.com/goharbor/harbor/src/lib/errors"
 )
 
-var (
-	workerPoolDeadTime = 10 * time.Second
-)
+var workerPoolDeadTime = 10 * time.Second
 
 const (
 	workerPoolStatusHealthy      = "Healthy"

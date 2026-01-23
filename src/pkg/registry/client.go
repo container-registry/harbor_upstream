@@ -69,10 +69,8 @@ const (
 	DefaultHTTPClientTimeout = 30 * time.Minute
 )
 
-var (
-	// registryHTTPClientTimeout is the timeout for registry http client.
-	registryHTTPClientTimeout time.Duration
-)
+// registryHTTPClientTimeout is the timeout for registry http client.
+var registryHTTPClientTimeout time.Duration
 
 func init() {
 	registryHTTPClientTimeout = DefaultHTTPClientTimeout
@@ -298,7 +296,8 @@ func (c *client) ManifestExist(repository, reference string) (bool, *distributio
 }
 
 func (c *client) PullManifest(repository, reference string, acceptedMediaTypes ...string) (
-	distribution.Manifest, string, error) {
+	distribution.Manifest, string, error,
+) {
 	req, err := http.NewRequest(http.MethodGet, buildManifestURL(c.url, repository, reference), nil)
 	if err != nil {
 		return nil, "", err
